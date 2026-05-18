@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V2 Lifecycle Tests &mdash; Design Spec</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-sm bg-body-tertiary border-bottom sticky-top">
+  <div class="container">
+    <span class="navbar-brand fw-bold"><i class="bi bi-diagram-3 me-2"></i>HyperShift</span>
+    <span class="navbar-text text-body-secondary d-none d-sm-inline">V2 Lifecycle Tests &mdash; Design Spec</span>
+    <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="toggleTheme()" title="Toggle theme">
+      <i class="bi bi-moon-stars-fill" id="theme-icon"></i>
+    </button>
+  </div>
+</nav>
+
+<div class="container py-4" style="max-width: 960px;">
+
+  <!-- Header -->
+  <div class="pb-3 mb-4 border-bottom">
+    <h1 class="display-6 fw-bold">V2 Lifecycle Tests for Azure Self-Managed</h1>
+    <p class="lead text-body-secondary">Port the 4 remaining v1 lifecycle tests to the v2 Ginkgo framework with platform-agnostic labels and per-platform cluster mapping.</p>
+    <div class="d-flex gap-2 flex-wrap">
+      <span class="badge text-bg-primary rounded-pill">TestAutoscaling</span>
+      <span class="badge text-bg-primary rounded-pill">TestNodePool</span>
+      <span class="badge text-bg-primary rounded-pill">TestUpgradeControlPlane</span>
+      <span class="badge text-bg-primary rounded-pill">TestHAEtcdChaos</span>
+    </div>
+  </div>
+
+  <!-- Goals -->
+  <h2 class="h4 fw-bold mb-3"><i class="bi bi-bullseye text-primary me-2"></i>Goals</h2>
+  <div class="list-group mb-4">
+    <div class="list-group-item"><i class="bi bi-check2 text-success me-2"></i>Port all 4 v1 lifecycle tests to v2 Ginkgo BDD test files</div>
+    <div class="list-group-item"><i class="bi bi-check2 text-success me-2"></i>Tests are <strong>platform-agnostic</strong>: labels determine what runs, CI workflows determine which cluster to target</div>
+    <div class="list-group-item"><i class="bi bi-check2 text-success me-2"></i>Each platform decides independently whether a test gets its own cluster or shares an existing one</div>
+    <div class="list-group-item"><i class="bi bi-check2 text-success me-2"></i>For Azure self-managed: reuse the existing public cluster for autoscaling + nodepool tests, create 1 new HA cluster for upgrade then etcd-chaos (sequentially)</div>
+  </div>
+
+  <!-- Scope Exclusions (early, so reader knows boundaries) -->
+  <h2 class="h4 fw-bold mb-3"><i class="bi bi-x-circle text-primary me-2"></i>Out of Scope</h2>
+  <p class="text-body-secondary">The following v1 tests are not ported in this work:</p>
+  <div class="list-group mb-4">
+    <div class="list-group-item list-group-item-light"><strong>TestCreateCluster</strong> &mdash; already covered by v2 workflow cluster creation + existing validation tests</div>
+    <div class="list-group-item list-group-item-light"><strong>AWS-only NodePool sub-tests</strong> &mdash; day-2 tags, spot termination, image types</div>
+    <div class="list-group-item list-group-item-light"><strong>KubeVirt / OpenStack-specific tests</strong></div>
+    <div class="list-group-item list-group-item-light"><strong>TestNodePoolMultiArch</strong> &mdash; separate test, not in the v1 CI_TESTS_RUN filter</div>
+  </div>
+
+  <!-- ==================== DESIGN ==================== -->
+  <div class="border-top pt-4 mt-2 mb-4">
+    <h2 class="h3 fw-bold text-body-secondary mb-1"><i class="bi bi-pencil-square me-2"></i>Design</h2>
+    <p class="text-body-secondary">How tests map to clusters, and what each test file covers.</p>
+  </div>
+
+  <!-- Cluster Layout -->
+  <h3 class="h4 fw-bold mb-3"><i class="bi bi-hdd-rack text-primary me-2"></i>Cluster Layout</h3>
+  <p>The v2 CI workflow already provisions 3 hosted clusters. This work adds 1 more &mdash; an HA cluster provisioned at N-1 that first runs the upgrade test, then runs etcd chaos tests on the same upgraded cluster.</p>
+  <div class="table-responsive mb-2">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr><th>Cluster</th><th>Config</th><th>Labels Run Against It</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>public</strong></td>
+          <td>Latest release, workers</td>
+          <td><code>self-managed-azure-public</code> &nbsp; <code>nodepool-autoscaling</code> &nbsp; <code>nodepool-lifecycle</code></td>
+        </tr>
+        <tr>
+          <td><strong>private</strong></td>
+          <td>Private topology</td>
+          <td><code>self-managed-azure-private</code></td>
+        </tr>
+        <tr>
+          <td><strong>oauth-lb</strong></td>
+          <td>OAuth via LoadBalancer</td>
+          <td><code>self-managed-azure-oauth-lb</code></td>
+        </tr>
+        <tr>
+          <td>&#x2728; <strong>upgrade</strong></td>
+          <td>N-1 release image, HA control plane</td>
+          <td><code>control-plane-upgrade</code> &rarr; <code>etcd-chaos</code> <small class="text-body-secondary">(sequential)</small></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="text-body-secondary small mb-2">&#x2728; = new cluster added by this work. Unmarked clusters already exist in the v2 CI workflow. The upgrade cluster runs <code>control-plane-upgrade</code> first, then <code>etcd-chaos</code> sequentially on the same HA cluster.</p>
+
+  <!-- Test Labels -->
+  <h3 class="h5 fw-bold mb-3 mt-4">Test Labels</h3>
+  <p>Each cluster runs tests matched by platform-agnostic Ginkgo labels. CI workflows map labels to clusters, so the same test code works across AWS, Azure, and GCP.</p>
+  <div class="row row-cols-1 row-cols-md-2 g-3 mb-3">
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-title font-monospace text-primary">nodepool-autoscaling</h6>
+          <p class="card-text text-body-secondary mb-0">Scale-up, scale-down, balancing</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-title font-monospace text-primary">nodepool-lifecycle</h6>
+          <p class="card-text text-body-secondary mb-0">Machineconfig, upgrades, auto-repair&hellip;</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-title font-monospace text-primary">control-plane-upgrade</h6>
+          <p class="card-text text-body-secondary mb-0">N-1 &rarr; latest CP upgrade</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-title font-monospace text-primary">etcd-chaos</h6>
+          <p class="card-text text-body-secondary mb-0">Kill / recover / corrupt members</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="alert alert-info d-flex align-items-start mb-4" role="alert">
+    <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+    <div>Other platforms (AWS, GCP) can map these labels to different cluster topologies. For example, AWS might create a dedicated cluster per label instead of sharing the public cluster.</div>
+  </div>
+
+  <!-- Parallelism -->
+  <h3 class="h5 fw-bold mb-3">Parallelism &amp; Safety</h3>
+  <p>Because autoscaling and lifecycle tests share the public cluster, every test must be parallelism-safe.</p>
+  <div class="list-group mb-4">
+    <div class="list-group-item"><i class="bi bi-shield-check text-success me-2"></i>Each test creates <strong>uniquely-named NodePools</strong> and cleans up via <code>defer</code> &mdash; no mutation of the default NP</div>
+    <div class="list-group-item"><i class="bi bi-sliders2 text-primary me-2"></i>CI controls parallelism via <code>--ginkgo.procs=N</code> per binary invocation</div>
+    <div class="list-group-item"><i class="bi bi-arrows-expand text-info me-2"></i>Upgrade and etcd-chaos run <strong>sequentially</strong> on the same HA cluster &mdash; upgrade first, then chaos. Both run in parallel with public/private/oauth-lb tests.</div>
+  </div>
+
+  <!-- V2 Test Files -->
+  <h3 class="h4 fw-bold mb-3"><i class="bi bi-file-earmark-code text-primary me-2"></i>V2 Test Files</h3>
+  <p>These labels correspond to 4 new test files under <code>test/e2e/v2/tests/</code>. Each follows the v2 convention: a <code>RegisterXxxTests()</code> function, a top-level <code>Describe</code> with a <code>Label</code>, and <code>It</code> blocks for each sub-test.</p>
+
+  <!-- Nav tabs -->
+  <ul class="nav nav-tabs" id="testTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tab-autoscaling" data-bs-toggle="tab" data-bs-target="#pane-autoscaling" type="button" role="tab" aria-controls="pane-autoscaling" aria-selected="true">
+        <span class="badge bg-primary rounded-circle me-1">1</span> Autoscaling
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-lifecycle" data-bs-toggle="tab" data-bs-target="#pane-lifecycle" type="button" role="tab" aria-controls="pane-lifecycle" aria-selected="false">
+        <span class="badge bg-primary rounded-circle me-1">2</span> Lifecycle
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-upgrade" data-bs-toggle="tab" data-bs-target="#pane-upgrade" type="button" role="tab" aria-controls="pane-upgrade" aria-selected="false">
+        <span class="badge bg-primary rounded-circle me-1">3</span> Upgrade
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-chaos" data-bs-toggle="tab" data-bs-target="#pane-chaos" type="button" role="tab" aria-controls="pane-chaos" aria-selected="false">
+        <span class="badge bg-primary rounded-circle me-1">4</span> Etcd Chaos
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content border border-top-0 rounded-bottom p-4 mb-4" id="testTabContent">
+
+    <!-- Autoscaling -->
+    <div class="tab-pane fade show active" id="pane-autoscaling" role="tabpanel" aria-labelledby="tab-autoscaling" tabindex="0">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 font-monospace">nodepool_autoscaling_test.go</h5>
+        <span class="badge text-bg-info">nodepool-autoscaling</span>
+      </div>
+      <p>Creates its own NodePools (does not modify the cluster's default NP &mdash; unlike v1). Necessary because the cluster may be shared with other tests.</p>
+      <div class="list-group mb-3">
+        <div class="list-group-item">
+          <div class="d-flex align-items-center">
+            <span class="badge text-bg-warning me-2">Scale Up</span>
+            <span>Create autoscaling NP (min=1, max=3), deploy memory-pressure workload (Job with <code>max</code> pods, each requesting 50% of a node's allocatable memory), verify node count increases to <code>max</code></span>
+          </div>
+        </div>
+        <div class="list-group-item">
+          <div class="d-flex align-items-center">
+            <span class="badge text-bg-info me-2">Scale Down</span>
+            <span>Delete the workload, verify node count decreases back to <code>min</code></span>
+          </div>
+        </div>
+        <div class="list-group-item">
+          <div class="d-flex align-items-center">
+            <span class="badge text-bg-secondary me-2">Balancing</span>
+            <span>Create a second NP with autoscaling, deploy workload, verify pods are balanced across both NodePools</span>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-secondary d-flex align-items-center mb-0" role="alert">
+        <i class="bi bi-arrow-repeat me-2"></i>
+        Cleanup: deletes created NodePools and workloads via <code>defer</code>
+      </div>
+    </div>
+
+    <!-- Lifecycle -->
+    <div class="tab-pane fade" id="pane-lifecycle" role="tabpanel" aria-labelledby="tab-lifecycle" tabindex="0">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 font-monospace">nodepool_lifecycle_test.go</h5>
+        <span class="badge text-bg-info">nodepool-lifecycle</span>
+      </div>
+      <p>Each sub-test creates its own uniquely-named NodePool, runs the test, and cleans up. Tests are parallelism-safe.</p>
+
+      <h6 class="text-body-secondary text-uppercase small fw-bold mt-3 mb-2"><i class="bi bi-arrow-left-right me-1"></i>Ported from v1</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-light"><tr><th>Sub-test</th><th>Source</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Machineconfig rollout</td><td><code>nodepool_machineconfig_test.go</code></td><td>Apply MachineConfig, verify rollout</td></tr>
+            <tr><td>NTO machineconfig rollout</td><td><code>nodepool_nto_machineconfig_test.go</code></td><td>Replace strategy</td></tr>
+            <tr><td>NTO machineconfig in-place</td><td><code>nodepool_nto_machineconfig_test.go</code></td><td>In-place strategy</td></tr>
+            <tr><td>NodePool replace upgrade</td><td><code>nodepool_upgrade_test.go</code></td><td>Upgrade via Replace</td></tr>
+            <tr><td>NodePool in-place upgrade</td><td><code>nodepool_upgrade_test.go</code></td><td>Upgrade via InPlace</td></tr>
+            <tr><td>Rolling upgrade</td><td><code>nodepool_rolling_upgrade_test.go</code></td><td>AWS + Azure</td></tr>
+            <tr><td>Prev-release N-1</td><td><code>nodepool_prev_release_test.go</code></td><td>Create NP at N-1</td></tr>
+            <tr><td>Prev-release N-2</td><td><code>nodepool_prev_release_test.go</code></td><td>Create NP at N-2</td></tr>
+            <tr><td>Mirror configs</td><td><code>nodepool_mirrorconfigs_test.go</code></td><td>4.18+</td></tr>
+            <tr><td>Additional trust bundle</td><td><code>nodepool_additionalTrustBundlePropagation_test.go</code></td><td>Trust bundle propagation</td></tr>
+            <tr><td>NTO PerformanceProfile</td><td><code>nodepool_nto_performanceprofile_test.go</code></td><td>Skips OpenStack only</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h6 class="text-success text-uppercase small fw-bold mt-3 mb-2"><i class="bi bi-plus-circle me-1"></i>New platform-specific</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-light"><tr><th>Sub-test</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Auto-repair</td><td>Azure: delete VMSS instance. AWS: terminate EC2 instance.</td></tr>
+            <tr><td>Disk encryption</td><td>Azure: <code>DiskEncryptionSetID</code>. AWS: KMS + EBS.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-body-secondary mt-3 mb-2">Platform-specific sub-tests use a switch:</p>
+      <pre class="bg-body-tertiary border rounded p-3"><code>It("should replace a terminated node", func() {
+    hc := testCtx.GetHostedCluster()
+    switch hc.Spec.Platform.Type {
+    case hyperv1.AzurePlatform:
+        // delete VMSS instance via Azure SDK
+    case hyperv1.AWSPlatform:
+        // terminate EC2 instance via AWS SDK
+    default:
+        Skip("auto-repair not implemented for this platform")
+    }
+})</code></pre>
+    </div>
+
+    <!-- Upgrade -->
+    <div class="tab-pane fade" id="pane-upgrade" role="tabpanel" aria-labelledby="tab-upgrade" tabindex="0">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 font-monospace">control_plane_upgrade_test.go</h5>
+        <span class="badge text-bg-info">control-plane-upgrade</span>
+      </div>
+      <p>Assumes the cluster was created at N-1 release image.</p>
+      <ol class="list-group list-group-numbered mb-3">
+        <li class="list-group-item">Record starting version from <code>hostedCluster.Status.Version.History</code></li>
+        <li class="list-group-item">Patch <code>spec.release.image</code> to the latest release image</li>
+        <li class="list-group-item">Set <code>ForceUpgradeToAnnotation</code> annotation</li>
+        <li class="list-group-item">Wait for control plane component rollout <span class="badge text-bg-secondary">4.20+</span></li>
+        <li class="list-group-item">Wait for control plane version rollout <span class="badge text-bg-secondary">4.22+</span></li>
+        <li class="list-group-item">Wait for data plane (CVO) rollout</li>
+        <li class="list-group-item">Validate: feature gates, node count, no crashing pods, MachineDeployment generation&nbsp;=&nbsp;1</li>
+      </ol>
+      <div class="alert alert-secondary d-flex align-items-center mb-0" role="alert">
+        <i class="bi bi-braces me-2"></i>
+        Requires: <code>E2E_LATEST_RELEASE_IMAGE</code>, <code>E2E_PREVIOUS_RELEASE_IMAGE</code>
+      </div>
+    </div>
+
+    <!-- Etcd Chaos -->
+    <div class="tab-pane fade" id="pane-chaos" role="tabpanel" aria-labelledby="tab-chaos" tabindex="0">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 font-monospace">etcd_chaos_test.go</h5>
+        <span class="badge text-bg-info">etcd-chaos</span>
+      </div>
+      <p><code>Ordered</code> Ginkgo context &mdash; tests run sequentially. Assumes HA control plane. Runs on the upgrade cluster after the upgrade test completes.</p>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-light"><tr><th>Sub-test</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td>Single member recovery</td><td>Delete one etcd pod, verify recovery + data preserved</td></tr>
+            <tr><td>Kill random members</td><td>Repeatedly delete random pods, verify data integrity</td></tr>
+            <tr><td>Kill all members</td><td>Delete all etcd pods simultaneously, verify full recovery</td></tr>
+            <tr><td>Single member corruption</td><td>Corrupt one PVC, verify etcd auto-heals</td></tr>
+            <tr><td>Missing member recovery</td><td>Delete one PVC, verify etcd replaces the member</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="alert alert-secondary d-flex align-items-center mb-0" role="alert">
+        <i class="bi bi-database-check me-2"></i>
+        Each sub-test creates a marker ConfigMap before chaos, verifies it survives.
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CI & INFRASTRUCTURE ==================== -->
+  <div class="border-top pt-4 mt-2 mb-4">
+    <h2 class="h3 fw-bold text-body-secondary mb-1"><i class="bi bi-gear me-2"></i>CI &amp; Infrastructure</h2>
+    <p class="text-body-secondary">Changes needed in the <code>openshift/release</code> repo and the v2 framework to support these tests.</p>
+  </div>
+
+  <!-- Environment Variables -->
+  <h3 class="h4 fw-bold mb-3"><i class="bi bi-braces text-primary me-2"></i>Environment Variables</h3>
+  <p>The test binary and CI scripts communicate through environment variables registered in <code>test/e2e/v2/internal/env_vars.go</code>. These are the new ones:</p>
+  <div class="table-responsive mb-4">
+    <table class="table table-bordered table-hover">
+      <thead class="table-light"><tr><th>Variable</th><th>Purpose</th><th>Required By</th></tr></thead>
+      <tbody>
+        <tr><td><code>E2E_LATEST_RELEASE_IMAGE</code></td><td>Latest OCP release image</td><td>control-plane-upgrade</td></tr>
+        <tr><td><code>E2E_PREVIOUS_RELEASE_IMAGE</code></td><td>N-1 OCP release image</td><td>control-plane-upgrade</td></tr>
+        <tr><td><code>E2E_N1_RELEASE_IMAGE</code></td><td>N-1 minor release image</td><td>nodepool-lifecycle</td></tr>
+        <tr><td><code>E2E_N2_RELEASE_IMAGE</code></td><td>N-2 minor release image</td><td>nodepool-lifecycle</td></tr>
+        <tr><td><code>E2E_AZURE_CREDENTIALS_FILE</code></td><td>Azure service principal creds</td><td>auto-repair, disk encryption</td></tr>
+        <tr><td><code>E2E_AZURE_DISK_ENCRYPTION_SET_ID</code></td><td>DiskEncryptionSet resource ID</td><td>disk encryption</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CI Workflow Changes -->
+  <h3 class="h4 fw-bold mb-3"><i class="bi bi-terminal text-primary me-2"></i>CI Workflow Changes</h3>
+  <p>Cluster creation logic lives in the <strong>hypershift repo</strong> as a Go binary (or test command), not as inline shell scripts in <code>openshift/release</code>. The CI step in <code>openshift/release</code> simply calls this binary. This keeps cluster creation logic co-located with the tests and easier to maintain.</p>
+
+  <div class="accordion mb-4" id="ciAccordion">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#ciCreate">
+          <i class="bi bi-plus-square me-2"></i> Cluster creation binary <small class="text-body-secondary ms-1">(hypershift repo)</small>
+        </button>
+      </h2>
+      <div id="ciCreate" class="accordion-collapse collapse show" data-bs-parent="#ciAccordion">
+        <div class="accordion-body">
+          <p>A Go binary in the hypershift repo handles test cluster creation. The CI step calls it instead of running <code>hypershift create cluster azure</code> inline. The binary:</p>
+          <ul>
+            <li>Creates the upgrade cluster: N-1 release, HA control plane</li>
+            <li>Waits for cluster readiness</li>
+            <li>Writes cluster name to <code>SHARED_DIR</code></li>
+          </ul>
+          <p class="text-body-secondary mb-0">This pattern mirrors how the test runner step already calls <code>bin/test-e2e-v2</code> &mdash; the create-guests step just calls a different binary from the same repo.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ciRunner">
+          <i class="bi bi-play-circle me-2"></i> Test runner chain
+        </button>
+      </h2>
+      <div id="ciRunner" class="accordion-collapse collapse" data-bs-parent="#ciAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Public cluster label filter adds: <code>self-managed-azure-public || nodepool-autoscaling || nodepool-lifecycle</code></li>
+            <li>Upgrade cluster runs <code>control-plane-upgrade</code> first, then <code>etcd-chaos</code> sequentially on the same cluster</li>
+            <li>Public cluster timeout increases from 45m to accommodate lifecycle tests</li>
+            <li><code>OCP_IMAGE_PREVIOUS</code>, <code>OCP_IMAGE_N1</code>, <code>OCP_IMAGE_N2</code> passed as env vars</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ciConfig">
+          <i class="bi bi-sliders me-2"></i> CI job config
+        </button>
+      </h2>
+      <div id="ciConfig" class="accordion-collapse collapse" data-bs-parent="#ciAccordion">
+        <div class="accordion-body">
+          <p><code>openshift-hypershift-main.yaml</code> v2 job adds dependencies:</p>
+          <pre class="bg-body-tertiary border rounded p-3"><code>dependencies:
+  OCP_IMAGE_PREVIOUS: release:initial
+  OCP_IMAGE_N1: release:n1minor
+  OCP_IMAGE_N2: release:n2minor</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ciDestroy">
+          <i class="bi bi-trash3 me-2"></i> Destroy-guests and dump-guests
+        </button>
+      </h2>
+      <div id="ciDestroy" class="accordion-collapse collapse" data-bs-parent="#ciAccordion">
+        <div class="accordion-body">
+          <p class="mb-0">Updated to handle the additional upgrade cluster (same pattern as existing 3).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== IMPLEMENTATION PLAN ==================== -->
+  <div class="border-top pt-4 mt-2 mb-4">
+    <h2 class="h3 fw-bold text-body-secondary mb-1"><i class="bi bi-kanban me-2"></i>Implementation Plan</h2>
+    <p class="text-body-secondary">10 tasks across the HyperShift and release repos. Tasks 1&ndash;6 are HyperShift repo work (env vars, test files, cluster creation binary). Tasks 7&ndash;9 are release repo CI changes. Task 10 is final verification.</p>
+  </div>
+
+  <div class="accordion mb-4" id="planAccordion">
+
+    <!-- Task 1 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask1">
+          <span class="badge bg-primary rounded-circle me-2">1</span> Register new environment variables
+        </button>
+      </h2>
+      <div id="planTask1" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>test/e2e/v2/internal/env_vars.go</code> (modify <code>init()</code>)</p>
+          <p>Add 6 new <code>RegisterEnvVar()</code> calls:</p>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+              <thead class="table-light"><tr><th>Variable</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr><td><code>E2E_LATEST_RELEASE_IMAGE</code></td><td>Latest OCP release image for upgrade tests</td></tr>
+                <tr><td><code>E2E_PREVIOUS_RELEASE_IMAGE</code></td><td>N-1 OCP release image for upgrade tests</td></tr>
+                <tr><td><code>E2E_N1_RELEASE_IMAGE</code></td><td>N-1 minor release for prev-release NP tests</td></tr>
+                <tr><td><code>E2E_N2_RELEASE_IMAGE</code></td><td>N-2 minor release for prev-release NP tests</td></tr>
+                <tr><td><code>E2E_AZURE_CREDENTIALS_FILE</code></td><td>Azure SP creds for platform-specific tests</td></tr>
+                <tr><td><code>E2E_AZURE_DISK_ENCRYPTION_SET_ID</code></td><td>Azure DES ID for disk encryption test</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-body-secondary mb-0">Verify: <code>cd test/e2e/v2 &amp;&amp; go build -tags e2ev2 ./...</code></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 2 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask2">
+          <span class="badge bg-primary rounded-circle me-2">2</span> Create &nbsp;<code>nodepool_autoscaling_test.go</code>
+        </button>
+      </h2>
+      <div id="planTask2" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>test/e2e/v2/tests/nodepool_autoscaling_test.go</code> (create)</p>
+          <p><strong>Label:</strong> <code>nodepool-autoscaling</code></p>
+          <p>Creates its own NodePools (does NOT modify the default NP) so the cluster can be shared. Three sub-tests:</p>
+          <ul>
+            <li><strong>Scale up</strong> &mdash; autoscaling NP (min=1, max=3), memory-pressure workload (Job with <code>max</code> pods, each requesting 50% of node memory), verify 3 nodes</li>
+            <li><strong>Scale down</strong> &mdash; delete workload, verify 1 node</li>
+            <li><strong>Balancing</strong> &mdash; two NPs, deploy workload, verify pods balanced across both</li>
+          </ul>
+          <p>Helpers: <code>buildAutoscalingNodePool()</code>, <code>newAutoscalingWorkload()</code>, <code>cleanupNodePool()</code>, <code>cleanupWorkload()</code></p>
+          <p class="text-body-secondary mb-0">Ported from <code>test/e2e/autoscaling_test.go</code></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 3 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask3">
+          <span class="badge bg-primary rounded-circle me-2">3</span> Create &nbsp;<code>etcd_chaos_test.go</code>
+        </button>
+      </h2>
+      <div id="planTask3" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>test/e2e/v2/tests/etcd_chaos_test.go</code> (create)</p>
+          <p><strong>Label:</strong> <code>etcd-chaos</code> &nbsp; <strong>Decorator:</strong> <code>Ordered</code> (sequential execution)</p>
+          <p>Five sub-tests &mdash; each creates a marker ConfigMap before chaos, verifies it survives:</p>
+          <ol>
+            <li><strong>Single member recovery</strong> &mdash; delete one pod + PVC, verify replacement</li>
+            <li><strong>Kill random members</strong> &mdash; delete random pods for 30s, verify data integrity</li>
+            <li><strong>Kill all members</strong> &mdash; delete all pods simultaneously, verify full recovery</li>
+            <li><strong>Single member corruption</strong> &mdash; corrupt WAL file, verify auto-heal via recovery job</li>
+            <li><strong>Missing member recovery</strong> &mdash; remove member via etcdctl + delete pod, verify recovery</li>
+          </ol>
+          <p class="text-body-secondary mb-0">Ported from <code>test/e2e/chaos_test.go</code></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 4 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask4">
+          <span class="badge bg-primary rounded-circle me-2">4</span> Create &nbsp;<code>control_plane_upgrade_test.go</code>
+        </button>
+      </h2>
+      <div id="planTask4" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>test/e2e/v2/tests/control_plane_upgrade_test.go</code> (create)</p>
+          <p><strong>Label:</strong> <code>control-plane-upgrade</code></p>
+          <p>Assumes cluster was created at N-1 release. Test flow:</p>
+          <ol>
+            <li>Record starting version from <code>hc.Status.Version.History</code></li>
+            <li>Patch <code>spec.release.image</code> to latest + set <code>ForceUpgradeToAnnotation</code></li>
+            <li>Wait for CP component rollout <small class="text-body-secondary">(4.20+)</small></li>
+            <li>Wait for CP version rollout <small class="text-body-secondary">(4.22+)</small></li>
+            <li>Wait for data plane (CVO) rollout</li>
+            <li>Validate: feature gates, node count, no crashing pods, MachineDeployment gen=1</li>
+          </ol>
+          <p class="text-body-secondary mb-0">Ported from <code>test/e2e/control_plane_upgrade_test.go</code></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 5 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask5">
+          <span class="badge bg-primary rounded-circle me-2">5</span> Create &nbsp;<code>nodepool_lifecycle_test.go</code>
+        </button>
+      </h2>
+      <div id="planTask5" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>test/e2e/v2/tests/nodepool_lifecycle_test.go</code> (create)</p>
+          <p><strong>Label:</strong> <code>nodepool-lifecycle</code></p>
+          <p>Largest test file &mdash; 13 sub-tests. Each creates a uniquely-named NodePool and cleans up (parallelism-safe).</p>
+          <h6 class="text-uppercase small fw-bold mt-3 mb-2">Ported from v1 (11)</h6>
+          <div class="row row-cols-2 row-cols-md-3 g-1 mb-2">
+            <div class="col"><small>Machineconfig rollout</small></div>
+            <div class="col"><small>NTO rollout (Replace)</small></div>
+            <div class="col"><small>NTO in-place</small></div>
+            <div class="col"><small>NP replace upgrade</small></div>
+            <div class="col"><small>NP in-place upgrade</small></div>
+            <div class="col"><small>Rolling upgrade</small></div>
+            <div class="col"><small>Prev-release N-1</small></div>
+            <div class="col"><small>Prev-release N-2</small></div>
+            <div class="col"><small>Mirror configs</small></div>
+            <div class="col"><small>Trust bundle</small></div>
+            <div class="col"><small>NTO PerformanceProfile</small></div>
+          </div>
+          <h6 class="text-success text-uppercase small fw-bold mt-2 mb-2">New platform-specific (2)</h6>
+          <div class="row row-cols-2 g-1 mb-2">
+            <div class="col"><small>Auto-repair (Azure: VMSS, AWS: EC2)</small></div>
+            <div class="col"><small>Disk encryption (Azure: DES, AWS: KMS)</small></div>
+          </div>
+          <p class="text-body-secondary mb-0">Uses platform switch on <code>hc.Spec.Platform.Type</code> for platform-specific logic.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 6 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask6">
+          <span class="badge bg-primary rounded-circle me-2">6</span> Cluster creation binary <small class="text-body-secondary ms-1">(hypershift repo)</small>
+        </button>
+      </h2>
+      <div id="planTask6" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>test/e2e/v2/cmd/create-guests/main.go</code> (create)</p>
+          <p>A Go binary in the hypershift repo that creates the upgrade cluster. CI calls this instead of inline shell scripts.</p>
+          <ul class="mb-0">
+            <li>Create upgrade cluster: N-1 release image, HA control plane, workers</li>
+            <li>Wait for cluster readiness (control plane + nodes)</li>
+            <li>Write cluster name to <code>SHARED_DIR/cluster-name-upgrade</code></li>
+            <li>Accept flags for release image, Azure credentials, common parameters</li>
+          </ul>
+          <p class="text-body-secondary mt-2 mb-0">Build: <code>make e2ev2-create-guests</code> &rarr; <code>bin/create-guests</code></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 7 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask7">
+          <span class="badge bg-secondary rounded-circle me-2">7</span> CI: create-guests step <small class="text-body-secondary ms-1">(release repo)</small>
+        </button>
+      </h2>
+      <div id="planTask7" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>hypershift-azure-create-selfmanaged-guests-commands.sh</code></p>
+          <ul class="mb-0">
+            <li>Call <code>bin/create-guests</code> from the hypershift repo (built via <code>make e2ev2-create-guests</code>)</li>
+            <li>Pass release image, Azure creds, and common flags as arguments</li>
+            <li>The binary handles cluster creation + readiness + writing to <code>SHARED_DIR</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 8 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask8">
+          <span class="badge bg-secondary rounded-circle me-2">8</span> CI: test runner chain + sequential upgrade &rarr; chaos <small class="text-body-secondary ms-1">(release repo)</small>
+        </button>
+      </h2>
+      <div id="planTask8" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>hypershift-azure-run-e2e-v2-selfmanaged-chain.yaml</code></p>
+          <ul>
+            <li>Update public cluster label filter: <code>"self-managed-azure-public || nodepool-autoscaling || nodepool-lifecycle"</code></li>
+            <li>Upgrade cluster runs two sequential invocations on the <strong>same cluster</strong>:
+              <ol>
+                <li><code>--ginkgo.label-filter="control-plane-upgrade"</code></li>
+                <li><code>--ginkgo.label-filter="etcd-chaos"</code> (only after upgrade completes)</li>
+              </ol>
+            </li>
+            <li>Pass release image env vars to test binary</li>
+            <li>Increase timeout from 45m to 90m</li>
+          </ul>
+          <p><strong>Files:</strong> <code>hypershift-azure-destroy-selfmanaged-guests-commands.sh</code>, <code>hypershift-azure-dump-selfmanaged-guests-commands.sh</code></p>
+          <p class="mb-0">Add cleanup and diagnostics collection for the additional upgrade cluster (same pattern as existing 3).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 9 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask9">
+          <span class="badge bg-secondary rounded-circle me-2">9</span> CI: job config &mdash; release image dependencies <small class="text-body-secondary ms-1">(release repo)</small>
+        </button>
+      </h2>
+      <div id="planTask9" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <p><strong>File:</strong> <code>openshift-hypershift-main.yaml</code></p>
+          <p>Add to the <code>e2e-azure-v2-self-managed</code> test stanza:</p>
+          <pre class="bg-body-tertiary border rounded p-3 mb-0"><code>dependencies:
+  OCP_IMAGE_PREVIOUS: release:initial
+  OCP_IMAGE_N1: release:n1minor
+  OCP_IMAGE_N2: release:n2minor</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task 10 -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#planTask10">
+          <span class="badge bg-success rounded-circle me-2">10</span> Integration smoke test
+        </button>
+      </h2>
+      <div id="planTask10" class="accordion-collapse collapse" data-bs-parent="#planAccordion">
+        <div class="accordion-body">
+          <ul class="mb-0">
+            <li>Verify compilation: <code>go build -tags e2ev2 ./...</code></li>
+            <li>Ginkgo dry-run: verify all 4 labels appear (<code>nodepool-autoscaling</code>, <code>nodepool-lifecycle</code>, <code>control-plane-upgrade</code>, <code>etcd-chaos</code>)</li>
+            <li>Label filter: <code>--ginkgo.label-filter="nodepool-autoscaling"</code> lists only autoscaling tests</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-center text-body-secondary small border-top pt-3">HyperShift &middot; V2 Lifecycle Tests Design Spec &middot; 2026-05-14</p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const icon = document.getElementById('theme-icon');
+  if (html.getAttribute('data-bs-theme') === 'light') {
+    html.setAttribute('data-bs-theme', 'dark');
+    icon.className = 'bi bi-sun-fill';
+  } else {
+    html.setAttribute('data-bs-theme', 'light');
+    icon.className = 'bi bi-moon-stars-fill';
+  }
+}
+
+// Inline tab + accordion handling as fallback when CDN JS is blocked (e.g. htmlpreview.github.io)
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof bootstrap !== 'undefined') return; // CDN loaded, let Bootstrap handle it
+
+  // Tabs
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var tabList = btn.closest('[role="tablist"]');
+      var contentParent = document.querySelector(btn.getAttribute('data-bs-target')).parentElement;
+      tabList.querySelectorAll('.nav-link').forEach(function(b) { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+      contentParent.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('show', 'active'); });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      var pane = document.querySelector(btn.getAttribute('data-bs-target'));
+      pane.classList.add('show', 'active');
+    });
+  });
+
+  // Accordion
+  document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var target = document.querySelector(btn.getAttribute('data-bs-target'));
+      var parent = target.getAttribute('data-bs-parent') ? document.querySelector(target.getAttribute('data-bs-parent')) : null;
+      if (parent) {
+        parent.querySelectorAll('.accordion-collapse.show').forEach(function(c) {
+          if (c !== target) {
+            c.classList.remove('show');
+            c.previousElementSibling.querySelector('.accordion-button').classList.add('collapsed');
+          }
+        });
+      }
+      target.classList.toggle('show');
+      btn.classList.toggle('collapsed');
+    });
+  });
+});
+</script>
+</body>
+</html>
