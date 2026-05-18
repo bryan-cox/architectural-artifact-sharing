@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperShift Operator &mdash; Konflux Release Gating Pipeline</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --rh-red: #cc0000;
+      --accent: #0d6efd;
+      --pass: #198754;
+      --fail: #dc3545;
+      --muted: #6c757d;
+    }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #fff; color: #212529; }
+    .hero {
+      background: linear-gradient(135deg, #1a1f2b 0%, #2c3e50 100%);
+      border-bottom: 3px solid var(--rh-red);
+      color: #fff;
+    }
+    .hero h1 span { color: #ff4444; }
+    .hero .text-muted-hero { color: rgba(255,255,255,0.7); }
+    .hero code { color: #e9ecef; background: rgba(255,255,255,0.1); padding: 0.1em 0.4em; border-radius: 3px; }
+    .phase-card {
+      border: 1px solid #dee2e6;
+      border-top: 3px solid var(--accent);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .phase-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    }
+    .phase-number {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #adb5bd;
+    }
+    .badge-pass { background: var(--pass); color: #fff; }
+    .badge-fail { background: var(--fail); color: #fff; }
+    .resource-icon { font-size: 1.3rem; color: var(--accent); width: 28px; text-align: center; }
+    .yaml-block {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 0.4rem;
+      font-size: 0.82rem;
+      max-height: 320px;
+      overflow-y: auto;
+      color: #212529;
+    }
+    .jira-link { color: var(--accent); text-decoration: none; }
+    .jira-link:hover { text-decoration: underline; }
+    .toc a {
+      color: var(--muted);
+      text-decoration: none;
+      display: block;
+      padding: 0.2rem 0;
+      font-size: 0.85rem;
+    }
+    .toc a:hover { color: #212529; }
+    .toc a.active { color: var(--accent); font-weight: 600; }
+    .section-anchor { scroll-margin-top: 80px; }
+    .outcome-pass {
+      background: rgba(25,135,84,0.07);
+      border: 1px solid rgba(25,135,84,0.25);
+    }
+    .outcome-fail {
+      background: rgba(220,53,69,0.06);
+      border: 1px solid rgba(220,53,69,0.2);
+    }
+    .accordion-button { background: #f8f9fa; color: #212529; }
+    .accordion-button:not(.collapsed) { background: #e9ecef; color: #212529; }
+    .accordion-button::after { filter: none; }
+    .accordion-body { background: #fff; }
+    code { color: #0d6efd; }
+    .hero-info-box { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); }
+    @media (max-width: 991px) {
+      .flow-arrow { transform: rotate(90deg); padding: 0.5rem 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <header class="hero py-4">
+    <div class="container-fluid px-4">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h1 class="display-6 fw-bold mb-1"><span>HyperShift</span> Operator</h1>
+          <h2 class="h5 text-muted-hero fw-normal mb-2">Konflux-based Release Promotion Pipeline</h2>
+          <p class="text-muted-hero mb-3">
+            A nightly, platform-independent gating system that validates HyperShift Operator images
+            against e2e test suites before promoting them to verified repositories. This pipeline runs
+            alongside the existing auto-release and provides managed service teams with confidence
+            that promoted images have passed real-world validation.
+          </p>
+          <div class="d-flex gap-2 flex-wrap">
+            <a href="https://redhat.atlassian.net/browse/OCPSTRAT-3250" target="_blank" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-ticket-detailed me-1"></i>OCPSTRAT-3250
+            </a>
+            <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3434" target="_blank" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-kanban me-1"></i>CNTRLPLANE-3434
+            </a>
+            <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-1856" target="_blank" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-file-earmark-text me-1"></i>Design: CNTRLPLANE-1856
+            </a>
+          </div>
+        </div>
+        <div class="col-lg-4 text-center mt-3 mt-lg-0">
+          <div class="d-inline-block text-start p-3 rounded hero-info-box">
+            <div class="small text-muted-hero mb-1">Target Release</div>
+            <div class="h5 mb-2 text-white"><i class="bi bi-rocket-takeoff me-1"></i>5.0 &mdash; ARO HCP only</div>
+            <div class="small text-muted-hero mb-1">Status</div>
+            <div><span class="badge bg-info text-dark">Proposed</span></div>
+            <div class="small text-muted-hero mt-2 mb-1">Namespace</div>
+            <div><code>crt-redhat-acm-tenant</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container-fluid px-5 py-4">
+    <div class="row">
+
+      <!-- Sidebar TOC -->
+      <div class="col-lg-2 d-none d-lg-block">
+        <nav class="toc position-sticky" style="top: 1rem;">
+          <div class="small text-uppercase text-muted fw-bold mb-2">Contents</div>
+          <a href="#problem">Problem</a>
+          <a href="#solution">Solution Overview</a>
+          <a href="#strategy">Strategy Alignment</a>
+          <a href="#dual-path">Dual-Path Architecture</a>
+          <a href="#phases">Pipeline Phases</a>
+          <a href="#outcomes">Test Outcomes</a>
+          <a href="#resources">Konflux Resources</a>
+          <a href="#test-pipeline">E2E Test Pipeline</a>
+          <a href="#errors">Error Handling</a>
+          <a href="#extensibility">Platform Extensibility</a>
+          <a href="#files">Files &amp; Resources</a>
+          <a href="#open-questions">Open Questions</a>
+          <a href="#jira">Related Jira Issues</a>
+        </nav>
+      </div>
+
+      <!-- Main content -->
+      <div class="col-lg-10">
+
+        <!-- Problem -->
+        <section id="problem" class="section-anchor mb-5 pt-2">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Problem</h3>
+          <hr class="mt-1 mb-3">
+          <ul class="mb-0">
+            <li class="mb-2">Every merged HyperShift Operator (HO) build is <strong>auto-released to ACMD</strong> (<code>quay.io/acm-d/rhtap-hypershift-operator</code>) immediately after the Konflux build pipeline completes &mdash; before platform-specific test results are available.</li>
+            <li class="mb-2">Platform teams do run their own testing (ROSA regression tests, ARO&nbsp;HCP e2e tests), but these results <strong>do not gate the release</strong>. A bad image can be consumed by managed service teams before those tests complete.</li>
+            <li class="mb-2">The gap is <strong>timing and gating</strong> &mdash; testing exists, but the auto-release does not wait for it. There is no mechanism to promote only images that have passed platform validation.</li>
+            <li class="mb-0">Without a gated promotion path, managed service teams must independently track which images have been validated and which have not.</li>
+          </ul>
+        </section>
+
+        <!-- Solution Overview -->
+        <section id="solution" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-lightbulb text-primary me-2"></i>Solution Overview</h3>
+          <hr class="mt-1 mb-3">
+          <ul class="mb-0">
+            <li class="mb-2">Add a <strong>parallel, gated promotion path</strong> alongside the existing auto-release &mdash; a nightly pipeline tests the latest HO image and only promotes it to a verified repository if e2e tests pass.</li>
+            <li class="mb-2">Each managed service platform (ARO HCP, ROSA HCP, GCP HCP) gets its own <strong>independent promotion path</strong>, so a failure on one platform does not block others.</li>
+            <li class="mb-2">The <strong>existing auto-release to ACMD is unchanged</strong> &mdash; the new path is purely additive. Teams that depend on ACMD images continue to receive them as before.</li>
+            <li class="mb-2"><strong>ARO HCP</strong> serves as the pilot platform. ROSA HCP and GCP HCP follow the same template with their own test suites and verified repositories.</li>
+            <li class="mb-0">Extending to a new platform requires only new Konflux resource definitions &mdash; <strong>no pipeline code changes</strong>.</li>
+          </ul>
+        </section>
+
+        <!-- Strategy Alignment -->
+        <section id="strategy" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-map text-success me-2"></i>Strategy Alignment</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">Each element of the solution maps to a tracked strategy or feature. The core pipeline and architecture are defined in OCPSTRAT-3250, with per-platform rollout tracked as separate features.</p>
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm small">
+              <thead>
+                <tr>
+                  <th>Solution Element</th>
+                  <th>Strategy / Feature</th>
+                  <th>Implementation</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Parallel, gated promotion path (nightly pipeline, test, promote)</td>
+                  <td><a href="https://redhat.atlassian.net/browse/OCPSTRAT-3250" class="jira-link" target="_blank">OCPSTRAT-3250</a></td>
+                  <td>
+                    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3434" class="jira-link" target="_blank">CNTRLPLANE-3434</a> (epic)<br>
+                    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3447" class="jira-link" target="_blank">CNTRLPLANE-3447</a> (snapshot resolution)<br>
+                    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3449" class="jira-link" target="_blank">CNTRLPLANE-3449</a> (release on pass)
+                  </td>
+                  <td><span class="badge bg-primary">In Progress</span></td>
+                </tr>
+                <tr>
+                  <td>ARO HCP as pilot platform</td>
+                  <td>
+                    <a href="https://redhat.atlassian.net/browse/OCPSTRAT-3250" class="jira-link" target="_blank">OCPSTRAT-3250</a>,
+                    <a href="https://redhat.atlassian.net/browse/OCPSTRAT-2856" class="jira-link" target="_blank">OCPSTRAT-2856</a>
+                  </td>
+                  <td>
+                    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3448" class="jira-link" target="_blank">CNTRLPLANE-3448</a> (ARO HCP e2e gate)<br>
+                    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3452" class="jira-link" target="_blank">CNTRLPLANE-3452</a> (credential setup)
+                  </td>
+                  <td><span class="badge bg-primary">In Progress</span></td>
+                </tr>
+                <tr>
+                  <td>Independent promotion per platform</td>
+                  <td><a href="https://redhat.atlassian.net/browse/OCPSTRAT-3250" class="jira-link" target="_blank">OCPSTRAT-3250</a></td>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3434" class="jira-link" target="_blank">CNTRLPLANE-3434</a> (architecture)</td>
+                  <td><span class="badge bg-primary">In Progress</span></td>
+                </tr>
+                <tr>
+                  <td>Existing auto-release unchanged</td>
+                  <td><a href="https://redhat.atlassian.net/browse/OCPSTRAT-3250" class="jira-link" target="_blank">OCPSTRAT-3250</a></td>
+                  <td>No work needed &mdash; parallel path, not replacement</td>
+                  <td><span class="badge bg-success">N/A</span></td>
+                </tr>
+                <tr>
+                  <td>ROSA HCP &mdash; same pattern, own tests &amp; verified repo</td>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3438" class="jira-link" target="_blank">CNTRLPLANE-3438</a></td>
+                  <td>Future &mdash; follows ARO HCP pilot template</td>
+                  <td><span class="badge bg-secondary">To Do</span></td>
+                </tr>
+                <tr>
+                  <td>GCP HCP &mdash; same pattern, own tests &amp; verified repo</td>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3439" class="jira-link" target="_blank">CNTRLPLANE-3439</a></td>
+                  <td>Future &mdash; follows ARO HCP pilot template</td>
+                  <td><span class="badge bg-secondary">To Do</span></td>
+                </tr>
+                <tr>
+                  <td>Extensibility &mdash; no pipeline code changes</td>
+                  <td><a href="https://redhat.atlassian.net/browse/OCPSTRAT-3250" class="jira-link" target="_blank">OCPSTRAT-3250</a></td>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3434" class="jira-link" target="_blank">CNTRLPLANE-3434</a> (architecture)</td>
+                  <td><span class="badge bg-primary">In Progress</span></td>
+                </tr>
+                <tr>
+                  <td>Failure notifications &amp; stale promotion alerting</td>
+                  <td><a href="https://redhat.atlassian.net/browse/OCPSTRAT-3250" class="jira-link" target="_blank">OCPSTRAT-3250</a></td>
+                  <td>
+                    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3451" class="jira-link" target="_blank">CNTRLPLANE-3451</a> (stale alert)<br>
+                    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3450" class="jira-link" target="_blank">CNTRLPLANE-3450</a> (manual re-trigger)
+                  </td>
+                  <td><span class="badge bg-primary">In Progress</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Dual-Path Architecture -->
+        <section id="dual-path" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-diagram-3 text-info me-2"></i>Dual-Path Architecture</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-4">The two paths below operate independently and in parallel. The existing auto-release (top) continues to deliver every merged build to ACMD with no changes. The new gated promotion path (bottom) adds nightly validation and only promotes images that pass e2e tests to a verified repository. Both paths originate from the same Konflux Snapshots created by the push build pipeline.</p>
+
+          <h5 class="h6 fw-bold mb-2"><span class="badge bg-secondary me-1">Existing</span> Auto-Release to ACMD <span class="text-muted fw-normal">&mdash; unchanged, no validation gate</span></h5>
+          <div class="card border mb-5">
+            <div class="card-body p-2">
+              <img src="https://mermaid.ink/svg/Zmxvd2NoYXJ0IExSCiAgQVsiQ29kZSBtZXJnZWQ8YnI-dG8gbWFpbiJdIC0tPiBCWyJLb25mbHV4PGJyPnB1c2ggYnVpbGQiXSAtLT4gQ1siU25hcHNob3Q8YnI-Y3JlYXRlZCJdIC0tPiBEWyJBdXRvLXJlbGVhc2UiXQogIEQgLS0-IEVbInF1YXkuaW8vYWNtLWQvPGJyPnJodGFwLWh5cGVyc2hpZnQtb3BlcmF0b3IiXQogIHN0eWxlIEEgZmlsbDojZjhmOWZhLHN0cm9rZTojNmM3NTdkCiAgc3R5bGUgQiBmaWxsOiNmOGY5ZmEsc3Ryb2tlOiM2Yzc1N2QKICBzdHlsZSBDIGZpbGw6I2Y4ZjlmYSxzdHJva2U6IzZjNzU3ZAogIHN0eWxlIEQgZmlsbDojZjhmOWZhLHN0cm9rZTojNmM3NTdkCiAgc3R5bGUgRSBmaWxsOiNlOWVjZWYsc3Ryb2tlOiM2Yzc1N2QsZm9udC13ZWlnaHQ6Ym9sZAo" alt="Auto-release flow: Code merged → Konflux push build → Snapshot → Auto-release → ACMD" class="img-fluid">
+            </div>
+          </div>
+
+          <h5 class="h6 fw-bold mb-2"><span class="badge bg-primary me-1">New</span> Gated Promotion to Verified Repo <span class="text-muted fw-normal">&mdash; parallel path, e2e validated</span></h5>
+          <div class="card border">
+            <div class="card-body p-2">
+              <img src="https://mermaid.ink/svg/Zmxvd2NoYXJ0IExSCiAgQVsiTmlnaHRseTxicj5Dcm9uSm9iIl0gLS0-IEJbIlJlc29sdmUgbGF0ZXN0PGJyPlNuYXBzaG90Il0gLS0-IENbIlJ1biBlMmUgdGVzdHM8YnI-YWdhaW5zdCBpbWFnZSJdIC0tPiBEeyJUZXN0czxicj5wYXNzPyJ9CiAgRCAtLSAiWWVzIiAtLT4gRVsiQ3JlYXRlIEtvbmZsdXg8YnI-UmVsZWFzZSBvYmplY3QiXSAtLT4gRlsiSW1hZ2UgcHJvbW90ZWQgdG88YnI-dmVyaWZpZWQgcXVheSByZXBvIl0KICBEIC0tICJObyIgLS0-IEdbIlNsYWNrIHdlYmhvb2s8YnI-bm90aWZpY2F0aW9uIl0KICBzdHlsZSBBIGZpbGw6I2U3ZjFmZixzdHJva2U6IzBkNmVmZAogIHN0eWxlIEIgZmlsbDojZTdmMWZmLHN0cm9rZTojMGQ2ZWZkCiAgc3R5bGUgQyBmaWxsOiNlN2YxZmYsc3Ryb2tlOiMwZDZlZmQKICBzdHlsZSBEIGZpbGw6I2ZmZjNjZCxzdHJva2U6I2ZmYzEwNwogIHN0eWxlIEUgZmlsbDojZDFlN2RkLHN0cm9rZTojMTk4NzU0CiAgc3R5bGUgRiBmaWxsOiNkMWU3ZGQsc3Ryb2tlOiMxOTg3NTQsZm9udC13ZWlnaHQ6Ym9sZAogIHN0eWxlIEcgZmlsbDojZjhkN2RhLHN0cm9rZTojZGMzNTQ1Cg" alt="Gated promotion flow: Nightly CronJob → Resolve Snapshot → Run e2e → Pass? → Release or Slack" class="img-fluid">
+            </div>
+          </div>
+        </section>
+
+        <!-- Pipeline Phases -->
+        <section id="phases" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-arrow-right-circle text-primary me-2"></i>Pipeline Phases</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">The gated promotion path from the architecture above breaks down into four sequential phases. Each phase is a distinct step in the nightly pipeline, and a failure at any stage prevents downstream phases from executing.</p>
+
+          <div class="row g-3 align-items-stretch">
+            <!-- Phase 1 -->
+            <div class="col-lg-3 col-md-6">
+              <div class="card phase-card h-100">
+                <div class="card-body">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="phase-number">1</span>
+                    <h5 class="card-title mb-0 h6">Trigger</h5>
+                  </div>
+                  <p class="card-text small text-muted">
+                    A Kubernetes <strong>CronJob</strong> fires nightly at 3:15&nbsp;AM&nbsp;UTC (offset from the hour to avoid peak load) in the
+                    <code>crt-redhat-acm-tenant</code> namespace. This is the entry point that kicks off the entire promotion pipeline.
+                  </p>
+                  <div class="mt-auto">
+                    <span class="badge bg-light text-dark border"><i class="bi bi-clock me-1"></i>CronJob</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-auto d-none d-lg-flex flow-arrow"><i class="bi bi-chevron-right"></i></div>
+
+            <!-- Phase 2 -->
+            <div class="col-lg col-md-6">
+              <div class="card phase-card h-100">
+                <div class="card-body">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="phase-number">2</span>
+                    <h5 class="card-title mb-0 h6">Resolve</h5>
+                  </div>
+                  <p class="card-text small text-muted">
+                    The CronJob queries Konflux <strong>Snapshots</strong> labeled with the push build's PipelineRun name,
+                    selects the most recently created one, and extracts the HO container image reference (including its SHA digest).
+                    This ensures we always test the latest build from <code>main</code>.
+                  </p>
+                  <div class="mt-auto">
+                    <span class="badge bg-light text-dark border"><i class="bi bi-camera me-1"></i>Snapshot</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-auto d-none d-lg-flex flow-arrow"><i class="bi bi-chevron-right"></i></div>
+
+            <!-- Phase 3 -->
+            <div class="col-lg col-md-6">
+              <div class="card phase-card h-100">
+                <div class="card-body">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="phase-number">3</span>
+                    <h5 class="card-title mb-0 h6">Test</h5>
+                  </div>
+                  <p class="card-text small text-muted">
+                    An <strong>IntegrationTestScenario</strong> deploys the resolved HO image and runs the HyperShift e2e test suite against it.
+                    The MVP uses HyperShift's own e2e suite from <code>test/e2e/</code>; later iterations add platform-specific tests
+                    (e.g., ARO&nbsp;HCP tests exercising Azure ARM APIs).
+                  </p>
+                  <div class="mt-auto">
+                    <span class="badge bg-light text-dark border"><i class="bi bi-play-circle me-1"></i>IntegrationTestScenario</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-auto d-none d-lg-flex flow-arrow"><i class="bi bi-chevron-right"></i></div>
+
+            <!-- Phase 4 -->
+            <div class="col-lg col-md-6">
+              <div class="card phase-card h-100">
+                <div class="card-body">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="phase-number">4</span>
+                    <h5 class="card-title mb-0 h6">Promote / Notify</h5>
+                  </div>
+                  <p class="card-text small text-muted">
+                    If tests pass, a Konflux <strong>Release</strong> object is created referencing the tested Snapshot and the platform's
+                    ReleasePlan. Konflux's release pipeline then pushes the validated image to the verified repository.
+                    If tests fail, a <strong>Slack webhook</strong> fires with failure details so the team can investigate.
+                  </p>
+                  <div class="mt-auto d-flex gap-1 flex-wrap">
+                    <span class="badge bg-light text-dark border"><i class="bi bi-tag me-1"></i>Release</span>
+                    <span class="badge bg-light text-dark border"><i class="bi bi-chat-dots me-1"></i>Slack</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Test Outcomes -->
+        <section id="outcomes" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-signpost-split text-warning me-2"></i>Test Outcomes</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">After the e2e test suite completes, the pipeline takes one of two paths depending on the result. In both cases, the existing ACMD auto-release is completely unaffected &mdash; images remain available there regardless of whether the gated promotion succeeds or fails.</p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card outcome-pass h-100">
+                <div class="card-body">
+                  <h5 class="h6"><i class="bi bi-check-circle-fill text-success me-2"></i>Tests Pass</h5>
+                  <ol class="small mb-0 ps-3">
+                    <li>The pipeline's <code>finally</code> block creates a <code>Release</code> object referencing the tested Snapshot and the platform's <code>ReleasePlan</code></li>
+                    <li>Konflux's release pipeline picks up the Release and pushes the image to the verified quay repository</li>
+                    <li>The managed service team (e.g., ARO HCP) can safely consume the promoted image, knowing it has passed e2e validation</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card outcome-fail h-100">
+                <div class="card-body">
+                  <h5 class="h6"><i class="bi bi-x-circle-fill text-danger me-2"></i>Tests Fail</h5>
+                  <ol class="small mb-0 ps-3">
+                    <li>The pipeline's <code>finally</code> block sends a Slack webhook notification with the snapshot name, image reference, and a link to the failed pipeline run</li>
+                    <li>The image is <strong>not</strong> promoted to the verified repository &mdash; teams will not consume an untested image</li>
+                    <li>The ACMD auto-release is <strong>unaffected</strong> &mdash; the image remains available there as usual</li>
+                    <li>The team investigates the failure and can manually re-trigger the pipeline once the issue is resolved</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Konflux Resources -->
+        <section id="resources" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-puzzle text-success me-2"></i>Konflux Resources</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">The gated promotion pipeline is composed of several Kubernetes/Konflux resources that work together. All resources are created in the <code>crt-redhat-acm-tenant</code> namespace unless noted otherwise. Expand each item below to see the YAML definition and details.</p>
+
+          <div class="accordion" id="resourceAccordion">
+
+            <!-- CronJob -->
+            <div class="accordion-item border">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#resCronJob">
+                  <i class="bi bi-clock resource-icon me-2"></i>
+                  <strong>CronJob</strong>&ensp;<code class="text-muted">hypershift-operator-nightly-promotion</code>
+                </button>
+              </h2>
+              <div id="resCronJob" class="accordion-collapse collapse" data-bs-parent="#resourceAccordion">
+                <div class="accordion-body">
+                  <p class="small text-muted">Runs nightly at 3:15 AM UTC (offset from the hour to avoid Konflux peak load). This is the entry point for the entire promotion pipeline. It resolves the most recent Snapshot from the push build pipeline, extracts the HO container image reference, and creates a Tekton <code>PipelineRun</code> that executes the e2e test pipeline with the snapshot name and image as parameters.</p>
+                  <pre class="yaml-block p-3 mb-0"><code>kind: CronJob
+apiVersion: batch/v1
+metadata:
+  name: hypershift-operator-nightly-promotion
+  namespace: crt-redhat-acm-tenant
+spec:
+  schedule: '15 3 * * *'
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: resolve-and-test
+            image: 'quay.io/konflux-ci/task-runner:v1'
+            command: ["/bin/bash", "-c"]
+            args:
+            - |
+              #!/bin/bash
+              set -euo pipefail
+
+              # Resolve the most recent Snapshot from push builds
+              SNAPSHOT=$(oc get snapshot \
+                --sort-by=.metadata.creationTimestamp \
+                -l pac.test.appstudio.openshift.io/original-prname=hypershift-operator-main-on-push \
+                -o jsonpath='{.items[-1].metadata.name}')
+              HO_IMAGE=$(oc get snapshot $SNAPSHOT \
+                -o jsonpath='{.spec.components[?(@.name=="hypershift-operator-main")].containerImage}')
+              echo "Resolved snapshot: $SNAPSHOT"
+              echo "HO image: $HO_IMAGE"
+
+              # Create a PipelineRun to execute the e2e test pipeline
+              oc create -f - &lt;&lt;EOF
+              apiVersion: tekton.dev/v1
+              kind: PipelineRun
+              metadata:
+                generateName: ho-release-gate-nightly-
+                namespace: crt-redhat-acm-tenant
+              spec:
+                pipelineRef:
+                  resolver: git
+                  params:
+                  - name: url
+                    value: https://github.com/openshift/hypershift
+                  - name: revision
+                    value: main
+                  - name: pathInRepo
+                    value: .tekton/pipelines/ho-release-gate.yaml
+                params:
+                - name: snapshot-name
+                  value: $SNAPSHOT
+                - name: ho-image
+                  value: $HO_IMAGE
+                taskRunTemplate:
+                  serviceAccountName: nightly-promotion-sa
+              EOF
+          serviceAccountName: nightly-promotion-sa
+          restartPolicy: OnFailure</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- ReleasePlan -->
+            <div class="accordion-item border">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#resReleasePlan">
+                  <i class="bi bi-journal-check resource-icon me-2"></i>
+                  <strong>ReleasePlan</strong>&ensp;<code class="text-muted">hypershift-operator-ho-release-gate-aro-hcp</code>
+                </button>
+              </h2>
+              <div id="resReleasePlan" class="accordion-collapse collapse" data-bs-parent="#resourceAccordion">
+                <div class="accordion-body">
+                  <p class="small text-muted">This is a <strong>per-platform resource</strong>. The YAML below shows the ARO HCP instance, which serves as the pilot. When ROSA HCP and GCP HCP are onboarded, each will get its own ReleasePlan (e.g., <code>hypershift-operator-rosa-hcp-verified</code>) pointing to its own verified repository. See the <a href="#extensibility">Platform Extensibility</a> section for the full expansion plan.</p>
+                  <p class="small text-muted">Auto-release is disabled on this plan (<code>auto-release: 'false'</code>), meaning images only reach the verified repo via explicit Release objects created after tests pass. This does <strong>not</strong> replace the existing auto-release ReleasePlan that delivers images to ACMD &mdash; it is a separate, parallel plan.</p>
+                  <pre class="yaml-block p-3 mb-0"><code>apiVersion: appstudio.redhat.com/v1alpha1
+kind: ReleasePlan
+metadata:
+  name: hypershift-operator-ho-release-gate-aro-hcp
+  namespace: crt-redhat-acm-tenant
+  labels:
+    release.appstudio.openshift.io/auto-release: 'false'
+spec:
+  target: rhtap-releng-tenant
+  application: hypershift-operator</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- IntegrationTestScenario -->
+            <div class="accordion-item border">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#resITS">
+                  <i class="bi bi-play-circle resource-icon me-2"></i>
+                  <strong>IntegrationTestScenario</strong>&ensp;<code class="text-muted">hypershift-ho-release-gate-aro-hcp</code>
+                </button>
+              </h2>
+              <div id="resITS" class="accordion-collapse collapse" data-bs-parent="#resourceAccordion">
+                <div class="accordion-body">
+                  <p class="small text-muted">This is a <strong>per-platform resource</strong>. The YAML below shows the ARO HCP instance (the pilot). Each future platform will get its own IntegrationTestScenario (e.g., <code>hypershift-ho-release-gate-rosa-hcp</code>) pointing to a platform-specific test pipeline or test parameters. See the <a href="#extensibility">Platform Extensibility</a> section for details.</p>
+                  <p class="small text-muted">This resource wires the e2e test Tekton pipeline as a gate on Snapshots. It references a pipeline definition stored in the HyperShift repository, which allows the test pipeline to evolve alongside the code it validates. For the MVP, the pipeline runs HyperShift's general e2e suite; future iterations will add platform-specific tests.</p>
+                  <pre class="yaml-block p-3 mb-0"><code>apiVersion: appstudio.redhat.com/v1beta2
+kind: IntegrationTestScenario
+metadata:
+  name: hypershift-ho-release-gate-aro-hcp
+  namespace: crt-redhat-acm-tenant
+spec:
+  application: hypershift-operator
+  resolverRef:
+    resolver: git
+    params:
+    - name: url
+      value: https://github.com/openshift/hypershift
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: .tekton/pipelines/ho-release-gate.yaml
+  contexts:
+  - name: application
+    description: HyperShift e2e tests for ARO HCP promotion gating</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- Release -->
+            <div class="accordion-item border">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#resRelease">
+                  <i class="bi bi-tag resource-icon me-2"></i>
+                  <strong>Release</strong>&ensp;<span class="text-muted small">(created programmatically on test pass)</span>
+                </button>
+              </h2>
+              <div id="resRelease" class="accordion-collapse collapse" data-bs-parent="#resourceAccordion">
+                <div class="accordion-body">
+                  <p class="small text-muted">Unlike the resources above, Release objects are not created in advance. They are generated programmatically by a Tekton <code>finally</code> task after the e2e tests pass. Each Release references the specific Snapshot that was tested and the platform's gated ReleasePlan. Once created, Konflux's built-in release pipeline handles the actual image push to the verified repository. The <code>gracePeriodDays</code> field provides a window for manual intervention if needed.</p>
+                  <pre class="yaml-block p-3 mb-0"><code>apiVersion: appstudio.redhat.com/v1alpha1
+kind: Release
+metadata:
+  generateName: hypershift-operator-aro-hcp-
+  namespace: crt-redhat-acm-tenant
+spec:
+  snapshot: &lt;snapshot-that-passed-tests&gt;
+  releasePlan: hypershift-operator-ho-release-gate-aro-hcp
+  gracePeriodDays: 7</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- RBAC -->
+            <div class="accordion-item border">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#resRBAC">
+                  <i class="bi bi-shield-lock resource-icon me-2"></i>
+                  <strong>RBAC</strong>&ensp;<code class="text-muted">ServiceAccount + Role + RoleBinding</code>
+                </button>
+              </h2>
+              <div id="resRBAC" class="accordion-collapse collapse" data-bs-parent="#resourceAccordion">
+                <div class="accordion-body">
+                  <p class="small text-muted">The nightly CronJob runs under a dedicated service account with least-privilege RBAC. It needs read access to Snapshots and Components (to resolve the latest image), create access to PipelineRuns (to trigger the e2e test pipeline), and create access to Releases (to trigger promotion on pass). These permissions are scoped to the <code>crt-redhat-acm-tenant</code> namespace only.</p>
+                  <pre class="yaml-block p-3 mb-0"><code>apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nightly-promotion-sa
+  namespace: crt-redhat-acm-tenant
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nightly-promotion-role
+  namespace: crt-redhat-acm-tenant
+rules:
+- apiGroups: ["appstudio.redhat.com"]
+  resources: ["snapshots", "releases"]
+  verbs: ["get", "list", "create"]
+- apiGroups: ["appstudio.redhat.com"]
+  resources: ["components"]
+  verbs: ["get", "list", "patch"]
+- apiGroups: ["tekton.dev"]
+  resources: ["pipelineruns"]
+  verbs: ["create", "get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nightly-promotion-binding
+  namespace: crt-redhat-acm-tenant
+subjects:
+- kind: ServiceAccount
+  name: nightly-promotion-sa
+roleRef:
+  kind: Role
+  name: nightly-promotion-role
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- E2E Test Pipeline -->
+        <section id="test-pipeline" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-gear text-info me-2"></i>E2E Test Pipeline</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">The promotion pipeline is defined as a Tekton Pipeline at <code>.tekton/pipelines/ho-release-gate.yaml</code> in the HyperShift repository. It consists of five sequential tasks followed by a <code>finally</code> block that handles promotion or notification. Storing it in the repo ensures the test pipeline evolves alongside the code it validates.</p>
+
+          <div class="card border mb-4">
+            <div class="card-body p-2">
+              <img src="https://mermaid.ink/svg/Zmxvd2NoYXJ0IExSCiAgc3ViZ3JhcGggdGFza3MgWyJQaXBlbGluZSBUYXNrcyJdCiAgICBkaXJlY3Rpb24gTFIKICAgIEFbImV4dHJhY3QtaW1hZ2U8YnI-KFBhcnNlIFNuYXBzaG90KSJdIC0tPiBCWyJzZXR1cC10ZXN0LWVudjxicj4oUHJvdmlzaW9uIGNsdXN0ZXIpIl0gLS0-IENbImRlcGxveS1obzxicj4oRGVwbG95IGltYWdlKSJdIC0tPiBEWyJydW4tZTJlPGJyPihFeGVjdXRlIHRlc3RzKSJdIC0tPiBFWyJjbGVhbnVwPGJyPihUZWFyIGRvd24pIl0KICBlbmQKICBzdWJncmFwaCBmaW5hbGx5IFsiRmluYWxseSAoYWx3YXlzIHJ1bnMpIl0KICAgIGRpcmVjdGlvbiBMUgogICAgRlsiY3JlYXRlLXJlbGVhc2U8YnI-KG9uIHBhc3MpIl0KICAgIEdbIm5vdGlmeS1zbGFjazxicj4ob24gZmFpbCkiXQogIGVuZAogIHRhc2tzIC0tPiBmaW5hbGx5CiAgc3R5bGUgQSBmaWxsOiNlN2YxZmYsc3Ryb2tlOiMwZDZlZmQKICBzdHlsZSBCIGZpbGw6I2U3ZjFmZixzdHJva2U6IzBkNmVmZAogIHN0eWxlIEMgZmlsbDojZTdmMWZmLHN0cm9rZTojMGQ2ZWZkCiAgc3R5bGUgRCBmaWxsOiNlN2YxZmYsc3Ryb2tlOiMwZDZlZmQKICBzdHlsZSBFIGZpbGw6I2U3ZjFmZixzdHJva2U6IzBkNmVmZAogIHN0eWxlIEYgZmlsbDojZDFlN2RkLHN0cm9rZTojMTk4NzU0CiAgc3R5bGUgRyBmaWxsOiNmOGQ3ZGEsc3Ryb2tlOiNkYzM1NDUK" alt="Pipeline tasks: extract-image → setup-test-env → deploy-ho → run-e2e → cleanup → finally (create-release or notify-slack)" class="img-fluid">
+            </div>
+          </div>
+
+          <h5 class="h6 fw-bold mb-2">MVP Test Coverage</h5>
+          <p class="mb-3">Test coverage will expand in phases. The MVP starts with HyperShift's own e2e suite from <code>test/e2e/</code> to validate core cluster lifecycle operations. Subsequent phases add broader version coverage and platform-specific tests co-authored with platform QE teams.</p>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <div class="card border h-100">
+                <div class="card-body p-3">
+                  <div class="small fw-bold mb-1"><span class="badge bg-primary me-1">Phase 1</span> MVP</div>
+                  <ul class="small mb-0 ps-3 text-muted">
+                    <li>Cluster lifecycle (create/destroy)</li>
+                    <li>NodePool scaling</li>
+                    <li>One upgrade path</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border h-100">
+                <div class="card-body p-3">
+                  <div class="small fw-bold mb-1"><span class="badge bg-secondary me-1">Phase 2</span> Full Matrix</div>
+                  <ul class="small mb-0 ps-3 text-muted">
+                    <li>Every supported CPO latest 4.y.z</li>
+                    <li>Every CPO latest-minus-one 4.y.z</li>
+                    <li>Every supported minor release 4.y.0</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border h-100">
+                <div class="card-body p-3">
+                  <div class="small fw-bold mb-1"><span class="badge bg-secondary me-1">Phase 3</span> Platform-Specific</div>
+                  <ul class="small mb-0 ps-3 text-muted">
+                    <li>ARO HCP-specific e2e suite</li>
+                    <li>Azure ARM API integration tests</li>
+                    <li>Platform QE co-authored tests</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Error Handling -->
+        <section id="errors" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-exclamation-diamond text-danger me-2"></i>Error Handling</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">The pipeline is designed to fail safely. No failure mode results in an untested image being promoted to the verified repository. In all failure cases, the existing ACMD auto-release continues unaffected. The table below covers expected failure scenarios and how each is handled.</p>
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle small">
+              <thead>
+                <tr>
+                  <th>Failure</th>
+                  <th>Impact</th>
+                  <th>Handling</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CronJob fails to resolve Snapshot</td>
+                  <td>No test run, no promotion</td>
+                  <td><span class="badge bg-warning text-dark">Slack alert</span> + manual re-trigger</td>
+                </tr>
+                <tr>
+                  <td>E2e tests fail</td>
+                  <td>Image not promoted to verified repo</td>
+                  <td><span class="badge bg-warning text-dark">Slack alert</span> with failure details. ACMD unaffected.</td>
+                </tr>
+                <tr>
+                  <td>E2e tests flake</td>
+                  <td>Unnecessary promotion block</td>
+                  <td>Manual re-trigger. Future: retry logic.</td>
+                </tr>
+                <tr>
+                  <td>Release creation fails</td>
+                  <td>Tested image not promoted</td>
+                  <td><span class="badge bg-warning text-dark">Slack alert</span>. Manual Release creation as fallback.</td>
+                </tr>
+                <tr>
+                  <td>No promotion in N days</td>
+                  <td>Platform running stale image</td>
+                  <td><span class="badge bg-danger">Stale alert</span> (configurable threshold, default 3 days)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h5 class="h6 fw-bold mt-4 mb-2">Manual Re-trigger</h5>
+          <p class="mb-2">If a nightly run fails due to flakes or transient issues, the pipeline can be manually re-triggered by creating a one-off Job from the CronJob template:</p>
+          <pre class="yaml-block p-3 mb-0"><code>oc create job --from=cronjob/hypershift-operator-nightly-promotion \
+  manual-$(date +%s) -n crt-redhat-acm-tenant</code></pre>
+        </section>
+
+        <!-- Platform Extensibility -->
+        <section id="extensibility" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-layers text-purple me-2"></i>Platform Extensibility</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">The pipeline is designed from the start to support multiple managed service platforms. Each platform gets its own independent promotion path with its own test suite and verified repository. Adding a new platform requires creating 2&ndash;3 Konflux resources &mdash; an <code>IntegrationTestScenario</code>, a <code>ReleasePlan</code>, and optionally a separate <code>CronJob</code> schedule. No pipeline code changes are needed.</p>
+
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle small">
+              <thead>
+                <tr>
+                  <th>Platform</th>
+                  <th>IntegrationTestScenario</th>
+                  <th>ReleasePlan</th>
+                  <th>CronJob</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>ARO HCP</strong></td>
+                  <td><code>hypershift-ho-release-gate-aro-hcp</code></td>
+                  <td><code>...-aro-hcp-verified</code></td>
+                  <td>Shared nightly</td>
+                  <td><span class="badge bg-primary">Pilot</span></td>
+                </tr>
+                <tr class="text-muted">
+                  <td>ROSA HCP</td>
+                  <td><code>hypershift-ho-release-gate-rosa-hcp</code></td>
+                  <td><code>...-rosa-hcp-verified</code></td>
+                  <td>Shared or separate</td>
+                  <td><span class="badge bg-secondary">Future</span></td>
+                </tr>
+                <tr class="text-muted">
+                  <td>GCP HCP</td>
+                  <td><code>hypershift-ho-release-gate-gcp-hcp</code></td>
+                  <td><code>...-gcp-hcp-verified</code></td>
+                  <td>Shared or separate</td>
+                  <td><span class="badge bg-secondary">Future</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert alert-secondary small py-2 mt-2">
+            <i class="bi bi-info-circle me-1"></i>
+            Each platform's promotion is fully independent. A failure on one platform does <strong>not</strong> block promotion on others. The YAML examples in the <a href="#resources">Konflux Resources</a> section above show the ARO HCP pilot instance; ROSA HCP and GCP HCP will follow the same pattern with their own resource names and verified repositories.
+          </div>
+        </section>
+
+        <!-- Files & Resources -->
+        <section id="files" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-folder2-open text-warning me-2"></i>Files &amp; Resources to Create</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">The following resources need to be created to bring the pilot (ARO HCP) promotion pipeline online. Resources marked <span class="badge bg-secondary">Repo</span> are committed to the HyperShift repository; resources marked <span class="badge bg-info text-dark">Konflux</span> or <span class="badge bg-info text-dark">Releng</span> are applied directly to the respective Konflux namespaces.</p>
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm small">
+              <thead>
+                <tr>
+                  <th>Location</th>
+                  <th>Resource</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge bg-secondary">Repo</span></td>
+                  <td><code>.tekton/pipelines/ho-release-gate.yaml</code></td>
+                  <td>Create: E2E test pipeline definition</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-info text-dark">Konflux</span></td>
+                  <td><code>ReleasePlan/hypershift-operator-ho-release-gate-aro-hcp</code></td>
+                  <td>Create: Gated release plan for ARO HCP</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-info text-dark">Releng</span></td>
+                  <td><code>ReleasePlanAdmission</code> in <code>rhtap-releng-tenant</code></td>
+                  <td>Create: Admission policy (requires releng team coordination)</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-info text-dark">Konflux</span></td>
+                  <td><code>IntegrationTestScenario/hypershift-ho-release-gate-aro-hcp</code></td>
+                  <td>Create: Wire e2e tests as Snapshot gate for ARO HCP</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-info text-dark">Konflux</span></td>
+                  <td><code>CronJob/hypershift-operator-nightly-promotion</code></td>
+                  <td>Create: Nightly trigger</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-info text-dark">Konflux</span></td>
+                  <td><code>ServiceAccount</code> + <code>Role</code> + <code>RoleBinding</code></td>
+                  <td>Create: Least-privilege RBAC for CronJob</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-info text-dark">Konflux</span></td>
+                  <td><code>Secret/slack-webhook</code></td>
+                  <td>Create: Webhook URL for failure notifications</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Open Questions -->
+        <section id="open-questions" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-question-circle text-warning me-2"></i>Open Questions</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">The following items need to be resolved before or during implementation. Each is tracked as a separate Jira issue where applicable.</p>
+          <div class="list-group list-group-flush bg-transparent">
+            <div class="list-group-item border d-flex gap-3 py-3">
+              <i class="bi bi-server text-warning mt-1"></i>
+              <div>
+                <div class="fw-bold small">Test infrastructure</div>
+                <div class="small text-muted">Where do the e2e tests run? The pipeline needs a cluster with cloud credentials (Azure for ARO HCP, AWS for ROSA HCP). We need to coordinate with each platform team to get tests that can run on their infrastructure. See
+                  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3452" class="jira-link" target="_blank">CNTRLPLANE-3452</a>.</div>
+              </div>
+            </div>
+            <div class="list-group-item border d-flex gap-3 py-3">
+              <i class="bi bi-shield-check text-warning mt-1"></i>
+              <div>
+                <div class="fw-bold small">ReleasePlanAdmission</div>
+                <div class="small text-muted">The gated ReleasePlan requires a matching <code>ReleasePlanAdmission</code> in the <code>rhtap-releng-tenant</code> namespace. This requires coordination with the releng team. What policies govern the verified repo? What approval workflows are needed?</div>
+              </div>
+            </div>
+            <div class="list-group-item border d-flex gap-3 py-3">
+              <i class="bi bi-box-seam text-warning mt-1"></i>
+              <div>
+                <div class="fw-bold small">Verified repo location</div>
+                <div class="small text-muted">Which quay.io repository serves as the verified/promoted destination? We need to create a new quay repo that the managed service teams (ARO HCP, ROSA HCP) can also reach.</div>
+              </div>
+            </div>
+            <div class="list-group-item border d-flex gap-3 py-3">
+              <i class="bi bi-sliders text-warning mt-1"></i>
+              <div>
+                <div class="fw-bold small">Platform e2e test integration</div>
+                <div class="small text-muted">Bryan is working with the ARO HCP team to integrate their platform-specific e2e tests into the HyperShift repo, following the same pattern used for HyperShift's existing presubmit e2e tests.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Related Jira Issues -->
+        <section id="jira" class="section-anchor mb-5 pt-3">
+          <h3 class="h5 fw-bold mb-1"><i class="bi bi-ticket-detailed text-primary me-2"></i>Related Jira Issues</h3>
+          <hr class="mt-1 mb-3">
+          <p class="mb-3">Implementation is tracked under <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3434" class="jira-link" target="_blank">CNTRLPLANE-3434</a>, which is broken into the following stories. Each story corresponds to a discrete, independently deliverable piece of the pipeline.</p>
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm small">
+              <thead>
+                <tr><th>Key</th><th>Summary</th><th>Notes</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3446" class="jira-link" target="_blank">CNTRLPLANE-3446</a></td>
+                  <td>Disable auto-release of HO images to ACMD</td>
+                  <td class="text-muted">Not in our scope &mdash; we keep auto-release unchanged</td>
+                </tr>
+                <tr>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3447" class="jira-link" target="_blank">CNTRLPLANE-3447</a></td>
+                  <td>Nightly snapshot resolution</td>
+                  <td class="text-muted">CronJob + Snapshot query logic</td>
+                </tr>
+                <tr>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3448" class="jira-link" target="_blank">CNTRLPLANE-3448</a></td>
+                  <td>ARO HCP e2e gate</td>
+                  <td class="text-muted">IntegrationTestScenario + e2e pipeline</td>
+                </tr>
+                <tr>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3449" class="jira-link" target="_blank">CNTRLPLANE-3449</a></td>
+                  <td>Release creation on pass</td>
+                  <td class="text-muted">Tekton finally task + ReleasePlan</td>
+                </tr>
+                <tr>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3450" class="jira-link" target="_blank">CNTRLPLANE-3450</a></td>
+                  <td>Manual re-trigger</td>
+                  <td class="text-muted">One-off Job from CronJob template</td>
+                </tr>
+                <tr>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3451" class="jira-link" target="_blank">CNTRLPLANE-3451</a></td>
+                  <td>Stale promotion alerting</td>
+                  <td class="text-muted">Alert if no successful promotion in N days</td>
+                </tr>
+                <tr>
+                  <td><a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3452" class="jira-link" target="_blank">CNTRLPLANE-3452</a></td>
+                  <td>Credential setup</td>
+                  <td class="text-muted">Cloud credentials for test infrastructure</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <div class="text-center text-muted small py-3 border-top mt-4">
+          <div>HyperShift &middot; Konflux Release Gating Pipeline &middot; Design Spec &middot; 2026-05-15</div>
+          <div class="mt-1">
+            <a href="https://redhat.atlassian.net/browse/OCPSTRAT-3250" class="jira-link" target="_blank">OCPSTRAT-3250</a> &middot;
+            <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3434" class="jira-link" target="_blank">CNTRLPLANE-3434</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Accordion toggle (replaces Bootstrap JS for htmlpreview.github.io compatibility)
+    document.querySelectorAll('.accordion-button').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var target = document.querySelector(btn.getAttribute('data-bs-target'));
+        var parent = target.closest('.accordion');
+        var isOpen = target.classList.contains('show');
+        if (parent) {
+          parent.querySelectorAll('.accordion-collapse.show').forEach(function(el) {
+            el.classList.remove('show');
+            el.previousElementSibling.querySelector('.accordion-button').classList.add('collapsed');
+          });
+        }
+        if (!isOpen) {
+          target.classList.add('show');
+          btn.classList.remove('collapsed');
+        }
+      });
+    });
+    // Highlight active TOC link on scroll
+    var sections = document.querySelectorAll('.section-anchor');
+    var tocLinks = document.querySelectorAll('.toc a');
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          tocLinks.forEach(function(l) { l.classList.remove('active'); });
+          var active = document.querySelector('.toc a[href="#' + entry.target.id + '"]');
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(function(s) { observer.observe(s); });
+  </script>
+</body>
+</html>

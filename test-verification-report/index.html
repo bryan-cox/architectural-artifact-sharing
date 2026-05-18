@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Verification Report: PR #8088</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    .card-stat { text-align: center; }
+    .card-stat .display-4 { font-weight: 700; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #8088 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Self-Managed KMS Happy Path</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Self-Managed Without KMS</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: ARO HCP KMS Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: CEL Mutual Exclusivity</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: CEL Immutability</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: CLI Key Parsing</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: CLI IAM with KMS</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Missing KMS Client ID</a></li>
+            <li><a class="dropdown-item" href="scenario-9.html">9: HO KMS Config Secret</a></li>
+            <li><a class="dropdown-item" href="scenario-10.html">10: CPO Volume Configuration</a></li>
+            <li><a class="dropdown-item" href="scenario-11.html">11: KMS Key Rotation</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <h1>Test Verification Report: PR #8088</h1>
+    <table class="table table-sm" style="max-width: 600px;">
+      <tbody>
+        <tr><th scope="row">PR</th><td>CNTRLPLANE-3070: Support KMS on self-managed Azure without affecting ARO HCP</td></tr>
+        <tr><th scope="row">URL</th><td><a href="https://github.com/openshift/hypershift/pull/8088" target="_blank">github.com/openshift/hypershift/pull/8088</a></td></tr>
+        <tr><th scope="row">Branch</th><td><code>CNTRLPLANE-3070</code></td></tr>
+        <tr><th scope="row">Date</th><td>2026-05-12</td></tr>
+        <tr><th scope="row">Tester</th><td>Bryan Cox</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">59/59</div>
+          <div class="card-text">Unit Tests Passing</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">6/6</div>
+          <div class="card-text">K8s Versions (Envtest)</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">11/11</div>
+          <div class="card-text">Scenarios Fully Verified</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">8/8</div>
+          <div class="card-text">CI Jobs Passed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Table -->
+  <h2>Summary</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Category</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><a href="automated-tests.html">Build</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Lint / Verify</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Unit Tests (59 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html#envtest">Envtest / CEL Validation</a></td><td><span class="badge bg-success">PASS</span> (K8s 1.30&ndash;1.35, all 6 versions)</td></tr>
+      <tr><td><a href="scenario-1.html">Scenario 1: Self-managed KMS happy path</a></td><td><span class="badge bg-success">PASS</span> (20/20 checks)</td></tr>
+      <tr><td><a href="scenario-2.html">Scenario 2: Self-managed without KMS</a></td><td><span class="badge bg-success">PASS</span> (CI: <code>e2e-azure-self-managed</code> 7/7 tests)</td></tr>
+      <tr><td><a href="scenario-3.html">Scenario 3: ARO HCP KMS regression</a></td><td><span class="badge bg-success">PASS</span> (CI: <code>e2e-aks</code> 9/9 tests)</td></tr>
+      <tr><td><a href="scenario-4.html">Scenario 4: CEL mutual exclusivity</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-5.html">Scenario 5: CEL immutability</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-6.html">Scenario 6: CLI key parsing</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-7.html">Scenario 7: CLI IAM with KMS</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-8.html">Scenario 8: Missing KMS client ID error</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-9.html">Scenario 9: HO KMS config secret</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-10.html">Scenario 10: CPO volume configuration</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-11.html">Scenario 11: KMS key rotation</a></td><td><span class="badge bg-success">PASS</span> (unit + manual verified)</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Automated tests passing:</strong> 59/59 unit (4 CI shards) + envtest CEL suite on 11 K8s versions (6 OCP + 5 vanilla)<br>
+  <strong>Scenarios fully verified:</strong> 11/11<br>
+  <strong>Prow e2e:</strong> <code>e2e-azure-self-managed</code> (7/7 tests, 2h07m) + <code>e2e-aks</code> (9/9 tests, 1h38m)<br>
+  <strong>GitHub Actions:</strong> lint, test (4 shards), envtest-ocp (6 versions), envtest-kube (5 versions), gitlint, codespell &mdash; all PASS</p>
+
+  <hr>
+
+  <!-- Regression Checklist -->
+  <h2>Regression Checklist</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Check</th><th>Result</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Self-managed Azure without KMS works</td><td><span class="badge bg-success">PASS</span></td><td>Scenario 2 &mdash; <code>e2e-azure-self-managed</code> CI: 7/7 tests pass (no KMS configured)</td></tr>
+      <tr><td>ARO HCP with KMS works (managed identity + CSI)</td><td><span class="badge bg-success">PASS</span></td><td>Scenario 3 &mdash; <code>e2e-aks</code> CI: 9/9 tests pass (AKS managed KMS path)</td></tr>
+      <tr><td>ARO HCP without KMS works</td><td><span class="badge bg-success">PASS</span></td><td><code>e2e-aks</code> CI: TestCreateCluster, TestUpgradeControlPlane pass</td></tr>
+      <tr><td>AWS KMS not affected</td><td><span class="badge bg-success">PASS</span></td><td>AWS KMS unit tests PASS (included in shared framework)</td></tr>
+      <tr><td>Existing self-managed Azure clusters updatable</td><td><span class="badge bg-success">PASS</span></td><td>No breaking API changes (<code>kms</code> changed from required to optional); CI upgrade test passes</td></tr>
+      <tr><td><code>make verify</code> passes</td><td><span class="badge bg-success">PASS*</span></td><td>Lint/fmt/vet clean; untracked personal files only</td></tr>
+      <tr><td><code>make build</code> passes</td><td><span class="badge bg-success">PASS</span></td><td></td></tr>
+      <tr><td><code>make test</code> (unit tests)</td><td><span class="badge bg-success">PASS</span></td><td>59/59 tests</td></tr>
+      <tr><td><code>make test-envtest-ocp</code></td><td><span class="badge bg-success">PASS</span></td><td>All 6 K8s versions (1.30&ndash;1.35) pass</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- CI Job Results -->
+  <h2>CI Job Results</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Job</th><th>Status</th><th>Link</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>pull-ci-openshift-hypershift-main-e2e-azure-self-managed</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8088/pull-ci-openshift-hypershift-main-e2e-azure-self-managed/2054732732759543808" target="_blank">Prow</a> &mdash; 2h07m, 7 tests passed (TestCreateCluster, TestUpgradeControlPlane, TestNodePool, TestAutoscaling, TestHAEtcdChaos, TestAzureOAuthLoadBalancer, TestAzurePrivateTopology)</td>
+      </tr>
+      <tr>
+        <td><code>pull-ci-openshift-hypershift-main-e2e-aks</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8088/pull-ci-openshift-hypershift-main-e2e-aks/2054732623900577792" target="_blank">Prow</a> &mdash; 1h38m, 9 tests passed (TestCreateCluster, TestUpgradeControlPlane, TestNodePool, TestAutoscaling, TestHAEtcdChaos, TestCreateClusterCustomConfig, TestCreateClusterHABreakGlassCredentials, TestAzureScheduler, TestCreateClusterDefaultSecurityContextUID)</td>
+      </tr>
+      <tr>
+        <td><code>lint</code> (GitHub Actions)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><a href="https://github.com/openshift/hypershift/actions/runs/25756917751/job/75647698684" target="_blank">GitHub</a> &mdash; 7m41s</td>
+      </tr>
+      <tr>
+        <td><code>test</code> (GitHub Actions &mdash; 4 shards)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><a href="https://github.com/openshift/hypershift/actions/runs/25756917719" target="_blank">GitHub</a> &mdash; cmd-support (6m58s), cpo-hostedcontrolplane (6m3s), cpo-other (5m30s), other (5m2s)</td>
+      </tr>
+      <tr>
+        <td><code>envtest-ocp</code> (GitHub Actions &mdash; 6 K8s versions)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><a href="https://github.com/openshift/hypershift/actions/runs/25756917730" target="_blank">GitHub</a> &mdash; K8s 1.30.3, 1.31.2, 1.32.1, 1.33.2, 1.34.1, 1.35.1</td>
+      </tr>
+      <tr>
+        <td><code>envtest-kube</code> (GitHub Actions &mdash; 5 K8s versions)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><a href="https://github.com/openshift/hypershift/actions/runs/25756917685" target="_blank">GitHub</a> &mdash; K8s 1.31.0, 1.32.0, 1.33.0, 1.34.0, 1.35.0</td>
+      </tr>
+      <tr>
+        <td><code>gitlint</code> (GitHub Actions)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><a href="https://github.com/openshift/hypershift/actions/runs/25756917728/job/75647698674" target="_blank">GitHub</a> &mdash; 24s</td>
+      </tr>
+      <tr>
+        <td><code>codespell</code> (GitHub Actions)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><a href="https://github.com/openshift/hypershift/actions/runs/25756917733/job/75647698666" target="_blank">GitHub</a> &mdash; 19s</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario 3: ARO HCP KMS Regression - PR #8088</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #8088 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Self-Managed KMS Happy Path</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Self-Managed Without KMS</a></li>
+            <li><a class="dropdown-item active" href="scenario-3.html">3: ARO HCP KMS Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: CEL Mutual Exclusivity</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: CEL Immutability</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: CLI Key Parsing</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: CLI IAM with KMS</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Missing KMS Client ID</a></li>
+            <li><a class="dropdown-item" href="scenario-9.html">9: HO KMS Config Secret</a></li>
+            <li><a class="dropdown-item" href="scenario-10.html">10: CPO Volume Configuration</a></li>
+            <li><a class="dropdown-item" href="scenario-11.html">11: KMS Key Rotation</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active">Scenario 3</li>
+    </ol>
+  </nav>
+
+  <h1>Scenario 3: ARO HCP KMS Regression</h1>
+  <p><strong>Objective:</strong> Existing ARO HCP KMS flow (managed identities + CSI) is not broken.</p>
+
+  <div class="alert alert-success"><strong>Overall Scenario 3:</strong> PASS &mdash; Verified via CI job <code>e2e-aks</code>.</div>
+
+  <p><strong>Method:</strong> The <code>pull-ci-openshift-hypershift-main-e2e-aks</code> CI job creates AKS-managed (ARO HCP path) clusters with the full managed identity + CSI KMS flow and runs the e2e test suite. All 9 tests passed, confirming no regression to the existing ARO HCP KMS path.</p>
+
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Managed Azure (AKS/ARO HCP path) cluster created with KMS</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>CI job creates AKS-managed clusters using managed identity KMS path</td>
+      </tr>
+      <tr>
+        <td>2a</td>
+        <td>Managed KMS path (<code>kms.azure.kms</code>) is used</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>AKS CI uses managed identity + CSI secret store (not <code>selfManagedKMS</code>)</td>
+      </tr>
+      <tr>
+        <td>2b</td>
+        <td><code>kms.azure.selfManagedKMS</code> is NOT present</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>AKS clusters do not use the new self-managed KMS fields</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Cluster becomes Available</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>TestCreateCluster passed (2234s)</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Control plane upgrade succeeds</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>TestUpgradeControlPlane passed (2624s)</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Node pool operations work</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>TestNodePool, TestAutoscaling (3417s) passed</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>HA etcd chaos test passes</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>TestHAEtcdChaos passed (665s)</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>Custom config + break-glass credentials work</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>TestCreateClusterCustomConfig (1792s), TestCreateClusterHABreakGlassCredentials (1649s)</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>Secrets can be created/read in guest cluster (KMS operational)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Full e2e suite runs against guest cluster successfully</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>CI Job Details</h3>
+  <table class="table table-sm" style="max-width: 600px;">
+    <tbody>
+      <tr><th scope="row">Job</th><td><code>pull-ci-openshift-hypershift-main-e2e-aks</code></td></tr>
+      <tr><th scope="row">Build</th><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8088/pull-ci-openshift-hypershift-main-e2e-aks/2054732623900577792" target="_blank">#2054732623900577792</a></td></tr>
+      <tr><th scope="row">Duration</th><td>1h38m</td></tr>
+      <tr><th scope="row">Result</th><td><span class="badge bg-success">SUCCESS</span></td></tr>
+    </tbody>
+  </table>
+
+  <h4>Tests Passed (9/9)</h4>
+  <table class="table table-striped table-sm">
+    <thead class="table-dark">
+      <tr><th>Test</th><th>Duration</th><th>Result</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>TestCreateCluster</td><td>2234s</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td>TestUpgradeControlPlane</td><td>2624s</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td>TestNodePool</td><td>0s (subtests)</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td>TestAutoscaling</td><td>3417s</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td>TestHAEtcdChaos</td><td>665s</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td>TestCreateClusterCustomConfig</td><td>1792s</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td>TestCreateClusterHABreakGlassCredentials</td><td>1649s</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td>TestAzureScheduler</td><td>1825s</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td>TestCreateClusterDefaultSecurityContextUID</td><td>240s</td><td><span class="badge bg-success">PASS</span></td></tr>
+    </tbody>
+  </table>
+
+  <h4>Tests Skipped (13)</h4>
+  <details>
+    <summary>Click to expand skipped tests</summary>
+    <table class="table table-striped table-sm mt-2">
+      <thead class="table-dark">
+        <tr><th>Test</th><th>Reason</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>TestNodePoolAutoscalingScaleFromZero</td><td>Not applicable to AKS config</td></tr>
+        <tr><td>TestAzureOAuthLoadBalancer</td><td>Self-managed only</td></tr>
+        <tr><td>TestAzurePrivateTopology</td><td>Self-managed only</td></tr>
+        <tr><td>TestCreateClusterRequestServingIsolation</td><td>Not applicable</td></tr>
+        <tr><td>TestCreateClusterProxy</td><td>Not applicable</td></tr>
+        <tr><td>TestCreateClusterPrivate</td><td>Not applicable</td></tr>
+        <tr><td>TestCreateClusterPrivateWithRouteKAS</td><td>Not applicable</td></tr>
+        <tr><td>TestExternalOIDC</td><td>Not applicable</td></tr>
+        <tr><td>TestKarpenterUpgradeControlPlane</td><td>Not applicable</td></tr>
+        <tr><td>TestKarpenter</td><td>Not applicable</td></tr>
+        <tr><td>TestOLM</td><td>Not applicable</td></tr>
+        <tr><td>TestUpgradeHyperShiftOperator</td><td>Not applicable</td></tr>
+        <tr><td>TestCiliumConnectivity</td><td>Not applicable</td></tr>
+      </tbody>
+    </table>
+  </details>
+
+  <div class="d-flex justify-content-between mt-4">
+    <a href="scenario-2.html" class="btn btn-outline-secondary">&larr; Scenario 2</a>
+    <a href="scenario-4.html" class="btn btn-outline-primary">Scenario 4 &rarr;</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

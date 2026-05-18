@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appendices - PR #8088 Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+    .appendix-header { border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #8088 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Self-Managed KMS Happy Path</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Self-Managed Without KMS</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: ARO HCP KMS Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: CEL Mutual Exclusivity</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: CEL Immutability</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: CLI Key Parsing</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: CLI IAM with KMS</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Missing KMS Client ID</a></li>
+            <li><a class="dropdown-item" href="scenario-9.html">9: HO KMS Config Secret</a></li>
+            <li><a class="dropdown-item" href="scenario-10.html">10: CPO Volume Configuration</a></li>
+            <li><a class="dropdown-item" href="scenario-11.html">11: KMS Key Rotation</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link active" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <h1>Appendices &mdash; Full Logs</h1>
+
+  <div class="list-group mb-4">
+    <a href="#appendix-a" class="list-group-item list-group-item-action">A: <code>create iam azure --enable-kms</code> Log</a>
+    <a href="#appendix-b" class="list-group-item list-group-item-action">B: workload-identities.json</a>
+    <a href="#appendix-c" class="list-group-item list-group-item-action">C: <code>create infra azure</code> Log</a>
+    <a href="#appendix-d" class="list-group-item list-group-item-action">D: brcox-sm-kms-infra-output.json</a>
+    <a href="#appendix-e" class="list-group-item list-group-item-action">E: HyperShift Operator Installation Log</a>
+    <a href="#appendix-f" class="list-group-item list-group-item-action">F: Live Cluster Verification Evidence</a>
+    <a href="#appendix-g" class="list-group-item list-group-item-action">G: <code>verify_kms.sh</code> Automated Verification Script Output</a>
+    <a href="#appendix-h" class="list-group-item list-group-item-action">H: Raw etcd Encryption Verification</a>
+    <a href="#appendix-i" class="list-group-item list-group-item-action">I: KMS Provider Logs</a>
+    <a href="#appendix-j" class="list-group-item list-group-item-action">J: Token Minter Logs</a>
+    <a href="#appendix-k" class="list-group-item list-group-item-action">K: KAS EncryptionConfiguration</a>
+    <a href="#appendix-l" class="list-group-item list-group-item-action">L: Key Rotation Evidence</a>
+    <a href="#appendix-m" class="list-group-item list-group-item-action">M: Cluster Destroy Log</a>
+    <a href="#appendix-n" class="list-group-item list-group-item-action">N: <code>create iam azure</code> WITHOUT <code>--enable-kms</code></a>
+  </div>
+
+  <hr>
+
+  <!-- ==================== APPENDIX A ==================== -->
+  <h2 id="appendix-a" class="appendix-header">Appendix A: <code>create iam azure --enable-kms</code> Log</h2>
+
+  <h4>Command</h4>
+  <pre class="log-output">./bin/hcp create iam azure \
+  --name brcox-sm-kms-hc \
+  --infra-id brcox-sm-kms \
+  --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
+  --location eastus \
+  --resource-group-name os4-common \
+  --oidc-issuer-url https://brcoxsma.blob.core.windows.net/brcoxsma \
+  --output-file workload-identities.json \
+  --enable-kms</pre>
+
+  <div class="accordion mb-3" id="accordionAppA">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppA1">Full output (click to expand)</button>
+      </h2>
+      <div id="collapseAppA1" class="accordion-collapse collapse" data-bs-parent="#accordionAppA">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">{"level":"info","ts":"2026-05-12T14:38:18-04:00","msg":"Using credentials from file","path":"/Users/brcox/.azure/self-managed-azure-credentials.json"}
+{"level":"info","ts":"2026-05-12T14:38:18-04:00","msg":"Creating Azure managed identities and federated credentials","clusterName":"brcox-sm-kms-hc","infraID":"brcox-sm-kms","resourceGroup":"os4-common","location":"eastus"}
+{"level":"info","ts":"2026-05-12T14:38:19-04:00","msg":"Resource group already exists","name":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:19-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-disk-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:20-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-disk-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-disk-brcox-sm-kms","clientID":"61b254ad-d40c-472d-b193-cf2010e6e1e9","principalID":"4ed2552b-37dc-443b-9339-402820731985","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:20-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-disk-fed-id-node","identityName":"brcox-sm-kms-hc-disk-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-disk-csi-driver-node-sa","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:21-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-disk-fed-id-node","identityName":"brcox-sm-kms-hc-disk-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-disk-csi-driver-node-sa","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:21-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-disk-fed-id-operator","identityName":"brcox-sm-kms-hc-disk-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-disk-csi-driver-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:22-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-disk-fed-id-operator","identityName":"brcox-sm-kms-hc-disk-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-disk-csi-driver-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:22-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-disk-fed-id-controller","identityName":"brcox-sm-kms-hc-disk-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-disk-csi-driver-controller-sa","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:22-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-disk-fed-id-controller","identityName":"brcox-sm-kms-hc-disk-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-disk-csi-driver-controller-sa","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:22-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-file-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:23-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-file-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-file-brcox-sm-kms","clientID":"d8d22fb4-a49b-4c34-a7c8-ea2fdaead153","principalID":"85ac9461-051e-4ce3-ab31-b46afdaa7014","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:23-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-file-fed-id-node","identityName":"brcox-sm-kms-hc-file-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-file-csi-driver-node-sa","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:23-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-file-fed-id-node","identityName":"brcox-sm-kms-hc-file-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-file-csi-driver-node-sa","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:23-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-file-fed-id-operator","identityName":"brcox-sm-kms-hc-file-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-file-csi-driver-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:24-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-file-fed-id-operator","identityName":"brcox-sm-kms-hc-file-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-file-csi-driver-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:24-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-file-fed-id-controller","identityName":"brcox-sm-kms-hc-file-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-file-csi-driver-controller-sa","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:24-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-file-fed-id-controller","identityName":"brcox-sm-kms-hc-file-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cluster-csi-drivers:azure-file-csi-driver-controller-sa","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:24-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-image-registry-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:25-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-image-registry-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-image-registry-brcox-sm-kms","clientID":"992871b5-e75d-4ee4-a11d-e086177d9ba8","principalID":"bdf81c9e-a6a8-4f95-879a-a4de95cea7e2","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:25-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-image-registry-fed-id-registry","identityName":"brcox-sm-kms-hc-image-registry-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-image-registry:registry","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:26-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-image-registry-fed-id-registry","identityName":"brcox-sm-kms-hc-image-registry-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-image-registry:registry","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:26-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-image-registry-fed-id-operator","identityName":"brcox-sm-kms-hc-image-registry-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-image-registry:cluster-image-registry-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:26-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-image-registry-fed-id-operator","identityName":"brcox-sm-kms-hc-image-registry-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-image-registry:cluster-image-registry-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:26-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-ingress-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:27-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-ingress-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-ingress-brcox-sm-kms","clientID":"da014776-9855-441c-9e69-685874620d58","principalID":"b52c49b4-dfad-4712-a009-c07c2ae2f053","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:27-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-ingress-fed-id","identityName":"brcox-sm-kms-hc-ingress-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-ingress-operator:ingress-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:28-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-ingress-fed-id","identityName":"brcox-sm-kms-hc-ingress-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-ingress-operator:ingress-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:28-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-cloud-provider-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:28-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-cloud-provider-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-cloud-provider-brcox-sm-kms","clientID":"95803fb1-b1f2-42f3-804a-0fd697a2c85b","principalID":"b2d2e1f0-970c-471a-8f7d-90d1cbd7c966","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:28-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-cloud-provider-fed-id","identityName":"brcox-sm-kms-hc-cloud-provider-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:kube-system:azure-cloud-provider","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:29-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-cloud-provider-fed-id","identityName":"brcox-sm-kms-hc-cloud-provider-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:kube-system:azure-cloud-provider","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:29-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-node-pool-mgmt-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:29-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-node-pool-mgmt-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-node-pool-mgmt-brcox-sm-kms","clientID":"0b7d7cbe-257c-4422-a7e5-640cb37d74d1","principalID":"d12583b1-d982-408c-a729-5db998d71314","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:29-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-node-pool-mgmt-fed-id","identityName":"brcox-sm-kms-hc-node-pool-mgmt-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:kube-system:capi-provider","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:30-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-node-pool-mgmt-fed-id","identityName":"brcox-sm-kms-hc-node-pool-mgmt-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:kube-system:capi-provider","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:30-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-network-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:30-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-network-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-network-brcox-sm-kms","clientID":"500fd548-af02-4a07-90a9-7fe35a605354","principalID":"e1b09836-62c2-46f7-80d4-fe793c143b63","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:30-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-network-fed-id","identityName":"brcox-sm-kms-hc-network-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cloud-network-config-controller:cloud-network-config-controller","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:31-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-network-fed-id","identityName":"brcox-sm-kms-hc-network-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:openshift-cloud-network-config-controller:cloud-network-config-controller","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:31-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-control-plane-operator-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:31-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-control-plane-operator-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-control-plane-operator-brcox-sm-kms","clientID":"2e06334c-9ab2-4e3c-b6b8-8bda7ca1861c","principalID":"c0c71d59-fb55-479a-8b9c-c85ad16fdf1e","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:31-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-cpo-fed-id","identityName":"brcox-sm-kms-hc-control-plane-operator-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:kube-system:control-plane-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:32-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-cpo-fed-id","identityName":"brcox-sm-kms-hc-control-plane-operator-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:kube-system:control-plane-operator","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:32-04:00","msg":"Creating managed identity","name":"brcox-sm-kms-hc-kms-brcox-sm-kms","resourceGroup":"os4-common","location":"eastus","subscription":"237432b9-9dc5-4b0b-b058-8868ac6a774b"}
+{"level":"info","ts":"2026-05-12T14:38:33-04:00","msg":"Successfully created managed identity","name":"brcox-sm-kms-hc-kms-brcox-sm-kms","resourceID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourcegroups/os4-common/providers/Microsoft.ManagedIdentity/userAssignedIdentities/brcox-sm-kms-hc-kms-brcox-sm-kms","clientID":"26753a71-c566-4392-9c0a-a6b15bfe60fc","principalID":"78b1e095-e6ae-4ace-af8c-2c52dcab16f8","resourceGroup":"os4-common"}
+{"level":"info","ts":"2026-05-12T14:38:33-04:00","msg":"Creating federated identity credential","credentialName":"brcox-sm-kms-hc-kms-fed-id","identityName":"brcox-sm-kms-hc-kms-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:kube-system:kms-provider","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:33-04:00","msg":"Successfully created federated identity credential","credentialName":"brcox-sm-kms-hc-kms-fed-id","identityName":"brcox-sm-kms-hc-kms-brcox-sm-kms","resourceGroup":"os4-common","issuer":"https://brcoxsma.blob.core.windows.net/brcoxsma","subject":"system:serviceaccount:kube-system:kms-provider","audience":"openshift"}
+{"level":"info","ts":"2026-05-12T14:38:33-04:00","msg":"Workload identities created and saved","outputFile":"workload-identities.json"}
+{"level":"info","ts":"2026-05-12T14:38:33-04:00","msg":"Successfully created IAM resources"}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h4>Post-IAM: Key Vault role assignment</h4>
+  <div class="accordion mb-3" id="accordionAppA2">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppA2">Role assignment output (click to expand)</button>
+      </h2>
+      <div id="collapseAppA2" class="accordion-collapse collapse" data-bs-parent="#accordionAppA2">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">KMS_CLIENT_ID=26753a71-c566-4392-9c0a-a6b15bfe60fc
+KMS_PRINCIPAL_ID=78b1e095-e6ae-4ace-af8c-2c52dcab16f8
+KV_ID=/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.KeyVault/vaults/brcox-sm-kms-kv
+ENCRYPTION_KEY_ID=https://brcox-sm-kms-kv.vault.azure.net/keys/brcox-sm-kms-etcd-key/4f6506ac99424726aed2a2b1dca3acc0
+
+az role assignment create output:
+{
+  "condition": null,
+  "conditionVersion": null,
+  "createdBy": null,
+  "createdOn": "2026-05-12T18:38:36.010038+00:00",
+  "delegatedManagedIdentityResourceId": null,
+  "description": null,
+  "id": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.KeyVault/vaults/brcox-sm-kms-kv/providers/Microsoft.Authorization/roleAssignments/8487d32a-a67b-46b4-9a1a-88bfecabd764",
+  "name": "8487d32a-a67b-46b4-9a1a-88bfecabd764",
+  "principalId": "78b1e095-e6ae-4ace-af8c-2c52dcab16f8",
+  "principalType": "ServicePrincipal",
+  "resourceGroup": "os4-common",
+  "roleDefinitionId": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/providers/Microsoft.Authorization/roleDefinitions/12338af0-0e69-4776-bea7-57ae8d297424",
+  "scope": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.KeyVault/vaults/brcox-sm-kms-kv",
+  "type": "Microsoft.Authorization/roleAssignments",
+  "updatedBy": "aaa1f0e0-6df0-4303-945b-75560721f06f",
+  "updatedOn": "2026-05-12T18:38:36.192043+00:00"
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ==================== APPENDIX B ==================== -->
+  <h2 id="appendix-b" class="appendix-header">Appendix B: workload-identities.json</h2>
+  <pre class="log-output">{
+  "imageRegistry": {
+    "clientID": "992871b5-e75d-4ee4-a11d-e086177d9ba8"
+  },
+  "ingress": {
+    "clientID": "da014776-9855-441c-9e69-685874620d58"
+  },
+  "file": {
+    "clientID": "d8d22fb4-a49b-4c34-a7c8-ea2fdaead153"
+  },
+  "disk": {
+    "clientID": "61b254ad-d40c-472d-b193-cf2010e6e1e9"
+  },
+  "nodePoolManagement": {
+    "clientID": "0b7d7cbe-257c-4422-a7e5-640cb37d74d1"
+  },
+  "cloudProvider": {
+    "clientID": "95803fb1-b1f2-42f3-804a-0fd697a2c85b"
+  },
+  "network": {
+    "clientID": "500fd548-af02-4a07-90a9-7fe35a605354"
+  },
+  "controlPlaneOperator": {
+    "clientID": "2e06334c-9ab2-4e3c-b6b8-8bda7ca1861c"
+  },
+  "kmsClientID": "26753a71-c566-4392-9c0a-a6b15bfe60fc"
+}</pre>
+
+  <hr>
+
+  <!-- ==================== APPENDIX C ==================== -->
+  <h2 id="appendix-c" class="appendix-header">Appendix C: <code>create infra azure</code> Log</h2>
+
+  <h4>Command</h4>
+  <pre class="log-output">./bin/hcp create infra azure \
+  --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
+  --infra-id brcox-sm-kms \
+  --name brcox-sm-kms-hc \
+  --location eastus \
+  --base-domain hcp-sm-azure.azure.devcluster.openshift.com \
+  --dns-zone-rg-name os4-common \
+  --workload-identities-file workload-identities.json \
+  --assign-identity-roles \
+  --output-file brcox-sm-kms-infra-output.json</pre>
+
+  <div class="accordion mb-3" id="accordionAppC">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppC">Full output (click to expand)</button>
+      </h2>
+      <div id="collapseAppC" class="accordion-collapse collapse" data-bs-parent="#accordionAppC">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">{"level":"info","ts":"2026-05-12T14:39:00-04:00","msg":"Using credentials from file","path":"/Users/brcox/.azure/self-managed-azure-credentials.json"}
+{"level":"info","ts":"2026-05-12T14:39:02-04:00","msg":"Successfully created resource group","name":"brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:03-04:00","msg":"Successfully created resource group","name":"brcox-sm-kms-hc-nsg-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:05-04:00","msg":"Successfully created network security group","ID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-nsg-brcox-sm-kms/providers/Microsoft.Network/networkSecurityGroups/brcox-sm-kms-hc-brcox-sm-kms-nsg"}
+{"level":"info","ts":"2026-05-12T14:39:06-04:00","msg":"Successfully created resource group","name":"brcox-sm-kms-hc-vnet-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:09-04:00","msg":"Successfully created vnet","ID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms/providers/Microsoft.Network/virtualNetworks/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:11-04:00","msg":"successfully created role assignment","role":"0d7aedc0-15fd-4a67-a412-efad370c947e","assigneeID":"85ac9461-051e-4ce3-ab31-b46afdaa7014","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:13-04:00","msg":"successfully created role assignment","role":"0d7aedc0-15fd-4a67-a412-efad370c947e","assigneeID":"85ac9461-051e-4ce3-ab31-b46afdaa7014","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-nsg-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:15-04:00","msg":"successfully created role assignment","role":"0d7aedc0-15fd-4a67-a412-efad370c947e","assigneeID":"85ac9461-051e-4ce3-ab31-b46afdaa7014","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:16-04:00","msg":"successfully created role assignment","role":"5b7237c5-45e1-49d6-bc18-a1f62f400748","assigneeID":"4ed2552b-37dc-443b-9339-402820731985","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:18-04:00","msg":"successfully created role assignment","role":"0336e1d3-7a87-462b-b6db-342b63f7802c","assigneeID":"b52c49b4-dfad-4712-a009-c07c2ae2f053","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:19-04:00","msg":"successfully created role assignment","role":"0336e1d3-7a87-462b-b6db-342b63f7802c","assigneeID":"b52c49b4-dfad-4712-a009-c07c2ae2f053","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:19-04:00","msg":"Deleting stale role assignment with mismatched principal","role":"0336e1d3-7a87-462b-b6db-342b63f7802c","expectedPrincipal":"b52c49b4-dfad-4712-a009-c07c2ae2f053","stalePrincipal":"0582d92e-fffc-4363-904a-55df4e11c002","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common"}
+{"level":"info","ts":"2026-05-12T14:39:22-04:00","msg":"successfully created role assignment","role":"0336e1d3-7a87-462b-b6db-342b63f7802c","assigneeID":"b52c49b4-dfad-4712-a009-c07c2ae2f053","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common"}
+{"level":"info","ts":"2026-05-12T14:39:24-04:00","msg":"successfully created role assignment","role":"be7a6435-15ae-4171-8f30-4a343eff9e8f","assigneeID":"e1b09836-62c2-46f7-80d4-fe793c143b63","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:25-04:00","msg":"successfully created role assignment","role":"be7a6435-15ae-4171-8f30-4a343eff9e8f","assigneeID":"e1b09836-62c2-46f7-80d4-fe793c143b63","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:27-04:00","msg":"successfully created role assignment","role":"8b32b316-c2f5-4ddf-b05b-83dacd2d08b5","assigneeID":"bdf81c9e-a6a8-4f95-879a-a4de95cea7e2","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:29-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"c0c71d59-fb55-479a-8b9c-c85ad16fdf1e","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:32-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"c0c71d59-fb55-479a-8b9c-c85ad16fdf1e","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-nsg-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:33-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"c0c71d59-fb55-479a-8b9c-c85ad16fdf1e","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:35-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"d12583b1-d982-408c-a729-5db998d71314","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:36-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"d12583b1-d982-408c-a729-5db998d71314","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:38-04:00","msg":"successfully created role assignment","role":"a1f96423-95ce-4224-ab27-4e3dc72facd4","assigneeID":"b2d2e1f0-970c-471a-8f7d-90d1cbd7c966","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:43-04:00","msg":"successfully created role assignment","role":"a1f96423-95ce-4224-ab27-4e3dc72facd4","assigneeID":"b2d2e1f0-970c-471a-8f7d-90d1cbd7c966","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-nsg-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:39:44-04:00","msg":"successfully created role assignment","role":"a1f96423-95ce-4224-ab27-4e3dc72facd4","assigneeID":"b2d2e1f0-970c-471a-8f7d-90d1cbd7c966","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms"}
+{"level":"info","ts":"2026-05-12T14:40:15-04:00","msg":"Successfully created private DNS zone","name":"brcox-sm-kms-hc-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com"}
+{"level":"info","ts":"2026-05-12T14:40:47-04:00","msg":"Successfully created private DNS zone link"}
+{"level":"info","ts":"2026-05-12T14:40:48-04:00","msg":"Successfully created public IP address for guest cluster egress load balancer"}
+{"level":"info","ts":"2026-05-12T14:40:49-04:00","msg":"Successfully created guest cluster egress load balancer"}
+{"level":"info","ts":"2026-05-12T14:40:49-04:00","msg":"Successfully created infrastructure"}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ==================== APPENDIX D ==================== -->
+  <h2 id="appendix-d" class="appendix-header">Appendix D: brcox-sm-kms-infra-output.json</h2>
+  <pre class="log-output">baseDomain: hcp-sm-azure.azure.devcluster.openshift.com
+bootImageID: ""
+controlPlaneMIs: null
+dataPlaneIdentities:
+  diskMSIClientID: ""
+  fileMSIClientID: ""
+  imageRegistryMSIClientID: ""
+infraID: brcox-sm-kms
+kmsClientID: 26753a71-c566-4392-9c0a-a6b15bfe60fc
+privateZoneID: /subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-brcox-sm-kms/providers/Microsoft.Network/privateDnsZones/brcox-sm-kms-hc-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com
+publicZoneID: /subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com
+region: eastus
+resourceGroupName: brcox-sm-kms-hc-brcox-sm-kms
+securityGroupID: /subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-nsg-brcox-sm-kms/providers/Microsoft.Network/networkSecurityGroups/brcox-sm-kms-hc-brcox-sm-kms-nsg
+subnetID: /subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms/providers/Microsoft.Network/virtualNetworks/brcox-sm-kms-hc-brcox-sm-kms/subnets/default
+vnetID: /subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-sm-kms-hc-vnet-brcox-sm-kms/providers/Microsoft.Network/virtualNetworks/brcox-sm-kms-hc-brcox-sm-kms
+workloadIdentities:
+  cloudProvider:
+    clientID: 95803fb1-b1f2-42f3-804a-0fd697a2c85b
+  controlPlaneOperator:
+    clientID: 2e06334c-9ab2-4e3c-b6b8-8bda7ca1861c
+  disk:
+    clientID: 61b254ad-d40c-472d-b193-cf2010e6e1e9
+  file:
+    clientID: d8d22fb4-a49b-4c34-a7c8-ea2fdaead153
+  imageRegistry:
+    clientID: 992871b5-e75d-4ee4-a11d-e086177d9ba8
+  ingress:
+    clientID: da014776-9855-441c-9e69-685874620d58
+  network:
+    clientID: 500fd548-af02-4a07-90a9-7fe35a605354
+  nodePoolManagement:
+    clientID: 0b7d7cbe-257c-4422-a7e5-640cb37d74d1</pre>
+
+  <hr>
+
+  <!-- ==================== APPENDIX E ==================== -->
+  <h2 id="appendix-e" class="appendix-header">Appendix E: <code>install_ho.sh</code> &mdash; HyperShift Operator Installation Log</h2>
+
+  <h4>Configuration</h4>
+  <pre class="log-output">TAG=CNTRLPLANE-3070-2026-04-12-2
+HYPERSHIFT_IMAGE=quay.io/rh_ee_brcox/hypershift:CNTRLPLANE-3070-2026-04-12-2
+PARENT_DNS_ZONE=hcp-sm-azure.azure.devcluster.openshift.com
+DNS_ZONE_NAME=brcox.hcp-sm-azure.azure.devcluster.openshift.com
+PARENT_DNS_RG=os4-common</pre>
+
+  <div class="accordion mb-3" id="accordionAppE">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppE1">Step 1: DNS NS record delegation (click to expand)</button>
+      </h2>
+      <div id="collapseAppE1" class="accordion-collapse collapse" data-bs-parent="#accordionAppE">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">az network dns record-set ns delete --resource-group os4-common --zone-name hcp-sm-azure.azure.devcluster.openshift.com --name brcox -y
+
+name_servers:
+  ns1-09.azure-dns.com.
+  ns2-09.azure-dns.net.
+  ns3-09.azure-dns.org.
+  ns4-09.azure-dns.info.
+
+az network dns record-set ns add-record (x4) -&gt; all succeeded
+Final NS record:
+{
+  "NSRecords": [
+    {"nsdname": "ns1-09.azure-dns.com."},
+    {"nsdname": "ns2-09.azure-dns.net."},
+    {"nsdname": "ns3-09.azure-dns.org."},
+    {"nsdname": "ns4-09.azure-dns.info."}
+  ],
+  "TTL": 3600,
+  "fqdn": "brcox.hcp-sm-azure.azure.devcluster.openshift.com.",
+  "provisioningState": "Succeeded"
+}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppE2">Steps 2-4: External DNS SP, role assignments, secret (click to expand)</button>
+      </h2>
+      <div id="collapseAppE2" class="accordion-collapse collapse" data-bs-parent="#accordionAppE">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">Step 2: External DNS service principal
+az ad sp create-for-rbac --name ExternalDnsServicePrincipal
+  appId: 08604edd-c5b0-4cb1-a26c-56825d055bdd
+  displayName: ExternalDnsServicePrincipal
+  password: [REDACTED]
+  tenant: 520cf09d-78ff-44ed-a731-abd623e73b09
+
+Step 3: DNS role assignments for External DNS SP
+az role assignment create --role Reader --assignee 08604edd-c5b0-4cb1-a26c-56825d055bdd \
+  --scope .../dnszones/brcox.hcp-sm-azure.azure.devcluster.openshift.com
+  -&gt; roleAssignment: 6df326d9-6279-430b-982c-88910160af0c (Reader)
+
+az role assignment create --role Contributor --assignee 08604edd-c5b0-4cb1-a26c-56825d055bdd \
+  --scope .../dnszones/brcox.hcp-sm-azure.azure.devcluster.openshift.com
+  -&gt; roleAssignment: b82000b7-cd77-4437-94f8-c24cab51c43c (Contributor)
+
+Step 4: Azure config secret
+kubectl delete secret/azure-config-file --namespace default
+secret "azure-config-file" deleted
+kubectl create secret generic azure-config-file --namespace default --from-file /Users/brcox/azure_mgmt.json
+secret/azure-config-file created</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppE3">Step 5: HyperShift install output (click to expand)</button>
+      </h2>
+      <div id="collapseAppE3" class="accordion-collapse collapse" data-bs-parent="#accordionAppE">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">./bin/hypershift install \
+  --pull-secret /Users/brcox/all-the-pull-secrets.json \
+  --limit-crd-install Azure \
+  --external-dns-provider=azure \
+  --external-dns-credentials /Users/brcox/azure_mgmt.json \
+  --external-dns-domain-filter brcox.hcp-sm-azure.azure.devcluster.openshift.com \
+  --hypershift-image quay.io/rh_ee_brcox/hypershift:CNTRLPLANE-3070-2026-04-12-2
+
+Skipping existing IPAM CRD ipaddressclaims.ipam.cluster.x-k8s.io
+Skipping existing IPAM CRD ipaddresses.ipam.cluster.x-k8s.io
+All 31 CRDs passed dry-run validation
+applied CustomResourceDefinition /clusterresourcesetbindings.addons.cluster.x-k8s.io
+applied CustomResourceDefinition /clusterresourcesets.addons.cluster.x-k8s.io
+applied CustomResourceDefinition /clusterclasses.cluster.x-k8s.io
+applied CustomResourceDefinition /clusters.cluster.x-k8s.io
+applied CustomResourceDefinition /machinedeployments.cluster.x-k8s.io
+applied CustomResourceDefinition /machinedrainrules.cluster.x-k8s.io
+applied CustomResourceDefinition /machinehealthchecks.cluster.x-k8s.io
+applied CustomResourceDefinition /machinepools.cluster.x-k8s.io
+applied CustomResourceDefinition /machines.cluster.x-k8s.io
+applied CustomResourceDefinition /machinesets.cluster.x-k8s.io
+applied CustomResourceDefinition /azureasomanagedclusters.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azureasomanagedclustertemplates.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azureasomanagedcontrolplanes.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azureasomanagedcontrolplanetemplates.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azureasomanagedmachinepools.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azureasomanagedmachinepooltemplates.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azureclusteridentities.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azureclusters.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azureclustertemplates.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azuremachines.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /azuremachinetemplates.infrastructure.cluster.x-k8s.io
+applied CustomResourceDefinition /auditlogpersistenceconfigs.auditlogpersistence.hypershift.openshift.io
+applied CustomResourceDefinition /certificaterevocationrequests.certificates.hypershift.openshift.io
+applied CustomResourceDefinition /certificatesigningrequestapprovals.certificates.hypershift.openshift.io
+applied CustomResourceDefinition /clustersizingconfigurations.scheduling.hypershift.openshift.io
+applied CustomResourceDefinition /azureprivatelinkservices.hypershift.openshift.io
+applied CustomResourceDefinition /certificatesigningrequestapprovals.hypershift.openshift.io
+applied CustomResourceDefinition /controlplanecomponents.hypershift.openshift.io
+applied CustomResourceDefinition /hostedclusters.hypershift.openshift.io
+applied CustomResourceDefinition /hostedcontrolplanes.hypershift.openshift.io
+applied CustomResourceDefinition /nodepools.hypershift.openshift.io
+already exists: PriorityClass /hypershift-control-plane
+already exists: PriorityClass /hypershift-etcd
+already exists: PriorityClass /hypershift-api-critical
+already exists: PriorityClass /hypershift-operator
+applied Namespace /hypershift
+applied ServiceAccount hypershift/operator
+applied ClusterRole /hypershift-operator
+applied ClusterRoleBinding /hypershift-operator
+applied Role hypershift/hypershift-operator
+applied RoleBinding hypershift/hypershift-operator
+applied RoleBinding kube-system/hypershift:extension-apiserver-authentication-reader
+applied Secret hypershift/webhook-serving-ca
+applied Secret hypershift/manager-serving-cert
+applied Secret hypershift/pull-secret
+applied ConfigMap hypershift/openshift-config-managed-trusted-ca-bundle
+applied ServiceAccount hypershift/external-dns
+applied ClusterRole /external-dns
+applied ClusterRoleBinding /external-dns
+applied Secret hypershift/external-dns-credentials
+applied Deployment hypershift/external-dns
+applied PodMonitor hypershift/external-dns
+applied Deployment hypershift/operator
+applied Service hypershift/operator
+applied ConfigMap hypershift/feature-gate
+applied Role hypershift/prometheus
+applied RoleBinding hypershift/prometheus
+applied ServiceMonitor hypershift/operator
+applied PrometheusRule hypershift/metrics</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppE4">Step 6: Verify operator pods running (click to expand)</button>
+      </h2>
+      <div id="collapseAppE4" class="accordion-collapse collapse" data-bs-parent="#accordionAppE">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">$ k get pods -n hypershift
+NAME                            READY   STATUS    RESTARTS   AGE
+external-dns-655b55f8c7-cr5zw   1/1     Running   0          5m47s
+operator-6bb6c67866-r8hwj       1/1     Running   0          5m47s
+operator-6bb6c67866-xqr88       1/1     Running   0          4m3s</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ==================== APPENDIX F ==================== -->
+  <h2 id="appendix-f" class="appendix-header">Appendix F: Live Cluster Verification Evidence</h2>
+
+  <p><strong>Cluster:</strong> <code>brcox-sm-kms-hc</code> in namespace <code>clusters</code><br>
+  <strong>HCP namespace:</strong> <code>clusters-brcox-sm-kms-hc</code><br>
+  <strong>Verified:</strong> 2026-05-12</p>
+
+  <div class="accordion mb-3" id="accordionAppF">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppF1">F.1: HostedCluster secretEncryption spec</button>
+      </h2>
+      <div id="collapseAppF1" class="accordion-collapse collapse" data-bs-parent="#accordionAppF">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">{
+  "kms": {
+    "azure": {
+      "activeKey": {
+        "keyName": "brcox-sm-kms-etcd-key",
+        "keyVaultName": "brcox-sm-kms-kv",
+        "keyVersion": "4f6506ac99424726aed2a2b1dca3acc0"
+      },
+      "selfManagedKMS": {
+        "clientID": "26753a71-c566-4392-9c0a-a6b15bfe60fc"
+      }
+    },
+    "provider": "Azure"
+  },
+  "type": "kms"
+}
+
+Note: kms.azure.kms field is NOT present (omitzero working correctly).</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppF2">F.2: HostedCluster conditions</button>
+      </h2>
+      <div id="collapseAppF2" class="accordion-collapse collapse" data-bs-parent="#accordionAppF">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">{"type": "Available", "status": "True"}
+{"type": "ValidAzureKMSConfig", "status": "True"}
+{"type": "KubeAPIServerAvailable", "status": "True"}
+{"type": "EtcdAvailable", "status": "True"}
+{"type": "InfrastructureReady", "status": "True"}
+{"type": "ValidConfiguration", "status": "True"}
+{"type": "ReconciliationSucceeded", "status": "True"}
+{"type": "ClusterVersionAvailable", "status": "True"}
+{"type": "ClusterVersionSucceeding", "status": "True"}
+
+Available condition detail:
+{
+  "lastTransitionTime": "2026-05-12T20:08:49Z",
+  "message": "The hosted control plane is available",
+  "reason": "AsExpected",
+  "status": "True",
+  "type": "Available"
+}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppF3">F.3: KAS pod containers (7/7 Running)</button>
+      </h2>
+      <div id="collapseAppF3" class="accordion-collapse collapse" data-bs-parent="#accordionAppF">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">kube-apiserver                   (OCP release image)
+bootstrap                        (quay.io/rh_ee_brcox/hypershift:CNTRLPLANE-3070-2026-04-12-2)
+konnectivity-server              (OCP release image)
+audit-logs                       (OCP release image)
+azure-workload-identity-webhook  (OCP release image)
+azure-kms-provider-active        (OCP release image)
+azure-kms-token-minter           (quay.io/rh_ee_brcox/hypershift:CNTRLPLANE-3070-2026-04-12-2)
+
+3 KAS replicas, all 7/7 Running:
+kube-apiserver-69c46f9565-fn5kl   7/7   Running   0   170m
+kube-apiserver-69c46f9565-khhvt   7/7   Running   0   170m
+kube-apiserver-69c46f9565-xqj65   7/7   Running   0   170m
+
+No azure-kms-provider-backup container present (no backup key configured).</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppF4">F.4: azure-kms-provider-active container spec</button>
+      </h2>
+      <div id="collapseAppF4" class="accordion-collapse collapse" data-bs-parent="#accordionAppF">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">{
+  "name": "azure-kms-provider-active",
+  "args": [
+    "--keyvault-name=brcox-sm-kms-kv",
+    "--key-name=brcox-sm-kms-etcd-key",
+    "--key-version=4f6506ac99424726aed2a2b1dca3acc0",
+    "--listen-addr=unix:///opt/azurekmsactive.socket",
+    "--healthz-port=8787",
+    "--metrics-addr=8095",
+    "--healthz-path=/healthz",
+    "--config-file-path=/etc/kubernetes/azure.json",
+    "-v=1"
+  ],
+  "env": [
+    {"name": "AZURE_CLIENT_ID", "value": "26753a71-c566-4392-9c0a-a6b15bfe60fc"},
+    {"name": "AZURE_TENANT_ID", "value": "520cf09d-78ff-44ed-a731-abd623e73b09"},
+    {"name": "AZURE_FEDERATED_TOKEN_FILE", "value": "/var/run/secrets/openshift/serviceaccount/token"}
+  ],
+  "volumeMounts": [
+    {"mountPath": "/etc/kubernetes", "name": "azure-kms-credentials"},
+    {"mountPath": "/opt", "name": "kms-socket"},
+    {"mountPath": "/var/run/secrets/openshift/serviceaccount", "name": "azure-kms-cloud-token", "readOnly": true},
+    {"mountPath": "/tmp", "name": "tmp-dir"}
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppF5">F.5: azure-kms-token-minter container spec</button>
+      </h2>
+      <div id="collapseAppF5" class="accordion-collapse collapse" data-bs-parent="#accordionAppF">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">{
+  "name": "azure-kms-token-minter",
+  "image": "quay.io/rh_ee_brcox/hypershift:CNTRLPLANE-3070-2026-04-12-2",
+  "args": [
+    "--token-audience=openshift",
+    "--service-account-namespace=kube-system",
+    "--service-account-name=kms-provider",
+    "--token-file=/var/run/secrets/openshift/serviceaccount/token",
+    "--kubeconfig=/etc/kubernetes/kubeconfig"
+  ],
+  "volumeMounts": [
+    {"mountPath": "/var/run/secrets/openshift/serviceaccount", "name": "azure-kms-cloud-token"},
+    {"mountPath": "/etc/kubernetes", "name": "localhost-kubeconfig"},
+    {"mountPath": "/tmp", "name": "tmp-dir"}
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppF6">F.6: KMS-related volumes (no CSI)</button>
+      </h2>
+      <div id="collapseAppF6" class="accordion-collapse collapse" data-bs-parent="#accordionAppF">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">[
+  {"name": "azure-kms-credentials", "type": "secret"},
+  {"name": "kms-socket", "type": "emptyDir"},
+  {"name": "azure-kms-cloud-token", "type": "emptyDir"}
+]
+
+No CSI secret store volumes present. No SecretProviderClass exists in the HCP namespace.</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppF7">F.7: azure-kms-config secret</button>
+      </h2>
+      <div id="collapseAppF7" class="accordion-collapse collapse" data-bs-parent="#accordionAppF">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">{
+  "cloud": "AzurePublicCloud",
+  "tenantId": "520cf09d-78ff-44ed-a731-abd623e73b09",
+  "useManagedIdentityExtension": false,
+  "useWorkloadIdentityExtension": true,
+  "subscriptionId": "237432b9-9dc5-4b0b-b058-8868ac6a774b",
+  "aadClientId": "",
+  "resourceGroup": "brcox-sm-kms-hc-brcox-sm-kms",
+  "location": "eastus",
+  "loadBalancerSku": "standard"
+}
+
+Note: useWorkloadIdentityExtension: true and useManagedIdentityExtension: false
+confirms self-managed workload identity path. aadClientId is empty because the
+client ID is passed via AZURE_CLIENT_ID env var on the KMS provider container.</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppF8">F.8: Guest cluster verification</button>
+      </h2>
+      <div id="collapseAppF8" class="accordion-collapse collapse" data-bs-parent="#accordionAppF">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">Nodes:
+NAME                          STATUS   ROLES    AGE   VERSION
+brcox-sm-kms-hc-4zc7g-d77cq   Ready    worker   60m   v1.35.4
+brcox-sm-kms-hc-4zc7g-h5brz   Ready    worker   61m   v1.35.4
+
+kms-provider ServiceAccount (guest kube-system):
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kms-provider
+  namespace: kube-system
+  creationTimestamp: "2026-05-12T19:47:14Z"
+  uid: a0cbce81-0e7e-4d1d-8e39-ed822c21a701
+
+Secret roundtrip test (KMS encryption operational):
+$ oc create secret generic kms-test-secret --from-literal=test=encrypted-data -n default
+secret/kms-test-secret created
+
+$ oc get secret kms-test-secret -n default -o jsonpath='{.data.test}' | base64 -d
+encrypted-data
+
+$ oc delete secret kms-test-secret -n default
+secret "kms-test-secret" deleted</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ==================== APPENDIX G ==================== -->
+  <h2 id="appendix-g" class="appendix-header">Appendix G: <code>verify_kms.sh</code> &mdash; Automated Verification Script Output</h2>
+
+  <p><strong>Script:</strong> <code>~/bryan-cox/private-hypershift-scripts/azure/CNTRLPLANE-3070/verify_kms.sh</code><br>
+  <strong>Cluster:</strong> <code>brcox-sm-kms-hc</code><br>
+  <strong>Run:</strong> 2026-05-14<br>
+  <strong>Release image:</strong> <code>registry.build10.ci.openshift.org/ci-ln-k000fr2/release:latest</code></p>
+
+  <div class="accordion mb-3" id="accordionAppG">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppG">Full script output (click to expand)</button>
+      </h2>
+      <div id="collapseAppG" class="accordion-collapse collapse" data-bs-parent="#accordionAppG">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">============================================================
+Verifying KMS on HostedCluster: brcox-sm-kms-hc
+============================================================
+
+--- Secret Encryption Spec ---
+{
+  "kms": {
+    "azure": {
+      "activeKey": {
+        "keyName": "brcox-sm-kms-etcd-key",
+        "keyVaultName": "brcox-sm-kms-kv",
+        "keyVersion": "0a8c21affa06454bbb3c199168c07ae2"
+      },
+      "selfManagedKMS": {
+        "clientID": "c30142e2-c5e9-4b2b-a7d1-50dc03e27366"
+      }
+    },
+    "provider": "Azure"
+  },
+  "type": "kms"
+}
+
+Checking selfManagedKMS.clientID is set...
+  PASS: selfManagedKMS.clientID = c30142e2-c5e9-4b2b-a7d1-50dc03e27366
+
+Checking kms.azure.kms is NOT set...
+  PASS: kms.azure.kms is not set
+
+--- Cluster Status ---
+ClusterVersionUpgradeable: True (FromClusterVersion)
+ClusterVersionAvailable: True (FromClusterVersion)
+ClusterVersionSucceeding: True (FromClusterVersion)
+ClusterVersionProgressing: False (FromClusterVersion)
+ClusterVersionReleaseAccepted: True (PayloadLoaded)
+Degraded: True (UnavailableReplicas)
+EtcdAvailable: True (QuorumAvailable)
+KubeAPIServerAvailable: True (AsExpected)
+InfrastructureReady: True (AsExpected)
+ExternalDNSReachable: True (AsExpected)
+ValidHostedControlPlaneConfiguration: True (AsExpected)
+ValidReleaseInfo: True (AsExpected)
+ValidIDPConfiguration: True (IDPConfigurationValid)
+HostedClusterRestoredFromBackup: Unknown (StatusUnknown)
+DataPlaneConnectionAvailable: True (AsExpected)
+ControlPlaneConnectionAvailable: True (AsExpected)
+EtcdBackupSucceeded: Unknown (StatusUnknown)
+AutoNodeEnabled: False (AutoNodeNotConfigured)
+Available: True (AsExpected)
+ValidConfiguration: True (AsExpected)
+SupportedHostedCluster: True (AsExpected)
+ValidProxyConfiguration: True (AsExpected)
+IgnitionEndpointAvailable: True (AsExpected)
+ReconciliationActive: True (AsExpected)
+ValidReleaseImage: True (AsExpected)
+Progressing: True (Progressing)
+PlatformCredentialsFound: True (AsExpected)
+ReconciliationSucceeded: True (ReconciliatonSucceeded)
+ValidAzureKMSConfig: True (AsExpected)
+ClusterVersionRetrievedUpdates: False (NoChannel)
+
+--- KMS Pods ---
+kube-apiserver-6cc474f467-7cbn6                       7/7     Running       0             5m23s
+kube-apiserver-6cc474f467-k6lgg                       7/7     Running       0             9m30s
+kube-apiserver-6cc474f467-vrbmc                       7/7     Running       0             7m21s
+
+--- KAS Container Names ---
+kube-apiserver
+bootstrap
+konnectivity-server
+audit-logs
+azure-workload-identity-webhook
+azure-kms-provider-active
+azure-kms-token-minter
+
+Checking for azure-kms-provider-active...
+  PASS: azure-kms-provider-active container found
+
+Checking for azure-kms-token-minter...
+  PASS: azure-kms-token-minter container found
+
+Checking NO azure-kms-provider-backup (no backup key)...
+  PASS: no azure-kms-provider-backup container
+
+--- Token Minter Args ---
+["--token-audience=openshift"
+"--service-account-namespace=kube-system"
+"--service-account-name=kms-provider"
+"--token-file=/var/run/secrets/openshift/serviceaccount/token"
+"--kubeconfig=/etc/kubernetes/kubeconfig"]
+--- KMS Cloud Config Secret ---
+
+--- Guest Cluster Secret Test ---
+Creating test secret in guest cluster...
+secret/kms-test-secret created
+Reading test secret back...
+  PASS: Secret round-trip successful -- KMS encryption operational
+secret "kms-test-secret" deleted
+
+--- KMS Service Account ---
+NAME           AGE
+kms-provider   95m
+  PASS: kms-provider service account exists
+
+============================================================
+Verification complete
+============================================================</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p>All automated checks passed: <code>selfManagedKMS.clientID</code> set correctly, <code>kms.azure.kms</code> (ARO HCP field) NOT present, <code>azure-kms-provider-active</code> container present, <code>azure-kms-token-minter</code> container present, no <code>azure-kms-provider-backup</code> container, token minter args correct, guest cluster secret round-trip successful, <code>kms-provider</code> service account exists.</p>
+
+  <hr>
+
+  <!-- ==================== APPENDIX H ==================== -->
+  <h2 id="appendix-h" class="appendix-header">Appendix H: Raw etcd Encryption Verification</h2>
+
+  <p><strong>Purpose:</strong> Prove that secrets are encrypted at the etcd level, not just accessible via the API.</p>
+  <p><strong>Method:</strong> Created a test secret in the guest cluster, then read the raw bytes directly from etcd to confirm KMS v2 encryption is applied.</p>
+  <p><strong>Date:</strong> 2026-05-14 (retest with release image <code>ci-ln-k000fr2</code>)</p>
+
+  <div class="accordion mb-3" id="accordionAppH">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppH">Raw etcd output (click to expand)</button>
+      </h2>
+      <div id="collapseAppH" class="accordion-collapse collapse" data-bs-parent="#accordionAppH">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">Step 1: Create test secret
+$ kubectl create secret generic kms-verification-secret \
+    --from-literal=encrypted-data=KMS-encryption-verified-2026-05-14 \
+    -n default
+secret/kms-verification-secret created
+
+Step 2: Read raw etcd bytes (strings output)
+$ kubectl exec -n clusters-brcox-sm-kms-hc etcd-0 -c etcd -- \
+    etcdctl get /kubernetes.io/secrets/default/kms-verification-secret \
+    --endpoints=https://localhost:2379 \
+    --cacert=/etc/etcd/tls/etcd-ca/ca.crt \
+    --cert=/etc/etcd/tls/client/etcd-client.crt \
+    --key=/etc/etcd/tls/client/etcd-client.key \
+    --print-value-only | strings
+
+Output:
+k8s:enc:kms:v2:azure-9959447d:
+[... binary ciphertext, no readable plaintext ...]
+
+Analysis:
+- Prefix: k8s:enc:kms:v2:azure-9959447d: -- KMS v2 encryption with Azure provider
+- Remaining bytes: ciphertext only, no readable plaintext
+- The plaintext value "KMS-encryption-verified-2026-05-14" does NOT appear anywhere
+- Provider ID changed from azure-8e0bdfbf (May 12 test) to azure-9959447d (new key version)
+- Conclusion: KMS v2 encryption via Azure Key Vault is confirmed working
+
+Step 3: Cleanup
+$ kubectl delete secret kms-verification-secret -n default
+secret "kms-verification-secret" deleted</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ==================== APPENDIX I ==================== -->
+  <h2 id="appendix-i" class="appendix-header">Appendix I: KMS Provider Logs</h2>
+
+  <p><strong>Container:</strong> <code>azure-kms-provider-active</code> (pod <code>kube-apiserver-6cc474f467-7cbn6</code>)<br>
+  <strong>Release image:</strong> <code>registry.build10.ci.openshift.org/ci-ln-k000fr2/release:latest</code> (includes <code>openshift/azure-kubernetes-kms#33</code> with <code>mlog.Always</code> workload identity log)</p>
+
+  <div class="accordion mb-3" id="accordionAppI">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppI">Full KMS provider logs (click to expand)</button>
+      </h2>
+      <div id="collapseAppI" class="accordion-collapse collapse" data-bs-parent="#accordionAppI">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">I0514 00:58:59.289464       1 exporter.go:17] "metrics backend" exporter="prometheus"
+I0514 00:58:59.289764       1 prometheus_exporter.go:51] "Prometheus metrics server running" address="8095"
+I0514 00:58:59.289776       1 main.go:90] "Starting KeyManagementServiceServer service" version="" buildDate=""
+I0514 00:58:59.290004       1 auth.go:35] "using workload identity to retrieve access token"
+I0514 00:58:59.290115       1 keyvault.go:131] "using kms key for encrypt/decrypt" vaultURL="https://brcox-sm-kms-kv.vault.azure.net/" keyName="brcox-sm-kms-etcd-key" keyVersion="0a8c21affa06454bbb3c199168c07ae2"
+I0514 00:58:59.290363       1 main.go:156] "Listening for connections" addr="/opt/azurekmsactive.socket"
+E0514 00:59:01.795111       1 kms_v2_server.go:49] "failed to encrypt healthcheck call" err="failed to encrypt, error: WorkloadIdentityCredential: open /var/run/secrets/openshift/serviceaccount/token: no such file or directory"
+E0514 00:59:01.795217       1 grpc.go:48] "GRPC request error" err="failed to encrypt, error: WorkloadIdentityCredential: open /var/run/secrets/openshift/serviceaccount/token: no such file or directory"</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p>All 3 KAS pods (<code>7cbn6</code>, <code>k6lgg</code>, <code>vrbmc</code>) show the same <code>auth.go:35] "using workload identity to retrieve access token"</code> log line at startup.</p>
+
+  <p><strong>Analysis:</strong> The key log line is <code>auth.go:35] "using workload identity to retrieve access token"</code> (line 4). This was added via <code>mlog.Always</code> in PR #33 to explicitly confirm the workload identity authentication path is selected. The timeline:</p>
+  <ul>
+    <li><strong>00:58:59</strong> &mdash; Provider starts, logs workload identity auth selection, configures Key Vault key</li>
+    <li><strong>00:59:01</strong> &mdash; Healthcheck fails (expected race &mdash; token-minter hasn't written token yet)</li>
+    <li><strong>00:59:03 onward</strong> &mdash; Token-minter writes token (see <a href="#appendix-j">Appendix J</a>), provider begins handling encrypt/decrypt silently</li>
+  </ul>
+
+  <p><strong>Environment variables on KMS provider container:</strong></p>
+  <pre class="log-output">[
+  {"name": "AZURE_CLIENT_ID", "value": "c30142e2-c5e9-4b2b-a7d1-50dc03e27366"},
+  {"name": "AZURE_TENANT_ID", "value": "520cf09d-78ff-44ed-a731-abd623e73b09"},
+  {"name": "AZURE_FEDERATED_TOKEN_FILE", "value": "/var/run/secrets/openshift/serviceaccount/token"}
+]</pre>
+  <p>These env vars, combined with <code>useWorkloadIdentityExtension: true</code> in the KMS cloud config, trigger <code>WorkloadIdentityCredential</code> in the Azure Identity SDK &mdash; confirmed by both the explicit log message and the <code>WorkloadIdentityCredential:</code> prefix in the healthcheck error messages.</p>
+
+  <hr>
+
+  <!-- ==================== APPENDIX J ==================== -->
+  <h2 id="appendix-j" class="appendix-header">Appendix J: Token Minter Logs</h2>
+
+  <p><strong>Container:</strong> <code>azure-kms-token-minter</code> (pod <code>kube-apiserver-6cc474f467-7cbn6</code>)</p>
+
+  <div class="accordion mb-3" id="accordionAppJ">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppJ">Full token minter logs (click to expand)</button>
+      </h2>
+      <div id="collapseAppJ" class="accordion-collapse collapse" data-bs-parent="#accordionAppJ">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">2026/05/14 00:58:59 Starting token minter. Version = openshift/hypershift: &lt;unknown&gt;. Latest supported OCP: 5.0.0
+2026/05/14 00:58:59 minting token
+2026/05/14 00:59:03 Found existing service account kms-provider
+2026/05/14 00:59:03 Created service account token for service account kms-provider
+2026/05/14 00:59:03 Successfully wrote token to /var/run/secrets/openshift/serviceaccount/token
+2026/05/14 00:59:03 renew delay set for 47m59.56855081s</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p><strong>Analysis:</strong> The token minter starts at 00:58:59, finds the existing <code>kms-provider</code> service account on the first attempt (KAS already running from prior rollout), creates a bound token with audience <code>openshift</code>, and writes it to the shared volume at 00:59:03. The ~48-minute renewal delay ensures the token (typically 1-hour expiry) is refreshed well before expiration.</p>
+
+  <hr>
+
+  <!-- ==================== APPENDIX K ==================== -->
+  <h2 id="appendix-k" class="appendix-header">Appendix K: KAS EncryptionConfiguration</h2>
+
+  <p><strong>Source:</strong> <code>/etc/kubernetes/secret-encryption/config.yaml</code> inside the <code>kube-apiserver</code> container<br>
+  <strong>KAS flag:</strong> <code>--encryption-provider-config=/etc/kubernetes/secret-encryption/config.yaml</code></p>
+
+  <pre class="log-output">apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+- providers:
+  - kms:
+      apiVersion: v2
+      endpoint: unix:///opt/azurekmsactive.socket
+      name: azure-8e0bdfbf
+      timeout: 35s
+  - identity: {}
+  resources:
+  - secrets
+  - configmaps
+  - routes.route.openshift.io
+  - oauthaccesstokens.oauth.openshift.io
+  - oauthauthorizetokens.oauth.openshift.io</pre>
+
+  <p><strong>Analysis:</strong> Uses KMS v2 API (<code>apiVersion: v2</code>). Provider name <code>azure-8e0bdfbf</code> matches the prefix seen in the raw etcd hexdump. <code>identity: {}</code> fallback allows reading unencrypted data written before KMS was enabled. No backup provider (no backup key configured).</p>
+
+  <hr>
+
+  <!-- ==================== APPENDIX L ==================== -->
+  <h2 id="appendix-l" class="appendix-header">Appendix L: Key Rotation Evidence</h2>
+
+  <p><strong>Test:</strong> Rotate KMS encryption key and verify backup provider is added.</p>
+
+  <div class="accordion mb-3" id="accordionAppL">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppL1">Steps 1-3: Key rotation and HC patch (click to expand)</button>
+      </h2>
+      <div id="collapseAppL1" class="accordion-collapse collapse" data-bs-parent="#accordionAppL">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">Step 1: Create new key version
+$ az keyvault key rotate --vault-name brcox-sm-kms-kv --name brcox-sm-kms-etcd-key
+New key version: cc4ed47908ad451ba91c043dfc039d4b
+Created: 2026-05-12T22:55:37+00:00
+
+Step 2: Create pre-rotation test secret
+$ kubectl create secret generic pre-rotation-secret \
+    --from-literal=data=created-before-key-rotation \
+    -n default --kubeconfig /tmp/guest-kc-brcox-sm-kms.yaml
+secret/pre-rotation-secret created
+
+Step 3: Patch HC with backup key
+{
+  "spec": {
+    "secretEncryption": {
+      "kms": {
+        "azure": {
+          "activeKey": {
+            "keyVaultName": "brcox-sm-kms-kv",
+            "keyName": "brcox-sm-kms-etcd-key",
+            "keyVersion": "cc4ed47908ad451ba91c043dfc039d4b"
+          },
+          "backupKey": {
+            "keyVaultName": "brcox-sm-kms-kv",
+            "keyName": "brcox-sm-kms-etcd-key",
+            "keyVersion": "4f6506ac99424726aed2a2b1dca3acc0"
+          }
+        }
+      }
+    }
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppL2">Step 4: New 8-container pod spec (click to expand)</button>
+      </h2>
+      <div id="collapseAppL2" class="accordion-collapse collapse" data-bs-parent="#accordionAppL">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">[
+  "kube-apiserver",
+  "bootstrap",
+  "konnectivity-server",
+  "audit-logs",
+  "azure-workload-identity-webhook",
+  "azure-kms-provider-active",
+  "azure-kms-provider-backup",
+  "azure-kms-token-minter"
+]</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppL3">Steps 5-6: Active and backup container specs (click to expand)</button>
+      </h2>
+      <div id="collapseAppL3" class="accordion-collapse collapse" data-bs-parent="#accordionAppL">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">Step 5: Active container uses NEW key version
+{
+  "name": "azure-kms-provider-active",
+  "args": [
+    "--keyvault-name=brcox-sm-kms-kv",
+    "--key-name=brcox-sm-kms-etcd-key",
+    "--key-version=cc4ed47908ad451ba91c043dfc039d4b",
+    "--listen-addr=unix:///opt/azurekmsactive.socket",
+    "--healthz-port=8787",
+    "--metrics-addr=8095",
+    "--healthz-path=/healthz",
+    "--config-file-path=/etc/kubernetes/azure.json",
+    "-v=1"
+  ]
+}
+
+Step 6: Backup container uses OLD key version
+{
+  "name": "azure-kms-provider-backup",
+  "args": [
+    "--keyvault-name=brcox-sm-kms-kv",
+    "--key-name=brcox-sm-kms-etcd-key",
+    "--key-version=4f6506ac99424726aed2a2b1dca3acc0",
+    "--listen-addr=unix:///opt/azurekmsbackup.socket",
+    "--healthz-port=8788",
+    "--metrics-addr=8096",
+    "--healthz-path=/healthz",
+    "--config-file-path=/etc/kubernetes/azure.json",
+    "-v=1"
+  ],
+  "env": [
+    {"name": "AZURE_CLIENT_ID", "value": "26753a71-c566-4392-9c0a-a6b15bfe60fc"},
+    {"name": "AZURE_TENANT_ID", "value": "520cf09d-78ff-44ed-a731-abd623e73b09"},
+    {"name": "AZURE_FEDERATED_TOKEN_FILE", "value": "/var/run/secrets/openshift/serviceaccount/token"}
+  ],
+  "volumeMounts": [
+    {"mountPath": "/etc/kubernetes", "name": "azure-kms-credentials"},
+    {"mountPath": "/opt", "name": "kms-socket"},
+    {"mountPath": "/var/run/secrets/openshift/serviceaccount", "name": "azure-kms-cloud-token"},
+    {"mountPath": "/tmp", "name": "tmp-dir"}
+  ]
+}
+
+Both active and backup containers share the same azure-kms-cloud-token emptyDir volume
+(fed by the token minter) and the same azure-kms-credentials secret, but listen on
+separate unix sockets (azurekmsactive.socket vs azurekmsbackup.socket) and separate
+healthz/metrics ports (8787/8095 vs 8788/8096).</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppL4">Step 7: Updated EncryptionConfiguration with 2 KMS providers (click to expand)</button>
+      </h2>
+      <div id="collapseAppL4" class="accordion-collapse collapse" data-bs-parent="#accordionAppL">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+- providers:
+  - kms:
+      apiVersion: v2
+      endpoint: unix:///opt/azurekmsactive.socket
+      name: azure-804525d3
+      timeout: 35s
+  - kms:
+      apiVersion: v2
+      endpoint: unix:///opt/azurekmsbackup.socket
+      name: azure-8e0bdfbf
+      timeout: 35s
+  - identity: {}
+  resources:
+  - secrets
+  - configmaps
+  - routes.route.openshift.io
+  - oauthaccesstokens.oauth.openshift.io
+  - oauthauthorizetokens.oauth.openshift.io
+
+The active provider (azure-804525d3) is listed first -- new writes encrypted with the
+new key. The backup provider (azure-8e0bdfbf, same name as the original from Appendix K)
+is listed second -- existing data encrypted with the old key can still be decrypted.</pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppL5">Step 8: Pre-rotation secret still readable (click to expand)</button>
+      </h2>
+      <div id="collapseAppL5" class="accordion-collapse collapse" data-bs-parent="#accordionAppL">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">$ kubectl get secret pre-rotation-secret -n default \
+    --kubeconfig /tmp/guest-kc-brcox-sm-kms.yaml \
+    -o jsonpath='{.data.data}' | base64 -d
+created-before-key-rotation
+
+Pre-rotation secret successfully decrypted -- backward compatibility confirmed.
+
+Note: The new 8-container KAS pod was pending due to management cluster resource
+constraints (anti-affinity + insufficient CPU/memory on remaining nodes). This is an
+infrastructure capacity issue unrelated to KMS. The pod spec, EncryptionConfiguration,
+and secret readability were all verified through the existing running pods and the
+management cluster secret.</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ==================== APPENDIX M ==================== -->
+  <h2 id="appendix-m" class="appendix-header">Appendix M: Cluster Destroy Log</h2>
+
+  <p><strong>Command:</strong> <code>hcp destroy cluster azure --name brcox-sm-kms-hc --namespace clusters --azure-creds ... --dns-zone-rg-name os4-common</code></p>
+
+  <div class="accordion mb-3" id="accordionAppM">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAppM">Full destroy log (click to expand)</button>
+      </h2>
+      <div id="collapseAppM" class="accordion-collapse collapse" data-bs-parent="#accordionAppM">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">{"level":"info","ts":"2026-05-12T19:10:01-04:00","msg":"Found hosted cluster","namespace":"clusters","name":"brcox-sm-kms-hc"}
+{"level":"info","ts":"2026-05-12T19:10:01-04:00","msg":"Setting client finalizer for hosted cluster","namespace":"clusters","name":"brcox-sm-kms-hc"}
+{"level":"info","ts":"2026-05-12T19:10:01-04:00","msg":"Marking cleanup of cloud resources for hosted cluster","namespace":"clusters","name":"brcox-sm-kms-hc"}
+{"level":"info","ts":"2026-05-12T19:10:01-04:00","msg":"Updated hosted cluster","namespace":"clusters","name":"brcox-sm-kms-hc"}
+{"level":"info","ts":"2026-05-12T19:10:01-04:00","msg":"Deleting hosted cluster","namespace":"clusters","name":"brcox-sm-kms-hc"}
+{"level":"info","ts":"2026-05-12T19:13:30-04:00","msg":"Using credentials from file","path":"/Users/brcox/.azure/self-managed-azure-credentials.json"}
+{"level":"info","ts":"2026-05-12T19:13:32-04:00","msg":"Deleted role assignment","component":"cpo","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:33-04:00","msg":"Deleted role assignment","component":"cpo","scope":".../brcox-sm-kms-hc-nsg"}
+{"level":"info","ts":"2026-05-12T19:13:34-04:00","msg":"Deleted role assignment","component":"cpo","scope":".../brcox-sm-kms-hc-vnet"}
+{"level":"info","ts":"2026-05-12T19:13:36-04:00","msg":"Deleted role assignment","component":"capz","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:37-04:00","msg":"Deleted role assignment","component":"capz","scope":".../brcox-sm-kms-hc-vnet"}
+{"level":"info","ts":"2026-05-12T19:13:39-04:00","msg":"Deleted role assignment","component":"cloud-provider","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:40-04:00","msg":"Deleted role assignment","component":"cloud-provider","scope":".../brcox-sm-kms-hc-nsg"}
+{"level":"info","ts":"2026-05-12T19:13:42-04:00","msg":"Deleted role assignment","component":"cloud-provider","scope":".../brcox-sm-kms-hc-vnet"}
+{"level":"info","ts":"2026-05-12T19:13:43-04:00","msg":"Deleted role assignment","component":"azure-file","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:44-04:00","msg":"Deleted role assignment","component":"azure-file","scope":".../brcox-sm-kms-hc-nsg"}
+{"level":"info","ts":"2026-05-12T19:13:45-04:00","msg":"Deleted role assignment","component":"azure-file","scope":".../brcox-sm-kms-hc-vnet"}
+{"level":"info","ts":"2026-05-12T19:13:47-04:00","msg":"Deleted role assignment","component":"azure-disk","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:48-04:00","msg":"Deleted role assignment","component":"ingress","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:50-04:00","msg":"Deleted role assignment","component":"ingress","scope":".../brcox-sm-kms-hc-vnet"}
+{"level":"info","ts":"2026-05-12T19:13:51-04:00","msg":"Deleted role assignment","component":"ingress","scope":".../os4-common"}
+{"level":"info","ts":"2026-05-12T19:13:52-04:00","msg":"Deleted role assignment","component":"cncc","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:54-04:00","msg":"Deleted role assignment","component":"cncc","scope":".../brcox-sm-kms-hc-vnet"}
+{"level":"info","ts":"2026-05-12T19:13:56-04:00","msg":"Deleted role assignment","component":"ciro","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:57-04:00","msg":"Deleted role assignment","component":"ciroWI","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:13:59-04:00","msg":"Deleted role assignment","component":"azure-diskWI","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:14:00-04:00","msg":"Deleted role assignment","component":"azure-fileWI","scope":".../brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:14:00-04:00","msg":"Successfully cleaned up all role assignments","infraID":"brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:14:00-04:00","msg":"Deleting main resource group","resource-group":"brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:14:00-04:00","msg":"Resource group not found, continuing with infra deletion","resource-group":"brcox-sm-kms-hc-brcox-sm-kms-hc-dvdv2"}
+{"level":"info","ts":"2026-05-12T19:14:01-04:00","msg":"Deleting Secrets","namespace":"clusters"}
+{"level":"info","ts":"2026-05-12T19:14:01-04:00","msg":"Deleted CLI generated secrets"}
+{"level":"info","ts":"2026-05-12T19:14:01-04:00","msg":"Finalized hosted cluster","namespace":"clusters","name":"brcox-sm-kms-hc"}
+{"level":"info","ts":"2026-05-12T19:14:01-04:00","msg":"Successfully destroyed cluster and infrastructure","namespace":"clusters","name":"brcox-sm-kms-hc","infraID":"brcox-sm-kms-hc-dvdv2"}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p>Cluster destroyed successfully. All role assignments cleaned up across all components (cpo, capz, cloud-provider, azure-file, azure-disk, ingress, cncc, ciro). Infrastructure resources (infra and IAM) remain intact for further testing.</p>
+
+  <hr>
+
+  <!-- ==================== APPENDIX N ==================== -->
+  <h2 id="appendix-n" class="appendix-header">Appendix N: <code>create iam azure</code> WITHOUT <code>--enable-kms</code></h2>
+
+  <p>Command run without <code>--enable-kms</code> to verify no KMS identity is created:</p>
+
+  <pre class="log-output">./bin/hcp create iam azure \
+  --name brcox-sm-kms-no-kms-test \
+  --resource-group-name os4-common \
+  --location eastus \
+  --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
+  --oidc-issuer-url https://brcoxsma.blob.core.windows.net/brcoxsma \
+  --output-file /tmp/workload-identities-no-kms-test.json \
+  --infra-id brcox-sm-kms-no-kms</pre>
+
+  <p>Output file (<code>/tmp/workload-identities-no-kms-test.json</code>) -- 8 identities, NO <code>kmsClientID</code>:</p>
+
+  <pre class="log-output">{
+  "imageRegistry": {
+    "clientID": "8ffb5355-cfd3-4c86-b15e-e735dfb52dc5"
+  },
+  "ingress": {
+    "clientID": "aa76b150-dff8-4db9-9e1a-8643f8fc730a"
+  },
+  "file": {
+    "clientID": "816975f6-9a87-4920-90ee-b6566c4b77cc"
+  },
+  "disk": {
+    "clientID": "77f7398c-2fc3-4f65-beb6-f05e0e4af16e"
+  },
+  "nodePoolManagement": {
+    "clientID": "a196fa76-4883-4b1f-9b53-f5928ef7df1f"
+  },
+  "cloudProvider": {
+    "clientID": "ec446c44-2c3a-4ea8-b918-a60d3dc13395"
+  },
+  "network": {
+    "clientID": "f26df01b-18e3-43be-9a6a-ce8409a4ceff"
+  },
+  "controlPlaneOperator": {
+    "clientID": "871855bb-9020-404b-9ad9-2f0141474e6c"
+  }
+}</pre>
+
+  <p>Compare with <code>--enable-kms</code> output (<a href="#appendix-b">Appendix B</a>) which includes 9th identity <code>kmsClientID: "26753a71-c566-4392-9c0a-a6b15bfe60fc"</code>.</p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

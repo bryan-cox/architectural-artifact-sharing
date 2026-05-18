@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario 1: Self-Managed KMS Happy Path - PR #8088</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #8088 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item active" href="scenario-1.html">1: Self-Managed KMS Happy Path</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Self-Managed Without KMS</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: ARO HCP KMS Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: CEL Mutual Exclusivity</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: CEL Immutability</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: CLI Key Parsing</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: CLI IAM with KMS</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Missing KMS Client ID</a></li>
+            <li><a class="dropdown-item" href="scenario-9.html">9: HO KMS Config Secret</a></li>
+            <li><a class="dropdown-item" href="scenario-10.html">10: CPO Volume Configuration</a></li>
+            <li><a class="dropdown-item" href="scenario-11.html">11: KMS Key Rotation</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active">Scenario 1</li>
+    </ol>
+  </nav>
+
+  <h1>Scenario 1: Self-Managed Azure Cluster with KMS (Happy Path)</h1>
+  <p><strong>Objective:</strong> End-to-end KMS encryption on self-managed Azure using workload identity federation.</p>
+  <p><strong>Custom release image:</strong> Built via cluster-bot with <code>build 4.23,openshift/azure-kubernetes-kms#33</code> to include the corresponding Azure KMS provider changes for workload identity support.</p>
+
+  <div class="alert alert-success"><strong>Overall Scenario 1:</strong> PASS &mdash; All 20 checks verified.</div>
+
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Key Vault and encryption key created</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Key Vault: <code>brcox-sm-kms-kv</code>, Key: <code>brcox-sm-kms-etcd-key</code>, Key ID: <code>https://brcox-sm-kms-kv.vault.azure.net/keys/brcox-sm-kms-etcd-key/0a8c21affa06454bbb3c199168c07ae2</code></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>hypershift create iam azure --enable-kms</code> completes</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Identity <code>brcox-sm-kms-hc-kms-brcox-sm-kms</code> created with federated credential for <code>system:serviceaccount:kube-system:kms-provider</code>. Full log: <a href="appendices.html#appendix-a">Appendix A</a></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>kmsClientID</code> present in workload-identities.json</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Client ID: <code>c30142e2-c5e9-4b2b-a7d1-50dc03e27366</code>. Full output: <a href="appendices.html#appendix-b">Appendix B</a></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Key Vault Crypto User role assigned to KMS identity</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Role assignment <code>8487d32a-a67b-46b4-9a1a-88bfecabd764</code> on vault <code>brcox-sm-kms-kv</code>, principal <code>78b1e095-e6ae-4ace-af8c-2c52dcab16f8</code>. See <a href="appendices.html#appendix-a">Appendix A</a></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>hypershift create cluster azure --encryption-key-id</code> completes</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Cluster created; 3 KAS replicas running, 7/7 containers each. Full evidence: <a href="appendices.html#appendix-f">Appendix F</a></td>
+      </tr>
+      <tr>
+        <td>6a</td>
+        <td><code>spec.secretEncryption.type</code> = <code>kms</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>"type": "kms"</code></td>
+      </tr>
+      <tr>
+        <td>6b</td>
+        <td><code>kms.provider</code> = <code>Azure</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>"provider": "Azure"</code></td>
+      </tr>
+      <tr>
+        <td>6c</td>
+        <td><code>kms.azure.selfManagedKMS.clientID</code> is set</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>"clientID": "c30142e2-c5e9-4b2b-a7d1-50dc03e27366"</code></td>
+      </tr>
+      <tr>
+        <td>6d</td>
+        <td><code>kms.azure.kms</code> field is NOT present</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Only <code>selfManagedKMS</code> and <code>activeKey</code> present under <code>kms.azure</code></td>
+      </tr>
+      <tr>
+        <td>6e</td>
+        <td><code>kms.azure.activeKey</code> fields populated</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>keyVaultName=brcox-sm-kms-kv</code>, <code>keyName=brcox-sm-kms-etcd-key</code>, <code>keyVersion=0a8c21affa06454bbb3c199168c07ae2</code></td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>HostedCluster becomes Available (30m timeout)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Available=True since 2026-05-12T20:08:49Z. <code>ValidAzureKMSConfig=True</code></td>
+      </tr>
+      <tr>
+        <td>8a</td>
+        <td>KAS pod has <code>azure-kms-provider-active</code> sidecar</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Container present with args <code>--keyvault-name=brcox-sm-kms-kv --key-name=brcox-sm-kms-etcd-key --key-version=0a8c21affa06454bbb3c199168c07ae2</code></td>
+      </tr>
+      <tr>
+        <td>8b</td>
+        <td>KAS pod has <code>azure-kms-token-minter</code> sidecar</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Container present, image <code>quay.io/rh_ee_brcox/hypershift:CNTRLPLANE-3070-2026-04-13-1</code></td>
+      </tr>
+      <tr>
+        <td>8c</td>
+        <td>No <code>azure-kms-provider-backup</code> container</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>7 containers: <code>kube-apiserver</code>, <code>bootstrap</code>, <code>konnectivity-server</code>, <code>audit-logs</code>, <code>azure-workload-identity-webhook</code>, <code>azure-kms-provider-active</code>, <code>azure-kms-token-minter</code></td>
+      </tr>
+      <tr>
+        <td>8d</td>
+        <td>No CSI secret store volume mounts on KMS containers</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>KMS volumes are <code>azure-kms-credentials</code> (secret), <code>kms-socket</code> (emptyDir), <code>azure-kms-cloud-token</code> (emptyDir), <code>tmp-dir</code> (emptyDir). No CSI volumes. No SecretProviderClass exists.</td>
+      </tr>
+      <tr>
+        <td>9a</td>
+        <td>token-minter has <code>--service-account-namespace=kube-system</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Confirmed in container args</td>
+      </tr>
+      <tr>
+        <td>9b</td>
+        <td>token-minter has <code>--service-account-name=kms-provider</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Confirmed in container args</td>
+      </tr>
+      <tr>
+        <td>9c</td>
+        <td>token-minter has <code>--token-audience=openshift</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Confirmed in container args</td>
+      </tr>
+      <tr>
+        <td>10a</td>
+        <td><code>azure-kms-config</code> has <code>useWorkloadIdentityExtension: true</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>"useWorkloadIdentityExtension": true</code> in <code>cloud.conf</code></td>
+      </tr>
+      <tr>
+        <td>10b</td>
+        <td><code>azure-kms-config</code> has correct <code>aadClientId</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>aadClientId</code> is empty (client ID passed via <code>AZURE_CLIENT_ID</code> env var = <code>c30142e2-c5e9-4b2b-a7d1-50dc03e27366</code>)</td>
+      </tr>
+      <tr>
+        <td>10c</td>
+        <td><code>azure-kms-config</code> has correct <code>tenantId</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>"tenantId": "520cf09d-78ff-44ed-a731-abd623e73b09"</code></td>
+      </tr>
+      <tr>
+        <td>10d</td>
+        <td>KMS provider logs confirm workload identity auth</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>auth.go:35] "using workload identity to retrieve access token"</code> in <code>azure-kms-provider-active</code> container logs. Token-minter successfully mints and writes token to <code>/var/run/secrets/openshift/serviceaccount/token</code>. Verified with release image <code>registry.build10.ci.openshift.org/ci-ln-k000fr2/release:latest</code> (includes <code>openshift/azure-kubernetes-kms#33</code>).</td>
+      </tr>
+      <tr>
+        <td>11a</td>
+        <td>Secrets can be created/read in guest cluster (KMS operational)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Created <code>kms-test-secret</code> in guest <code>default</code> namespace, read back <code>encrypted-data</code> successfully</td>
+      </tr>
+      <tr>
+        <td>11b</td>
+        <td>Raw etcd data is encrypted (not plaintext)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Raw bytes show <code>k8s:enc:kms:v2:azure-9959447d:</code> prefix + ciphertext. No plaintext visible. See <a href="appendices.html#appendix-h">Appendix H</a></td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td><code>kms-provider</code> service account exists in guest <code>kube-system</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>SA exists, created 2026-05-12T19:47:14Z</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Automated verification script output: <a href="appendices.html#appendix-g">Appendix G</a></p>
+
+  <div class="d-flex justify-content-between mt-4">
+    <a href="index.html" class="btn btn-outline-secondary">&larr; Dashboard</a>
+    <a href="scenario-2.html" class="btn btn-outline-primary">Scenario 2 &rarr;</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
