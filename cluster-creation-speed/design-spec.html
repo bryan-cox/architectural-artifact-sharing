@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hosted Cluster Creation Speed Improvements — Design Spec</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style>
+  body { padding-top: 0; padding-bottom: 4rem; font-size: .95rem; }
+  .hero { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%); color: #fff; padding: 3rem 0 2.5rem; margin-bottom: 2rem; }
+  .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: .75rem; }
+  .hero .lead { color: #a8b8c8; font-size: 1.05rem; }
+  .hero .badge { font-size: .8rem; }
+  .kpi-row .kpi { text-align: center; padding: 1.25rem .5rem; }
+  .kpi-row .kpi .num { font-size: 1.8rem; font-weight: 700; color: #0d6efd; }
+  .kpi-row .kpi .label { font-size: .8rem; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; }
+  .proposal-section { border-top: 3px solid #0d6efd; padding-top: 1.5rem; margin-top: 3rem; }
+  .proposal-header { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .proposal-header h2 { margin: 0; font-size: 1.4rem; }
+  .proposal-header .badge { font-size: .85rem; white-space: nowrap; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1.5rem; color: #495057; }
+  h4 { font-size: 1rem; font-weight: 600; margin-top: 1.25rem; }
+  pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: .5rem; padding: 1rem; overflow-x: auto; font-size: .85rem; }
+  code { font-size: .87em; }
+  pre code { background: none; padding: 0; }
+  blockquote { border-left: 4px solid #0d6efd; padding: .75rem 1rem; background: #f0f6ff; border-radius: 0 .375rem .375rem 0; margin: 1rem 0; }
+  blockquote p:last-child { margin-bottom: 0; }
+  .risk-item { border-left: 3px solid #ffc107; padding: .5rem .75rem; margin-bottom: .5rem; background: #fffcf0; border-radius: 0 .25rem .25rem 0; }
+  .risk-item strong { color: #856404; }
+  .risk-item .mitigation { color: #495057; }
+  .sidebar { position: sticky; top: 1rem; }
+  .sidebar .nav-link { padding: .3rem .5rem; font-size: .85rem; color: #6c757d; border-left: 2px solid transparent; }
+  .sidebar .nav-link:hover { color: #0d6efd; border-left-color: #cfe2ff; }
+  .sidebar .nav-link.active { color: #0d6efd; font-weight: 600; border-left-color: #0d6efd; }
+  .sidebar .section-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #adb5bd; margin-top: .75rem; padding-left: .5rem; }
+  .table thead th { background: #f8f9fa; font-size: .85rem; }
+  @media (max-width: 991px) { .sidebar-col { display: none; } }
+  @media print { .hero { background: #333 !important; } .sidebar-col { display: none; } }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+<div class="container-fluid" style="padding: 0 10%;">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <span class="badge bg-primary">Design Spec</span>
+    <span class="badge bg-secondary">Draft</span>
+    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3494" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3494</a>
+  </div>
+  <h1>Hosted Cluster Creation Speed Improvements</h1>
+  <p class="lead mb-0">5 independent changes to reduce hosted cluster creation time by ~75-215 seconds on cloud platforms. No user-facing API changes.</p>
+  <p class="mt-2 mb-0" style="font-size:.85rem; color:#78909c;">Bryan Cox &middot; 2026-05-20</p>
+</div>
+</div>
+
+<div class="container-fluid" style="padding: 0 10%;">
+<div class="row">
+
+<!-- Sidebar Nav (left) -->
+<div class="col-lg-2 sidebar-col">
+<div class="sidebar">
+  <nav class="nav flex-column">
+    <div class="section-label">Overview</div>
+    <a class="nav-link" href="#summary">Summary</a>
+    <a class="nav-link" href="#problem">Problem Statement</a>
+    <div class="section-label mt-2">Proposals</div>
+    <a class="nav-link" href="#proposal-1">1. Infra Gate Decoupling</a>
+    <a class="nav-link" href="#proposal-2">2. Requeue Interval</a>
+    <a class="nav-link" href="#proposal-3">3. Image Pre-Pull</a>
+    <a class="nav-link" href="#proposal-4">4. In-Memory Deps</a>
+    <a class="nav-link" href="#proposal-5">5. Metrics</a>
+    <div class="section-label mt-2">Analysis</div>
+    <a class="nav-link" href="#impact">Combined Impact</a>
+    <a class="nav-link" href="#order">Implementation Order</a>
+    <a class="nav-link" href="#questions">Open Questions</a>
+  </nav>
+</div>
+</div>
+
+<!-- Main Content -->
+<div class="col-lg-10">
+
+<!-- KPI strip -->
+<div class="row kpi-row mb-4 g-0">
+  <div class="col kpi border rounded-start"><div class="num">~1-3.5 min</div><div class="label">Time Saved</div></div>
+  <div class="col kpi border-top border-bottom"><div class="num">5</div><div class="label">Proposals</div></div>
+  <div class="col kpi border-top border-bottom"><div class="num">5</div><div class="label">Standalone PRs</div></div>
+  <div class="col kpi border rounded-end"><div class="num">0</div><div class="label">API Changes</div></div>
+</div>
+
+<!-- Summary -->
+<section id="summary">
+<h2 class="h5">Summary</h2>
+<p>Hosted cluster creation currently takes 10-15 minutes depending on platform. This proposal identifies 4 changes that together can reduce creation time by approximately <strong>75-215 seconds (roughly 1-3.5 minutes)</strong> on cloud platforms. Each change is independent and can be implemented, tested, and merged as a standalone PR. All changes target the control-plane-operator (CPO) reconciliation flow and the v2 component framework — no user-facing API changes.</p>
+<ol>
+<li><strong>Decouple infra-independent work from the infrastructure gate</strong> — start etcd, PKI, and featuregate-generator before LB IPs are ready (~60-110s saved)</li>
+<li><strong>Reduce infra requeue interval</strong> — drop the gate requeue from 1 minute to 15 seconds (~15-30s saved)</li>
+<li><strong>Framework-native image pre-pulling</strong> — pre-pull critical-path images via init containers on cold nodes (~0-60s saved)</li>
+<li><strong>In-memory dependency propagation</strong> — propagate component availability within a single reconcile pass (~0-15s saved; larger benefit during upgrades)</li>
+<li><strong>Creation time metrics</strong> — add Prometheus milestones to measure and track improvements</li>
+</ol>
+</section>
+
+<!-- Problem -->
+<section id="problem">
+<h2 class="h5" style="margin-top:2rem;">Problem Statement</h2>
+<p>During hosted cluster creation, the CPO's <code>update()</code> function in <code>hostedcontrolplane_controller.go:1073</code> follows a strictly serial flow:</p>
+<pre><code>reconcileInfrastructure()        -- create LB Services
+reconcileInfrastructureStatus()  -- check if LBs have IPs
+  |
+  +-- if !IsReady() --&gt; return RequeueAfter: 1 minute  &lt;-- GATE
+  |
+reconcileCPOV2()
+  +-- reconcilePKI()             -- generate ~58-63 certs depending on platform (serial)
+  +-- for each component:        -- ~40 registered, ~30-38 active per cluster (serial)
+        checkDependencies()      -- List API call per component
+        update() or skip
+        reconcileComponentStatus()</code></pre>
+<p>This flow has several compounding inefficiencies:</p>
+<ol>
+<li>The infra readiness gate blocks ALL downstream work — including etcd, PKI, and featuregate-generator, which have no dependency on LoadBalancer IPs. LB provisioning takes 2-5 minutes on cloud platforms. During that entire window, the CPO does nothing.</li>
+<li>The gate requeues at 1-minute intervals, while the rest of the controller uses 15-second intervals when not ready. This adds up to 45 seconds of unnecessary polling lag.</li>
+<li>The component dependency framework evaluates dependencies by listing <code>ControlPlaneComponent</code> CRs from etcd. A component becoming available in one reconcile pass is only visible to dependents in the next pass (15 seconds later). With a 4-tier dependency DAG (etcd → KAS → OAPI → 15+ leaf components), this adds scheduling delay during initial creation.</li>
+<li>On management cluster nodes that haven't previously hosted a control plane, critical-path images are pulled on-demand, adding serial pull latency to component startup.</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<!-- PROPOSAL 1 -->
+<!-- ============================================================ -->
+<section id="proposal-1" class="proposal-section">
+<div class="proposal-header">
+  <h2>Proposal 1: Decouple Infra-Independent Work from the Infrastructure Gate</h2>
+  <span class="badge bg-success">60-110s saved</span>
+  <span class="badge bg-warning text-dark">Medium Risk</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3497" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3497</a>
+</div>
+
+<p>The savings are bounded by etcd startup time (~60-90 seconds), not by the full LB provisioning window (2-5 minutes). KAS requires <strong>both</strong> a LoadBalancer IP and a ready etcd before it can start. By starting etcd earlier, we overlap its startup with LB provisioning — but etcd startup is the shorter of the two, so it sets the ceiling. An additional 10-20 seconds is saved by pre-generating 59 PKI certs before the gate, removing them from the post-gate critical path.</p>
+
+<h3>Problem</h3>
+<p>The infra readiness gate at <code>hostedcontrolplane_controller.go:1088</code> blocks everything until all LoadBalancer Services have external IPs. A maintainer TODO already flags this:</p>
+<pre><code class="language-go">// Block here until infra status reports readiness
+// TODO(dmace): This seems a bit heavy handed vs. making more granular bits no-op if
+// they don't have the specific required inputs</code></pre>
+<p>The following work has zero dependency on LB IPs but is currently blocked:</p>
+<ul>
+<li><strong>etcd StatefulSet creation and pod startup</strong> (depends on nothing)</li>
+<li><strong>featuregate-generator Job</strong> (depends on nothing)</li>
+<li><strong>All but 3 of ~58-63 PKI operations</strong> (only KAS server cert, konnectivity cluster cert, and OAuth server cert need external addresses for SANs; total count is platform-dependent)</li>
+<li><strong>Root CA, etcd CA, all etcd certs, all client certs, service account signing key</strong> (depend on nothing)</li>
+</ul>
+
+<h3>Evidence</h3>
+<p>PKI address usage is confined to exactly 3 cert reconciliation calls:</p>
+<table class="table table-bordered table-sm">
+<thead><tr><th>Cert</th><th>Address field</th><th>File:Line</th></tr></thead>
+<tbody>
+<tr><td>KAS server cert</td><td><code>ExternalAPIAddress</code></td><td><code>hostedcontrolplane_controller.go:1380</code></td></tr>
+<tr><td>Konnectivity cluster cert</td><td><code>ExternalKconnectivityAddress</code></td><td><code>hostedcontrolplane_controller.go:1476</code></td></tr>
+<tr><td>OAuth server cert</td><td><code>ExternalOauthAddress</code></td><td><code>hostedcontrolplane_controller.go:1501</code></td></tr>
+</tbody>
+</table>
+<p>All other certs in <code>reconcilePKI()</code> use only internal addresses (service CIDRs, namespace-based DNS names, node internal API server IP) which are known at HostedControlPlane creation time.</p>
+<p>The etcd component's dependency list (in <code>support/controlplane-component/status.go:30</code>) shows it is explicitly excluded from the KAS dependency:</p>
+<pre><code class="language-go">componentsExcludedFromKubeAPIServerDependency = sets.New(
+    etcdComponentName,
+    featureGateGeneratorComponetName,
+    ...
+)</code></pre>
+<p>Neither etcd nor featuregate-generator access <code>InfraStatus</code> in their adapt functions (verified: <code>grep -rn 'InfraStatus' v2/etcd/ v2/fg/</code> returns no matches).</p>
+
+<h3>Design</h3>
+<p>Two changes: split PKI into infra-dependent and infra-independent phases, and extend the component framework to support infrastructure-independent components.</p>
+
+<div class="accordion mb-3" id="proposal1Details">
+<div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pki-split"><strong>PKI Split</strong> — reconcilePKIPreInfra / reconcilePKIPostInfra</button></h2>
+<div id="pki-split" class="accordion-collapse collapse" data-bs-parent="#proposal1Details">
+<div class="accordion-body">
+<p>The current <code>reconcilePKI()</code> function (line 1809) is split into two functions.</p>
+<p><strong>Important</strong>: <code>reconcileKASCerts</code> (line 1840) contains both infra-dependent certs (KAS server cert at line 1380) and infra-independent certs (SA signing key at line 1401, KAS client certs). Similarly, <code>reconcileKonnectivityCerts</code> (line 1848) contains both the infra-dependent konnectivity cluster cert (line 1476) and infra-independent certs (konnectivity signer CA, server, client, agent). These functions must be split internally — the infra-dependent cert calls are extracted into <code>reconcilePKIPostInfra</code>, while the remaining calls stay in <code>reconcilePKIPreInfra</code>.</p>
+<pre><code class="language-go">// reconcilePKIPreInfra generates all certificates that don't require
+// infrastructure endpoints (LB IPs). This includes the root CA, etcd certs,
+// client certs, SA signing key, and all certs that use only internal addresses.
+func (r *HostedControlPlaneReconciler) reconcilePKIPreInfra(
+    ctx context.Context, hcp *hyperv1.HostedControlPlane, createOrUpdate upsert.CreateOrUpdateFN) error {
+    p := pki.NewPKIParams(hcp, "", "", "")
+    // Root CA, root CA configmap
+    // reconcileEtcdCerts (all etcd certs are infra-independent)
+    // reconcileKASCertsPreInfra (SA signing key, KAS client certs — NOT KAS server cert)
+    // reconcileOpenshiftCerts (all use internal addresses)
+    // reconcileKonnectivityCertsPreInfra (signer, server, client, agent — NOT cluster cert)
+    // Ingress, MCS, ignition, OLM, network, platform-specific certs
+}
+
+// reconcilePKIPostInfra generates the 3 certificates that require
+// infrastructure endpoints as SANs.
+func (r *HostedControlPlaneReconciler) reconcilePKIPostInfra(
+    ctx context.Context, hcp *hyperv1.HostedControlPlane,
+    infraStatus infra.InfrastructureStatus, createOrUpdate upsert.CreateOrUpdateFN) error {
+    p := pki.NewPKIParams(hcp, infraStatus.APIHost, infraStatus.OAuthHost, infraStatus.KonnectivityHost)
+    // KAS server cert (line 1380)
+    // Konnectivity cluster cert (line 1476)
+    // OAuth server cert (line 1501) — must preserve HCPOAuthEnabled conditional guard
+}</code></pre>
+</div></div></div>
+
+<div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#framework-ext"><strong>Component Framework Extension</strong> — WithInfraIndependent()</button></h2>
+<div id="framework-ext" class="accordion-collapse collapse" data-bs-parent="#proposal1Details">
+<div class="accordion-body">
+<p>Rather than bypassing the component framework with a special <code>reconcilePreGateComponents()</code> function, extend the framework itself with the concept of infrastructure independence.</p>
+<p><strong>Add <code>WithInfraIndependent()</code> builder option</strong> (<code>support/controlplane-component/builder.go</code>):</p>
+<pre><code class="language-go">// WithInfraIndependent marks a component as not requiring infrastructure
+// endpoints (LoadBalancer IPs). Infra-independent components are reconciled
+// before the infrastructure readiness gate.
+func (b *controlPlaneWorkloadBuilder[T]) WithInfraIndependent() *controlPlaneWorkloadBuilder[T] {
+    b.infraIndependent = true
+    return b
+}</code></pre>
+<p><strong>Add field to <code>controlPlaneWorkload</code></strong> (<code>support/controlplane-component/controlplane-component.go</code>):</p>
+<pre><code class="language-go">type controlPlaneWorkload[T] struct {
+    // ... existing fields ...
+    infraIndependent bool
+}
+
+func (c *controlPlaneWorkload[T]) IsInfraIndependent() bool {
+    return c.infraIndependent
+}</code></pre>
+<p><strong>Add to the <code>ControlPlaneComponent</code> interface</strong>:</p>
+<pre><code class="language-go">type ControlPlaneComponent interface {
+    Name() string
+    Reconcile(cpContext ControlPlaneContext) error
+    IsInfraIndependent() bool
+}</code></pre>
+</div></div></div>
+
+<div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#two-pass"><strong>Two-Pass Reconciliation</strong> — restructured update()</button></h2>
+<div id="two-pass" class="accordion-collapse collapse" data-bs-parent="#proposal1Details">
+<div class="accordion-body">
+<p>The <code>update()</code> function runs the component loop twice — once for infra-independent components (before the gate), and once for the rest (after the gate):</p>
+<pre><code class="language-go">func (r *HostedControlPlaneReconciler) update(ctx context.Context, ...) (reconcile.Result, error) {
+    // Phase 1: Infrastructure-independent work
+    if err := r.reconcileInfrastructure(ctx, hcp, createOrUpdate); err != nil {
+        return reconcile.Result{}, fmt.Errorf("failed to ensure infrastructure: %w", err)
+    }
+
+    if err := r.reconcileDefaultServiceAccount(ctx, hcp, createOrUpdate); err != nil {
+        return reconcile.Result{}, fmt.Errorf("failed to reconcile default service account: %w", err)
+    }
+
+    if _, exists := hcp.Annotations[hyperv1.DisablePKIReconciliationAnnotation]; !exists {
+        if err := r.reconcilePKIPreInfra(ctx, hcp, createOrUpdate); err != nil {
+            return reconcile.Result{}, fmt.Errorf("failed to reconcile pre-infra PKI: %w", err)
+        }
+    }
+
+    // Reconcile infra-independent components (etcd, featuregate-generator)
+    if err := r.reconcileInfraIndependentComponents(ctx, hcp, releaseImageProvider,
+        userReleaseImageProvider); err != nil {
+        return reconcile.Result{}, fmt.Errorf("failed to reconcile infra-independent components: %w", err)
+    }
+
+    // Phase 2: Infrastructure-dependent work
+    infraStatus, err := r.reconcileInfrastructureStatus(ctx, hcp)
+    if err != nil {
+        return reconcile.Result{}, fmt.Errorf("failed to look up infra status: %w", err)
+    }
+    if !infraStatus.IsReady() {
+        r.Log.Info("Waiting for infrastructure to be ready before proceeding")
+        return reconcile.Result{RequeueAfter: hcpNotReadyRequeueInterval}, nil
+    }
+
+    // Infra-dependent PKI (3 certs)
+    if _, exists := hcp.Annotations[hyperv1.DisablePKIReconciliationAnnotation]; !exists {
+        if err := r.reconcilePKIPostInfra(ctx, hcp, infraStatus, createOrUpdate); err != nil {
+            return reconcile.Result{}, fmt.Errorf("failed to reconcile post-infra PKI: %w", err)
+        }
+    }
+
+    // Remaining components (need infraStatus)
+    if err := r.reconcileCPOV2(ctx, hcp, infraStatus, releaseImageProvider,
+        userReleaseImageProvider); err != nil {
+        errs = append(errs, err)
+    }
+    // ...
+}</code></pre>
+<p>The <code>reconcileInfraIndependentComponents</code> function filters <code>r.components</code> for those where <code>IsInfraIndependent() == true</code> and constructs a <code>ControlPlaneContext</code> without <code>InfraStatus</code>. The main <code>reconcileCPOV2</code> loop skips infra-independent components since they were already reconciled.</p>
+<p><strong>Etcd and featuregate-generator component registration</strong> (in their respective <code>component.go</code> files):</p>
+<pre><code class="language-go">// v2/etcd/component.go
+func NewComponent() controlplanecomponent.ControlPlaneComponent {
+    return controlplanecomponent.NewDeploymentComponent(...).
+        WithInfraIndependent().
+        // ...existing options...
+        Build()
+}</code></pre>
+</div></div></div>
+
+<div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#edge-cases"><strong>Edge Cases</strong> — Unmanaged Etcd &amp; Safety Guards</button></h2>
+<div id="edge-cases" class="accordion-collapse collapse" data-bs-parent="#proposal1Details">
+<div class="accordion-body">
+<h4>Unmanaged Etcd</h4>
+<p>When <code>hcp.Spec.Etcd.ManagementType == hyperv1.Unmanaged</code>, the etcd component's predicate returns false and the framework calls <code>delete()</code>. The <code>reconcileInfraIndependentComponents</code> function must check this: skip the etcd component dispatch when etcd is unmanaged, and instead run <code>reconcileUnmanagedEtcd()</code> (line 1182) in its place. The unmanaged etcd path does not create a StatefulSet and has no infra dependency.</p>
+<h4>Safety: Preventing Future InfraStatus Access</h4>
+<p>To prevent future contributors from accidentally accessing <code>InfraStatus</code> in an infra-independent component, the <code>ControlPlaneContext</code> passed to pre-gate components should have <code>InfraStatus</code> set to a zero-value struct. Add a unit test per infra-independent component that verifies it reconciles successfully with a zero-value <code>InfraStatus</code>.</p>
+<p>As an additional safeguard, the <code>WorkloadContext</code> (the downcast of <code>ControlPlaneContext</code> available to adapt functions) could omit the <code>InfraStatus</code> field entirely, requiring components that need infra data to access it through a separate interface. This is a larger refactor and can be deferred.</p>
+</div></div></div>
+</div>
+
+<h3>Risks &amp; Mitigations</h3>
+<div class="risk-item"><strong>Risk:</strong> PKI certs generated with empty external addresses could be picked up by components before post-infra certs are generated.<br><span class="mitigation"><strong>Mitigation:</strong> The 3 infra-dependent certs are created in separate Secrets. <code>ReconcileSignedCert</code> at <code>support/certs/tls.go:347</code> checks <code>ValidateKeyPair</code> and returns early if the cert is already valid. Pre-infra certs won't be regenerated post-infra, and post-infra certs won't exist until the gate passes.</span></div>
+<div class="risk-item"><strong>Risk:</strong> etcd pods start but fail because their certs don't exist yet.<br><span class="mitigation"><strong>Mitigation:</strong> Pre-infra PKI runs before infra-independent component reconciliation. All etcd certs are generated in <code>reconcileEtcdCerts()</code> which is part of the pre-infra phase. The etcd StatefulSet won't schedule until its cert Secrets exist as volume mounts.</span></div>
+<div class="risk-item"><strong>Risk:</strong> Future contributor adds <code>InfraStatus</code> access to an infra-independent component without compile-time error.<br><span class="mitigation"><strong>Mitigation:</strong> Unit test per infra-independent component verifying reconciliation with zero-value <code>InfraStatus</code>. The <code>WithInfraIndependent()</code> builder option makes the contract explicit in the component's registration code.</span></div>
+
+<h3>Testing</h3>
+<ul>
+<li>Unit test: <code>reconcilePKIPreInfra()</code> generates all expected certs with empty external addresses</li>
+<li>Unit test: <code>reconcilePKIPostInfra()</code> generates exactly 3 certs with real addresses</li>
+<li>Unit test: each infra-independent component reconciles with zero-value <code>InfraStatus</code></li>
+<li>Unit test: unmanaged etcd path is skipped in infra-independent component dispatch</li>
+<li>E2E: measure time from HCP creation to etcd pod Running (should be overlapped with LB provisioning)</li>
+<li>E2E: measure total cluster creation time</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- PROPOSAL 2 -->
+<!-- ============================================================ -->
+<section id="proposal-2" class="proposal-section">
+<div class="proposal-header">
+  <h2>Proposal 2: Reduce Infrastructure-Not-Ready Requeue Interval</h2>
+  <span class="badge bg-success">15-30s saved</span>
+  <span class="badge bg-success">Low Risk</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3495" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3495</a>
+</div>
+
+<h3>Problem</h3>
+<p>When <code>infraStatus.IsReady()</code> returns false, the controller requeues after 1 minute (<code>hostedcontrolplane_controller.go:1090</code>):</p>
+<pre><code class="language-go">return reconcile.Result{RequeueAfter: time.Minute}, nil</code></pre>
+<p>The rest of the controller uses <code>hcpNotReadyRequeueInterval = 15 * time.Second</code> (line 151) when the HCP is not ready. The 1-minute interval for infrastructure readiness is inconsistent and adds up to 45 seconds of unnecessary latency between when a LoadBalancer gets its IP and when the CPO notices.</p>
+
+<h3>Evidence</h3>
+<p>The <code>hcpNotReadyRequeueInterval</code> constant is already defined at line 151 and used at line 716 for the general not-ready case. The infrastructure requeue at line 1090 uses a hardcoded <code>time.Minute</code> instead of this constant — this appears to be an oversight rather than an intentional choice, since there is no comment explaining why infrastructure needs a longer interval.</p>
+<p>LoadBalancer IP assignment is an instantaneous state change (the cloud provider assigns the IP, the Service controller updates the status). There is no benefit to polling less frequently — the CPO should detect the change as quickly as possible.</p>
+
+<h3>Design</h3>
+<p>Replace the hardcoded <code>time.Minute</code> with <code>hcpNotReadyRequeueInterval</code>:</p>
+<pre><code class="language-go">if !infraStatus.IsReady() {
+    r.Log.Info("Waiting for infrastructure to be ready before proceeding")
+    return reconcile.Result{RequeueAfter: hcpNotReadyRequeueInterval}, nil
+}</code></pre>
+<p>This is a one-line change.</p>
+
+<h3>Additional Consideration: Watch-Based Approach</h3>
+<p>The CPO already watches Services through the component framework's informer cache. If this watch covers LoadBalancer status subresource changes, the informer cache update should trigger a reconciliation automatically, making the requeue interval purely a safety net. Worth verifying — if so, the 15-second interval is more than adequate. Adding a dedicated watch on Service status changes could be a follow-up to eliminate polling entirely.</p>
+
+<h3>Risks &amp; Mitigations</h3>
+<div class="risk-item"><strong>Risk:</strong> Increased reconciliation frequency during LB provisioning (4x more reconciles per minute).<br><span class="mitigation"><strong>Mitigation:</strong> Each reconcile pass when infra is not ready is cheap — it calls <code>reconcileInfrastructureStatus()</code> which does a handful of Service GETs, then returns immediately. After Proposal 1 lands, the pre-gate work (PKI, etcd) is also idempotent and skips quickly on subsequent passes.</span></div>
+
+<h3>Testing</h3>
+<ul>
+<li>Unit test: verify the requeue result uses <code>hcpNotReadyRequeueInterval</code> when infra is not ready</li>
+<li>E2E: measure time between LB IP assignment and first post-gate reconcile pass</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- PROPOSAL 3 -->
+<!-- ============================================================ -->
+<section id="proposal-3" class="proposal-section">
+<div class="proposal-header">
+  <h2>Proposal 3: Framework-Native Image Pre-Pulling for Critical-Path Components</h2>
+  <span class="badge bg-info text-dark">0-60s saved (cold nodes)</span>
+  <span class="badge bg-success">Low Risk</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3499" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3499</a>
+</div>
+
+<p>This proposal uses a framework-native approach that extends the existing component init container pattern rather than introducing a new controller and DaemonSet, achieving similar benefits for the common case with less operational overhead.</p>
+
+<h3>Problem</h3>
+<p>A hosted cluster control plane pulls approximately 50 distinct container images from the OCP release payload. All workloads use <code>imagePullPolicy: IfNotPresent</code> (set at <code>support/controlplane-component/defaults.go:574</code> for main containers; init containers must set it explicitly). The first hosted cluster created on any management cluster node pays the full image pull cost for all critical-path images.</p>
+<p>Critical-path images that block cluster readiness:</p>
+<ul>
+<li><strong>etcd</strong> — blocks KAS startup (tier 1)</li>
+<li><strong>hyperkube</strong> (KAS/KCM/scheduler) — blocks everything in tier 2+</li>
+<li><strong>openshift-apiserver</strong> — blocks 15+ components in tier 4</li>
+<li><strong>cluster-version-operator</strong> — has 2 init containers that extract the payload</li>
+<li><strong>token-minter</strong> — sidecar injected into most control plane deployments</li>
+</ul>
+
+<h3>Evidence</h3>
+<p>The only existing pre-pull mechanism is a KAS-specific init container at <code>v2/kas/deployment.go:430-451</code> that runs <code>/bin/sh -c echo</code> to force the KAS image onto the node. This approach has two problems: (1) it only helps KAS, and (2) the init container adds overhead to the KAS startup critical path.</p>
+<p>Management cluster nodes typically already have most OCP images cached from previous hosted control planes. The pre-pull optimization only helps on genuinely cold nodes (fresh scale-up events, new OCP version introduction). In steady-state operations with consistent release versions, warm nodes already have images cached.</p>
+
+<h3>Design</h3>
+<div class="accordion mb-3" id="proposal3Details">
+<div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#prepull-primary"><strong>Primary Approach</strong> — Framework WithPrePullImages() Builder Option</button></h2>
+<div id="prepull-primary" class="accordion-collapse collapse" data-bs-parent="#proposal3Details">
+<div class="accordion-body">
+<p>Extend the component framework to allow components to declare images that should be pre-pulled via init containers on their workload pods. Since etcd is tier 1 and deploys first, its StatefulSet init containers can pre-pull downstream critical-path images (hyperkube, OAPI, CVO) while etcd itself bootstraps.</p>
+<pre><code class="language-go">// WithPrePullImages injects init containers that pull the specified images
+// onto the node before the main containers start.
+func (b *controlPlaneWorkloadBuilder[T]) WithPrePullImages(imageKeys ...string) *controlPlaneWorkloadBuilder[T] {
+    b.prePullImageKeys = imageKeys
+    return b
+}</code></pre>
+<p>The framework resolves image keys to pullspecs via the <code>ReleaseImageProvider</code> and injects init containers that run <code>/bin/true</code> for each image. Since Kubernetes init containers run serially, these pre-pull containers complete before the main workload starts. The net effect is that downstream images are pulled during the LB provisioning window rather than on-demand after KAS starts.</p>
+<pre><code class="language-go">func NewComponent() controlplanecomponent.ControlPlaneComponent {
+    return controlplanecomponent.NewStatefulSetComponent(...).
+        WithInfraIndependent().
+        WithPrePullImages("hyperkube", "openshift-apiserver",
+            "cluster-version-operator", "token-minter").
+        Build()
+}</code></pre>
+<p>This approach:</p>
+<ul>
+<li>Reuses existing scheduling — no new DaemonSet or controller</li>
+<li>Pulls images on the exact node where the HCP will run</li>
+<li>Has zero overhead on warm nodes (<code>IfNotPresent</code> means the init container exits instantly if the image is cached)</li>
+<li>Is self-cleaning — when the HCP is deleted, the pre-pull init containers go away</li>
+<li>Handles pull secrets automatically (pod spec inherits the HCP namespace's pull secret)</li>
+</ul>
+<p><strong>Init container ordering</strong>: The pre-pull init containers should be appended after any existing init containers (e.g., etcd's snapshot restore init container) to avoid delaying the primary workload. Since init containers run serially, each pre-pull adds image pull time. On warm nodes this is negligible (&lt;1s per container). On cold nodes, the total pull time for 4 images is 30-60 seconds, which adds to etcd's startup time on that pod but overlaps with the LB provisioning window (2-5 minutes).</p>
+</div></div></div>
+
+<div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#prepull-deferred"><strong>Alternative (Deferred)</strong> — DaemonSet-Based Pre-Puller</button></h2>
+<div id="prepull-deferred" class="accordion-collapse collapse" data-bs-parent="#proposal3Details">
+<div class="accordion-body">
+<p>A DaemonSet-based pre-puller that runs on all management cluster nodes was considered but deferred for the following reasons:</p>
+<ul>
+<li><strong>Maintenance burden</strong>: Introduces a new controller in the hypershift-operator, a new DaemonSet, and lifecycle management.</li>
+<li><strong>Pull secret management</strong>: The DaemonSet would need access to the release image pull secret, which differs per HCP namespace.</li>
+<li><strong>Priority class concerns</strong>: Using <code>system-node-critical</code> for an optimization DaemonSet is too aggressive.</li>
+<li><strong>Limited benefit</strong>: On warm nodes (the common case), savings are zero.</li>
+<li><strong>Kubernetes native pre-pull</strong>: Kubernetes 1.33+ provides native image pre-pull capabilities.</li>
+</ul>
+<p>If the framework-native approach proves insufficient, the DaemonSet approach can be revisited. The release image count cap should be configurable rather than hardcoded.</p>
+</div></div></div>
+</div>
+
+<h3>Risks &amp; Mitigations</h3>
+<div class="risk-item"><strong>Risk:</strong> Pre-pull init containers add latency to etcd startup on cold nodes.<br><span class="mitigation"><strong>Mitigation:</strong> On cold nodes, the images would be pulled anyway when the downstream components schedule. Pre-pulling via etcd's init containers shifts the pull earlier (overlapping with LB provisioning) rather than adding net new work. On warm nodes, the init containers exit in &lt;1 second each.</span></div>
+<div class="risk-item"><strong>Risk:</strong> Init containers run serially, so 4 pre-pull containers mean 4 serial image pulls.<br><span class="mitigation"><strong>Mitigation:</strong> Each image is ~200-500MB compressed. Total serial pull time on cold nodes is 30-60 seconds. This happens during the LB provisioning window (2-5 minutes), so it's fully overlapped. The critical path is not extended.</span></div>
+
+<h3>Testing</h3>
+<ul>
+<li>Unit test: <code>WithPrePullImages()</code> injects init containers with correct image resolution</li>
+<li>Unit test: init containers use <code>/bin/true</code> command and minimal resource requests</li>
+<li>Unit test: init containers are appended after existing init containers</li>
+<li>E2E: on a fresh node, measure time from pod scheduling to container start for KAS</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- PROPOSAL 4 -->
+<!-- ============================================================ -->
+<section id="proposal-4" class="proposal-section">
+<div class="proposal-header">
+  <h2>Proposal 4: In-Memory Dependency Propagation Across Component Tiers</h2>
+  <span class="badge bg-info text-dark">0-15s creation / 15-30s upgrades</span>
+  <span class="badge bg-success">Low Risk</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3498" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3498</a>
+</div>
+
+<p>During initial cluster creation, the dominant latency at each tier boundary is workload startup (pod scheduling, image pull, readiness probes), not cache staleness. The controller-runtime informer cache is watch-based and typically updates within 1-2 seconds of a CR write. The in-memory map provides guaranteed immediate propagation but the practical savings during initial creation are modest. The primary benefit is during <strong>upgrades and recovery scenarios</strong> where workloads are already running but CR status may lag.</p>
+
+<h3>Problem</h3>
+<p>The component dependency framework checks dependencies by listing <code>ControlPlaneComponent</code> CRs from the management cluster's etcd (<code>support/controlplane-component/status.go:69-91</code>). When a component becomes available, its status CR is updated via <code>CreateOrPatch</code> at <code>controlplane-component.go:195</code>. Downstream components checking dependencies in the same reconcile pass may see stale status because:</p>
+<ol>
+<li>The <code>List</code> call at line 70 reads from the controller-runtime cache, which may not reflect the latest write yet</li>
+<li>The component's status was just updated moments ago in the same reconcile loop iteration</li>
+</ol>
+<p>The component dependency DAG has 4 tiers:</p>
+<pre><code>Tier 1: etcd + featuregate-generator  (no dependencies)
+Tier 2: kube-apiserver                (depends on etcd + featuregate-generator)
+Tier 3: KCM + scheduler + OAPI + ... (depends on KAS)
+Tier 4: CVO + OAuth + CNO + ...      (depends on OAPI)</code></pre>
+
+<h3>Design</h3>
+<div class="accordion mb-3" id="proposal4Details">
+<div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#inmem-code"><strong>Implementation Details</strong> — ControlPlaneContext, checkDependencies, reconcileComponentStatus</button></h2>
+<div id="inmem-code" class="accordion-collapse collapse" data-bs-parent="#proposal4Details">
+<div class="accordion-body">
+<p>Add an in-memory availability map to <code>ControlPlaneContext</code>:</p>
+<pre><code class="language-go">type ControlPlaneContext struct {
+    // ... existing fields ...
+
+    // intraPassAvailability tracks components that reached Available+RolloutComplete
+    // during the current reconcile pass. This is a transient, single-pass cache —
+    // it must not be persisted, cached, or shared across reconcile cycles.
+    intraPassAvailability map[string]bool
+}</code></pre>
+<p><strong>Changes to <code>checkDependencies()</code></strong> — after the CR-based check, also check the in-memory map:</p>
+<pre><code class="language-go">    // In-memory propagation: check if dependencies became available
+    // during this reconcile pass (not yet visible in cached List).
+    if cpContext.intraPassAvailability != nil {
+        for dep := range unavailableDependencies {
+            if cpContext.intraPassAvailability[dep] {
+                unavailableDependencies.Delete(dep)
+            }
+        }
+    }
+
+    return sets.List(unavailableDependencies), nil</code></pre>
+<p><strong>Changes to <code>reconcileComponentStatus()</code></strong> — record availability after status update:</p>
+<pre><code class="language-go">    desiredVersion := cpContext.ReleaseImageProvider.Version()
+    // ... condition checks ...
+
+    if isAvailable && isComplete && cpContext.intraPassAvailability != nil {
+        cpContext.intraPassAvailability[c.Name()] = true
+    }</code></pre>
+<p><strong>Initialize in <code>reconcileCPOV2()</code></strong>:</p>
+<pre><code class="language-go">cpContext := ControlPlaneContext{
+    // ... existing fields ...
+    intraPassAvailability: make(map[string]bool),
+}</code></pre>
+</div></div></div>
+</div>
+
+<h3>Concurrency Safety</h3>
+<p>The <code>intraPassAvailability</code> map is safe for the current single-threaded component loop. <code>ControlPlaneContext</code> is passed by value, but the map is a reference type in Go — mutations in <code>reconcileComponentStatus</code> are visible to <code>checkDependencies</code> calls in subsequent loop iterations.</p>
+<p>If the component loop ever becomes concurrent, the map would need synchronization. Consider using <code>sync.Map</code> as a forward-safe choice, or document the single-threaded constraint prominently.</p>
+
+<h3>Realistic Savings During Initial Creation</h3>
+<p>During initial creation, the practical impact per tier boundary is:</p>
+<ul>
+<li>A component's workload is created in pass N</li>
+<li>The workload takes 15-60 seconds to become Ready (pod scheduling, image pull, probes)</li>
+<li>In pass N+1 (15 seconds later), the component's status is updated to Available+RolloutComplete</li>
+<li>The in-memory map records this availability</li>
+<li>Downstream components in the same pass N+1 can proceed immediately via the map</li>
+</ul>
+<p>Without the in-memory map, downstream components would need to wait for pass N+2 (another 15 seconds) if the cache hadn't updated yet. The savings per tier boundary is 0-15 seconds, depending on cache timing. The controller-runtime informer cache is watch-based and typically updates within 1-2 seconds, so the stale-cache scenario is uncommon but not impossible under load.</p>
+<p>The primary value of this proposal is during <strong>upgrades and day-2 reconciliation</strong>, where workloads are already running and a status CR update can immediately unblock downstream components within the same pass.</p>
+
+<h3>Risks &amp; Mitigations</h3>
+<div class="risk-item"><strong>Risk:</strong> A component is marked available in-memory but its workload is actually failing.<br><span class="mitigation"><strong>Mitigation:</strong> The map only records availability when conditions are set to Available+RolloutComplete at the correct version. These conditions are based on actual workload health, not just creation.</span></div>
+<div class="risk-item"><strong>Risk:</strong> Version skew during upgrades — old-version component is Available but not at the desired version.<br><span class="mitigation"><strong>Mitigation:</strong> The in-memory check includes <code>component.Status.Version == desiredVersion</code>, matching the CR-based check at <code>status.go:84</code>.</span></div>
+
+<h3>Testing</h3>
+<ul>
+<li>Unit test: <code>checkDependencies()</code> resolves a dependency via the in-memory map when the CR-based check returns stale data</li>
+<li>Unit test: <code>reconcileComponentStatus()</code> populates the in-memory map only when version matches</li>
+<li>Unit test: downstream component in same loop iteration can proceed when upstream is in the map</li>
+<li>Unit test: in-memory map does NOT propagate availability for wrong version</li>
+<li>E2E: measure number of reconcile passes needed for all components to reach Available</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- PROPOSAL 5 -->
+<!-- ============================================================ -->
+<section id="proposal-5" class="proposal-section">
+<div class="proposal-header">
+  <h2>Proposal 5: Creation Time Breakdown Metrics</h2>
+  <span class="badge bg-secondary">Observability</span>
+  <span class="badge bg-success">Low Risk</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3496" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3496</a>
+</div>
+
+<p>All three staff engineer reviewers recommended adding Prometheus metrics for tracking creation time breakdown. This has standalone value beyond the other proposals — it enables validation of improvements, regression detection, and identification of future bottlenecks.</p>
+
+<h3>Design</h3>
+<pre><code class="language-go">var (
+    hcpCreationMilestoneSeconds = prometheus.NewHistogramVec(
+        prometheus.HistogramOpts{
+            Name:    "hypershift_hcp_creation_milestone_seconds",
+            Help:    "Time from HCP creation to key milestones during cluster provisioning",
+            Buckets: prometheus.ExponentialBuckets(5, 2, 10), // 5s to ~42min
+        },
+        []string{"milestone", "platform"},
+    )
+)</code></pre>
+
+<p><strong>Milestones to track</strong>:</p>
+<table class="table table-bordered table-sm">
+<thead><tr><th>Milestone</th><th>Measured as</th></tr></thead>
+<tbody>
+<tr><td><code>infra_ready</code></td><td>Time from HCP creation to <code>infraStatus.IsReady() == true</code></td></tr>
+<tr><td><code>etcd_available</code></td><td>Time from HCP creation to etcd <code>ControlPlaneComponent</code> Available</td></tr>
+<tr><td><code>kas_available</code></td><td>Time from HCP creation to KAS <code>ControlPlaneComponent</code> Available</td></tr>
+<tr><td><code>oapi_available</code></td><td>Time from HCP creation to OAPI <code>ControlPlaneComponent</code> Available</td></tr>
+<tr><td><code>hcp_available</code></td><td>Time from HCP creation to <code>hostedControlPlane.Status.Ready == true</code></td></tr>
+</tbody>
+</table>
+<p>These metrics use <code>hcp.CreationTimestamp</code> as the base time and record the delta when each milestone is first observed. A simple map in the reconciler tracks which milestones have been recorded to avoid re-recording on subsequent reconciles.</p>
+
+<h3>Testing</h3>
+<ul>
+<li>Unit test: milestones are recorded once per HCP lifecycle</li>
+<li>Verify metrics are registered and scraped by the existing CPO metrics endpoint</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- COMBINED IMPACT -->
+<!-- ============================================================ -->
+<section id="impact" class="proposal-section" style="border-top-color: #198754;">
+<h2>Combined Impact Analysis</h2>
+<table class="table table-bordered table-hover">
+<thead class="table-light">
+<tr><th>Proposal</th><th>Savings</th><th>Platforms</th><th>Risk</th><th>Complexity</th></tr>
+</thead>
+<tbody>
+<tr><td>1. Decouple infra-independent work</td><td><strong>60-110s</strong></td><td>All cloud</td><td><span class="badge bg-warning text-dark">Medium</span></td><td>Medium</td></tr>
+<tr><td>2. Reduce infra requeue interval</td><td><strong>15-30s</strong></td><td>All cloud</td><td><span class="badge bg-success">Low</span></td><td>Trivial</td></tr>
+<tr><td>3. Framework-native image pre-pull</td><td><strong>0-60s</strong></td><td>All (cold nodes)</td><td><span class="badge bg-success">Low</span></td><td>Low</td></tr>
+<tr><td>4. In-memory dependency propagation</td><td><strong>0-15s</strong></td><td>All</td><td><span class="badge bg-success">Low</span></td><td>Medium</td></tr>
+<tr><td>5. Creation time metrics</td><td>N/A</td><td>All</td><td><span class="badge bg-success">Low</span></td><td>Low</td></tr>
+</tbody>
+</table>
+<p><strong>Total estimated savings: 75-215 seconds (~1-3.5 minutes)</strong> on cloud platforms. The lower bound is the sum of each proposal's minimum savings; the upper bound assumes cold nodes and maximum overlap. In practice, interactions between proposals (e.g., earlier etcd availability amplifies Proposal 4's benefits) make simple summation an approximation.</p>
+<p>The savings are largely additive because each proposal targets a different phase of the creation timeline:</p>
+<ul>
+<li>Proposals 1 &amp; 2 target the LB provisioning wait (minutes 0-5)</li>
+<li>Proposal 3 targets image pull time (overlaps with component startup)</li>
+<li>Proposal 4 targets component tier convergence (minutes 5-10)</li>
+</ul>
+<p>Note: Proposals 1 and 4 have a minor interaction. If etcd starts earlier via Proposal 1, it reaches Available sooner, which means KAS creation starts sooner. Proposal 4's in-memory propagation then helps at the KAS→OAPI and OAPI→leaf tier boundaries. The combined savings should not be calculated by simply summing individual estimates.</p>
+
+<h3>Platform-Specific Notes</h3>
+<ul>
+<li><strong>KubeVirt</strong>: No LoadBalancer provisioning, so proposals 1 and 2 have minimal impact. Proposals 3-5 still apply.</li>
+<li><strong>AWS private clusters</strong>: Additional 3-8 minutes of VPC endpoint chain are NOT addressed by these proposals. That is a separate optimization opportunity.</li>
+<li><strong>Azure</strong>: PLS creation adds 30s-2min. Not addressed here but would benefit from the same gate decoupling pattern.</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- IMPLEMENTATION ORDER -->
+<!-- ============================================================ -->
+<section id="order" style="margin-top: 2.5rem;">
+<h2>Implementation Order</h2>
+<ol class="list-group list-group-numbered mb-3">
+<li class="list-group-item"><strong>Proposal 2</strong> (requeue interval) — trivial one-line change, can land immediately</li>
+<li class="list-group-item"><strong>Proposal 5</strong> (metrics) — enables measurement before making further changes</li>
+<li class="list-group-item"><strong>Proposal 1</strong> (decouple from gate) — highest impact, requires PKI split + framework extension</li>
+<li class="list-group-item"><strong>Proposal 4</strong> (in-memory propagation) — independent of proposals 1-2, touches component framework only</li>
+<li class="list-group-item"><strong>Proposal 3</strong> (image pre-pull) — lowest priority, framework-native approach is low-effort</li>
+</ol>
+<p>Each PR should include before/after timing measurements. After Proposal 5 lands, the metrics themselves provide the measurement framework.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- OPEN QUESTIONS -->
+<!-- ============================================================ -->
+<section id="questions" style="margin-top: 2.5rem;">
+<h2>Open Questions</h2>
+<ol>
+<li><strong>Pre-gate component selection</strong>: Beyond etcd and featuregate-generator, candidates include <code>cluster-api</code>, <code>capi-provider</code>, and <code>karpenter-operator</code> (all excluded from KAS dependency at <code>status.go:30-39</code>). Each candidate should self-declare <code>WithInfraIndependent()</code> and be verified with a unit test that reconciles with zero-value <code>InfraStatus</code>. This verification should be done as part of Proposal 1's implementation.</li>
+<li><strong>Image pre-pull scope</strong>: The framework-native approach is self-scoping (only pre-pulls for the HCP being created). If a DaemonSet approach is later pursued, it should be opt-in and configurable via the hypershift-operator deployment configuration, with a configurable release image cap rather than a hardcoded constant.</li>
+</ol>
+</section>
+
+</div><!-- col main -->
+
+
+</div><!-- row -->
+</div><!-- container-fluid -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+<script>
+hljs.highlightAll();
+// Scrollspy-lite: highlight active sidebar link
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.sidebar .nav-link');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+  navLinks.forEach(a => {
+    a.classList.remove('active');
+    if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

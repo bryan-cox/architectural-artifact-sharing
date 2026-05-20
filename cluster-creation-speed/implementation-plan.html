@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cluster Creation Speed Improvements — Implementation Plan</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style>
+  body { padding-top: 0; padding-bottom: 4rem; font-size: .95rem; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 3rem 0 2.5rem; margin-bottom: 2rem; }
+  .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: .75rem; }
+  .hero .lead { color: #a8b8c8; font-size: 1.05rem; }
+  .hero .badge { font-size: .8rem; }
+  .kpi-row .kpi { text-align: center; padding: 1.25rem .5rem; }
+  .kpi-row .kpi .num { font-size: 1.8rem; font-weight: 700; color: #0d6efd; }
+  .kpi-row .kpi .label { font-size: .8rem; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; }
+  .task-section { border-top: 4px solid; padding-top: 1.5rem; margin-top: 3rem; }
+  .task-header { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .task-header h2 { margin: 0; font-size: 1.35rem; }
+  .task-header .badge { font-size: .85rem; white-space: nowrap; }
+  .task-colors-1 { border-top-color: #198754; }
+  .task-colors-2 { border-top-color: #6610f2; }
+  .task-colors-3 { border-top-color: #0d6efd; }
+  .task-colors-4 { border-top-color: #dc3545; }
+  .task-colors-5 { border-top-color: #fd7e14; }
+  .task-colors-6 { border-top-color: #20c997; }
+  .task-colors-7 { border-top-color: #6f42c1; }
+  .task-colors-8 { border-top-color: #0dcaf0; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1.5rem; color: #495057; }
+  pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: .5rem; padding: 1rem; overflow-x: auto; font-size: .85rem; }
+  code { font-size: .87em; }
+  pre code { background: none; padding: 0; }
+  blockquote { border-left: 4px solid #0d6efd; padding: .75rem 1rem; background: #f0f6ff; border-radius: 0 .375rem .375rem 0; margin: 1rem 0; }
+  blockquote p:last-child { margin-bottom: 0; }
+  .step-list { list-style: none; padding-left: 0; counter-reset: step-counter; }
+  .step-list > li { position: relative; padding: .6rem .75rem .6rem 2.75rem; margin-bottom: .4rem; border-radius: .375rem; background: #f8f9fa; border: 1px solid #e9ecef; }
+  .step-list > li::before { content: counter(step-counter); counter-increment: step-counter; position: absolute; left: .75rem; top: .65rem; width: 1.5rem; height: 1.5rem; background: #0d6efd; color: #fff; font-size: .75rem; font-weight: 700; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .step-list > li strong { color: #212529; }
+  .step-run { font-size: .85rem; color: #495057; margin-top: .25rem; }
+  .step-run code { background: #e2e8f0; padding: .1rem .3rem; border-radius: .2rem; }
+  .file-badge { font-size: .78rem; font-family: 'SFMono-Regular', monospace; }
+  .file-list { margin-bottom: .75rem; }
+  .file-list .badge { margin-right: .25rem; margin-bottom: .25rem; }
+  .sidebar { position: sticky; top: 1rem; }
+  .sidebar .nav-link { padding: .3rem .5rem; font-size: .85rem; color: #6c757d; border-left: 2px solid transparent; }
+  .sidebar .nav-link:hover { color: #0d6efd; border-left-color: #cfe2ff; }
+  .sidebar .nav-link.active { color: #0d6efd; font-weight: 600; border-left-color: #0d6efd; }
+  .sidebar .section-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #adb5bd; margin-top: .75rem; padding-left: .5rem; }
+  .revision-note { border-left: 3px solid #ffc107; padding: .5rem .75rem; background: #fffcf0; border-radius: 0 .25rem .25rem 0; margin-bottom: 1rem; }
+  .table thead th { background: #f8f9fa; font-size: .85rem; }
+  @media (max-width: 991px) { .sidebar-col { display: none; } }
+  @media print { .hero { background: #333 !important; } .sidebar-col { display: none; } }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+<div class="container" style="max-width:960px;">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <span class="badge bg-warning text-dark">Implementation Plan</span>
+    <span class="badge bg-secondary">TDD</span>
+    <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3494" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3494</a>
+  </div>
+  <h1>Cluster Creation Speed Improvements</h1>
+  <p class="lead mb-0">8 tasks implementing 5 proposals to reduce hosted cluster creation time by 1-3 minutes. Each task is a standalone PR with TDD steps.</p>
+  <p class="mt-2 mb-0" style="font-size:.85rem; color:#78909c;">Bryan Cox &middot; 2026-05-20 &middot; Revised after 3 independent staff engineer reviews</p>
+</div>
+</div>
+
+<div class="container" style="max-width:960px;">
+<div class="row">
+
+<!-- Main Content -->
+<div class="col-lg-9">
+
+<!-- KPI strip -->
+<div class="row kpi-row mb-4 g-0">
+  <div class="col kpi border rounded-start"><div class="num">8</div><div class="label">Tasks</div></div>
+  <div class="col kpi border-top border-bottom"><div class="num">5</div><div class="label">Proposals</div></div>
+  <div class="col kpi border-top border-bottom"><div class="num">~60</div><div class="label">TDD Steps</div></div>
+  <div class="col kpi border rounded-end"><div class="num">15</div><div class="label">Files Touched</div></div>
+</div>
+
+<!-- Goal & Architecture -->
+<section id="overview">
+<h2 class="h5">Goal &amp; Architecture</h2>
+<p><strong>Goal:</strong> Reduce hosted cluster creation time by 1-3 minutes through 5 independent changes to the CPO reconciliation flow and v2 component framework.</p>
+<p><strong>Architecture:</strong> All changes are in the control-plane-operator (CPO) and the <code>support/controlplane-component</code> framework. Each proposal is a standalone PR that can be merged independently. No user-facing API changes. Implementation order: Proposal 2 (trivial) &rarr; Proposal 5 (metrics) &rarr; Proposal 1 (decouple infra gate) &rarr; Proposal 4 (in-memory propagation) &rarr; Proposal 3 (image pre-pull).</p>
+<p><strong>Tech Stack:</strong> Go 1.25+, controller-runtime 0.22.x, Prometheus client_golang, gomega test assertions</p>
+<p><strong>Spec:</strong> <code>docs/superpowers/specs/2026-05-20-cluster-creation-speed-design.md</code></p>
+</section>
+
+<!-- Revision Notes -->
+<section id="revisions" style="margin-top:1.5rem;">
+<div class="revision-note">
+  <strong>Revision Notes:</strong> This plan was revised after staff engineer review (3 independent reviewers covering architecture/safety, testing/TDD, and implementation accuracy). All 6 blockers and 13 concerns have been addressed.
+</div>
+<div class="accordion mb-3" id="revisionDetails">
+<div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#revision-list"><strong>Key Changes from Review</strong></button></h2>
+<div id="revision-list" class="accordion-collapse collapse" data-bs-parent="#revisionDetails">
+<div class="accordion-body py-2">
+<ul class="mb-0">
+<li>Platform-specific certs (AWS/Azure) added to <code>reconcilePKIPreInfra</code></li>
+<li>Complete <code>reconcilePKIPreInfra</code> body written out (no "..." placeholders)</li>
+<li>Task 1 test rewritten to exercise the actual requeue code path</li>
+<li><code>milestoneTracker</code> scoped per-HCP via NamespacedName keying</li>
+<li>Pre-gate failure tests and PKI boundary tests added</li>
+<li>Zero-value InfraStatus tests added for etcd and fg components</li>
+<li>Single shared <code>intraPassAvailability</code> map across pre-gate and post-gate phases</li>
+<li>Pre-pull/Proposal 1 cold-node interaction documented</li>
+<li><code>createMockWorkload</code> helper verified (exists in <code>status_test.go:263</code>)</li>
+<li>Per-component zero-value InfraStatus tests added for etcd and fg</li>
+<li>Post-infra PKI cert count validation test added</li>
+<li>Unmanaged etcd pre-gate dispatch test added</li>
+<li>Metrics registration verification step added</li>
+</ul>
+</div></div></div>
+</div>
+</section>
+
+<!-- File Map -->
+<section id="file-map" style="margin-top:2rem;">
+<h2 class="h5">File Map</h2>
+
+<div class="card mb-2"><div class="card-body py-2 px-3">
+<h6 class="card-title mb-1">Proposal 2 — Requeue Interval <span class="badge bg-secondary-subtle text-dark file-badge">1 file</span></h6>
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: hostedcontrolplane_controller.go:1088-1091</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: hostedcontrolplane_controller_test.go</span>
+</div>
+</div></div>
+
+<div class="card mb-2"><div class="card-body py-2 px-3">
+<h6 class="card-title mb-1">Proposal 5 — Creation Metrics <span class="badge bg-secondary-subtle text-dark file-badge">2 files</span></h6>
+<div class="file-list">
+  <span class="badge bg-success-subtle text-dark file-badge">Create: metrics.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: hostedcontrolplane_controller.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: metrics_test.go</span>
+</div>
+</div></div>
+
+<div class="card mb-2"><div class="card-body py-2 px-3">
+<h6 class="card-title mb-1">Proposal 1 — Decouple Infra-Independent Work <span class="badge bg-secondary-subtle text-dark file-badge">6 files</span></h6>
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: builder.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: controlplane-component.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: hostedcontrolplane_controller.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: v2/etcd/component.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: v2/fg/component.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: controlplane-component_test.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: hostedcontrolplane_controller_test.go</span>
+</div>
+</div></div>
+
+<div class="card mb-2"><div class="card-body py-2 px-3">
+<h6 class="card-title mb-1">Proposal 4 — In-Memory Dependency Propagation <span class="badge bg-secondary-subtle text-dark file-badge">3 files</span></h6>
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: controlplane-component.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: status.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: hostedcontrolplane_controller.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: status_test.go</span>
+</div>
+</div></div>
+
+<div class="card mb-2"><div class="card-body py-2 px-3">
+<h6 class="card-title mb-1">Proposal 3 — Image Pre-Pull <span class="badge bg-secondary-subtle text-dark file-badge">3 files</span></h6>
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: builder.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: controlplane-component.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: defaults.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: v2/etcd/component.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: defaults_test.go</span>
+</div>
+</div></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK 1 -->
+<!-- ============================================================ -->
+<section id="task-1" class="task-section task-colors-1">
+<div class="task-header">
+  <h2>Task 1: Reduce Infrastructure-Not-Ready Requeue Interval</h2>
+  <span class="badge bg-success">Proposal 2</span>
+  <span class="badge bg-light text-dark">Trivial</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3500" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3500</a>
+</div>
+
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: hostedcontrolplane_controller.go:1088-1091</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: hostedcontrolplane_controller_test.go</span>
+</div>
+
+<ol class="step-list">
+<li><strong>Write the failing test</strong>
+<div class="step-run">Update <code>TestNonReadyInfraTriggersRequeueAfter</code> at <code>hostedcontrolplane_controller_test.go:806</code> to assert 15s instead of 1m</div>
+<div class="accordion my-2" id="task1Step1"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task1Step1Code">Test Code</button></h2>
+<div id="task1Step1Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">func TestNonReadyInfraTriggersRequeueAfter(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	hcp := sampleHCP(t)
+	c := fake.NewClientBuilder().
+		WithScheme(api.Scheme).
+		WithObjects(hcp).
+		WithStatusSubresource(hcp).
+		Build()
+
+	r := &HostedControlPlaneReconciler{
+		Client:                        c,
+		ManagementClusterCapabilities: &fakecapabilities.FakeSupportAllCapabilities{},
+		ReleaseProvider:               &fakereleaseprovider.FakeReleaseProvider{},
+		UserReleaseProvider:           &fakereleaseprovider.FakeReleaseProvider{},
+		ImageMetadataProvider:         &fakeimagemetadataprovider.FakeRegistryClientImageMetadataProviderHCCO{},
+		reconcileInfrastructureStatus: func(ctx context.Context, hcp *hyperv1.HostedControlPlane) (infra.InfrastructureStatus, error) {
+			return infra.InfrastructureStatus{}, nil
+		},
+		SetDefaultSecurityContext: false,
+	}
+	r.setup(controllerutil.CreateOrUpdate)
+
+	result, err := r.Reconcile(t.Context(), reconcile.Request{
+		NamespacedName: client.ObjectKeyFromObject(hcp),
+	})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// When infrastructure is not ready, the requeue interval should use
+	// hcpNotReadyRequeueInterval (15s), not the old hardcoded 1 minute.
+	g.Expect(result.RequeueAfter).To(Equal(hcpNotReadyRequeueInterval),
+		"expected requeue interval to match hcpNotReadyRequeueInterval when infra is not ready")
+}</code></pre>
+</div></div></div></div>
+</li>
+
+<li><strong>Run test to verify it fails</strong>
+<div class="step-run">Run: <code>go test ./control-plane-operator/controllers/hostedcontrolplane/ -run TestNonReadyInfraTriggersRequeueAfter -v -count=1</code><br>Expected: FAIL &mdash; <code>Expected &lt;time.Duration&gt;: 1m0s to equal &lt;time.Duration&gt;: 15s</code></div>
+</li>
+
+<li><strong>Change the requeue interval</strong>
+<div class="step-run">In <code>hostedcontrolplane_controller.go</code>, replace line 1090:</div>
+<pre><code class="language-go">// Before:
+return reconcile.Result{RequeueAfter: time.Minute}, nil
+
+// After:
+return reconcile.Result{RequeueAfter: hcpNotReadyRequeueInterval}, nil</code></pre>
+<div class="step-run">The constant <code>hcpNotReadyRequeueInterval</code> is already defined at line 151 as <code>15 * time.Second</code>.</div>
+</li>
+
+<li><strong>Verify the change compiles and tests pass</strong>
+<div class="step-run">Run: <code>go build ./control-plane-operator/... && go test ./control-plane-operator/controllers/hostedcontrolplane/ -run TestNonReadyInfraTriggersRequeueAfter -v -count=1</code></div>
+</li>
+
+<li><strong>Commit</strong>
+<pre><code class="language-bash">git add control-plane-operator/controllers/hostedcontrolplane/hostedcontrolplane_controller.go control-plane-operator/controllers/hostedcontrolplane/hostedcontrolplane_controller_test.go
+git commit -m "fix: use hcpNotReadyRequeueInterval for infra-not-ready requeue
+
+The infrastructure readiness gate used a hardcoded time.Minute requeue
+interval while the rest of the controller uses hcpNotReadyRequeueInterval
+(15s). This adds up to 45s of unnecessary polling lag between when a
+LoadBalancer gets its IP and when the CPO detects it."</code></pre>
+</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK 2 -->
+<!-- ============================================================ -->
+<section id="task-2" class="task-section task-colors-2">
+<div class="task-header">
+  <h2>Task 2: Add Creation Time Breakdown Metrics</h2>
+  <span class="badge bg-info text-dark">Proposal 5</span>
+  <span class="badge bg-light text-dark">Low</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3501" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3501</a>
+</div>
+
+<div class="file-list">
+  <span class="badge bg-success-subtle text-dark file-badge">Create: metrics.go</span>
+  <span class="badge bg-success-subtle text-dark file-badge">Create: metrics_test.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: hostedcontrolplane_controller.go</span>
+</div>
+
+<ol class="step-list">
+<li><strong>Write tests for the milestone tracker</strong>
+<div class="accordion my-2" id="task2Step1"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task2Step1Code">metrics_test.go</button></h2>
+<div id="task2Step1Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">package hostedcontrolplane
+
+import (
+	"testing"
+	"time"
+
+	. "github.com/onsi/gomega"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+)
+
+func TestMilestoneTracker_RecordMilestone(t *testing.T) {
+	t.Run("When recording a milestone for the first time it should succeed", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		tracker := newMilestoneTracker()
+		hcpKey := types.NamespacedName{Namespace: "test-ns", Name: "test-hcp"}
+		creationTime := metav1.Now()
+		recorded := tracker.recordMilestone(hcpKey, "infra_ready", "aws", creationTime)
+		g.Expect(recorded).To(BeTrue())
+	})
+
+	t.Run("When recording the same milestone a second time for the same HCP it should be a no-op", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		tracker := newMilestoneTracker()
+		hcpKey := types.NamespacedName{Namespace: "test-ns", Name: "test-hcp"}
+		creationTime := metav1.Now()
+		tracker.recordMilestone(hcpKey, "infra_ready", "aws", creationTime)
+		recorded := tracker.recordMilestone(hcpKey, "infra_ready", "aws", creationTime)
+		g.Expect(recorded).To(BeFalse())
+	})
+
+	t.Run("When recording the same milestone for two different HCPs it should record both", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		tracker := newMilestoneTracker()
+		hcp1 := types.NamespacedName{Namespace: "ns1", Name: "hcp1"}
+		hcp2 := types.NamespacedName{Namespace: "ns2", Name: "hcp2"}
+		creationTime := metav1.Now()
+		g.Expect(tracker.recordMilestone(hcp1, "infra_ready", "aws", creationTime)).To(BeTrue())
+		g.Expect(tracker.recordMilestone(hcp2, "infra_ready", "aws", creationTime)).To(BeTrue())
+	})
+
+	t.Run("When recording different milestones they should all succeed", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		tracker := newMilestoneTracker()
+		hcpKey := types.NamespacedName{Namespace: "test-ns", Name: "test-hcp"}
+		creationTime := metav1.NewTime(time.Now().Add(-2 * time.Minute))
+		g.Expect(tracker.recordMilestone(hcpKey, "infra_ready", "aws", creationTime)).To(BeTrue())
+		g.Expect(tracker.recordMilestone(hcpKey, "etcd_available", "aws", creationTime)).To(BeTrue())
+		g.Expect(tracker.recordMilestone(hcpKey, "kas_available", "aws", creationTime)).To(BeTrue())
+	})
+
+	t.Run("When resetting a specific HCP its milestones should be cleared but not others", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		tracker := newMilestoneTracker()
+		hcp1 := types.NamespacedName{Namespace: "ns1", Name: "hcp1"}
+		hcp2 := types.NamespacedName{Namespace: "ns2", Name: "hcp2"}
+		creationTime := metav1.Now()
+		tracker.recordMilestone(hcp1, "infra_ready", "aws", creationTime)
+		tracker.recordMilestone(hcp2, "infra_ready", "aws", creationTime)
+		tracker.reset(hcp1)
+		g.Expect(tracker.recordMilestone(hcp1, "infra_ready", "aws", creationTime)).To(BeTrue(), "hcp1 milestone should be re-recordable after reset")
+		g.Expect(tracker.recordMilestone(hcp2, "infra_ready", "aws", creationTime)).To(BeFalse(), "hcp2 milestone should not be affected by hcp1 reset")
+	})
+}</code></pre>
+</div></div></div></div>
+</li>
+
+<li><strong>Run tests to verify they fail</strong>
+<div class="step-run">Run: <code>go test ./control-plane-operator/controllers/hostedcontrolplane/ -run TestMilestoneTracker -v -count=1</code><br>Expected: FAIL &mdash; <code>newMilestoneTracker</code> undefined</div>
+</li>
+
+<li><strong>Implement the milestone tracker</strong>
+<div class="accordion my-2" id="task2Step3"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task2Step3Code">metrics.go</button></h2>
+<div id="task2Step3Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">package hostedcontrolplane
+
+import (
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
+)
+
+var hcpCreationMilestoneSeconds = prometheus.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Name:    "hypershift_hcp_creation_milestone_seconds",
+		Help:    "Time from HCP creation to key milestones during cluster provisioning",
+		Buckets: prometheus.ExponentialBuckets(5, 2, 10),
+	},
+	[]string{"milestone", "platform"},
+)
+
+func init() {
+	metrics.Registry.MustRegister(hcpCreationMilestoneSeconds)
+}
+
+type milestoneTracker struct {
+	recorded map[types.NamespacedName]map[string]bool
+}
+
+func newMilestoneTracker() *milestoneTracker {
+	return &milestoneTracker{
+		recorded: make(map[types.NamespacedName]map[string]bool),
+	}
+}
+
+func (m *milestoneTracker) recordMilestone(hcpKey types.NamespacedName, milestone, platform string, creationTimestamp metav1.Time) bool {
+	if m.recorded[hcpKey] == nil {
+		m.recorded[hcpKey] = make(map[string]bool)
+	}
+	if m.recorded[hcpKey][milestone] {
+		return false
+	}
+	elapsed := time.Since(creationTimestamp.Time).Seconds()
+	hcpCreationMilestoneSeconds.WithLabelValues(milestone, platform).Observe(elapsed)
+	m.recorded[hcpKey][milestone] = true
+	return true
+}
+
+func (m *milestoneTracker) reset(hcpKey types.NamespacedName) {
+	delete(m.recorded, hcpKey)
+}</code></pre>
+</div></div></div></div>
+</li>
+
+<li><strong>Run tests to verify they pass</strong>
+<div class="step-run">Run: <code>go test ./control-plane-operator/controllers/hostedcontrolplane/ -run TestMilestoneTracker -v -count=1</code></div>
+</li>
+
+<li><strong>Wire milestone tracker into the reconciler</strong>
+<div class="step-run">Add <code>milestones *milestoneTracker</code> field to <code>HostedControlPlaneReconciler</code> and initialize in <code>SetupWithManager</code></div>
+</li>
+
+<li><strong>Record milestones in <code>update()</code> and <code>reconcileCPOV2()</code></strong>
+<div class="accordion my-2" id="task2Step6"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task2Step6Code">recordComponentMilestones helper</button></h2>
+<div id="task2Step6Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">func (r *HostedControlPlaneReconciler) recordComponentMilestones(ctx context.Context, hcp *hyperv1.HostedControlPlane) {
+	hcpKey := client.ObjectKeyFromObject(hcp)
+	platform := string(hcp.Spec.Platform.Type)
+	componentsList := &hyperv1.ControlPlaneComponentList{}
+	if err := r.Client.List(ctx, componentsList, client.InNamespace(hcp.Namespace)); err != nil {
+		return
+	}
+
+	milestoneMap := map[string]string{
+		"etcd":                "etcd_available",
+		"kube-apiserver":      "kas_available",
+		"openshift-apiserver": "oapi_available",
+	}
+
+	for _, comp := range componentsList.Items {
+		milestoneName, ok := milestoneMap[comp.Name]
+		if !ok {
+			continue
+		}
+		availableCondition := meta.FindStatusCondition(comp.Status.Conditions, string(hyperv1.ControlPlaneComponentAvailable))
+		if availableCondition != nil && availableCondition.Status == metav1.ConditionTrue {
+			r.milestones.recordMilestone(hcpKey, milestoneName, platform, hcp.CreationTimestamp)
+		}
+	}
+
+	if hcp.Status.Ready {
+		r.milestones.recordMilestone(hcpKey, "hcp_available", platform, hcp.CreationTimestamp)
+	}
+}</code></pre>
+</div></div></div></div>
+</li>
+
+<li><strong>Verify compilation and tests pass</strong>
+<div class="step-run">Run: <code>go build ./control-plane-operator/... && go test ./control-plane-operator/controllers/hostedcontrolplane/ -count=1 -short</code></div>
+</li>
+
+<li><strong>Verify metrics registration</strong>
+<div class="step-run">Add <code>TestMetricsRegistered</code> to <code>metrics_test.go</code>, then run: <code>go test ... -run TestMetricsRegistered -v -count=1</code></div>
+</li>
+
+<li><strong>Commit</strong>
+<pre><code class="language-bash">git commit -m "feat: add creation time breakdown Prometheus metrics
+
+Adds hypershift_hcp_creation_milestone_seconds histogram tracking
+infra_ready, etcd_available, kas_available, oapi_available, and
+hcp_available milestones. Each milestone is recorded once per HCP
+lifecycle using a milestoneTracker keyed by HCP NamespacedName."</code></pre>
+</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK 3 -->
+<!-- ============================================================ -->
+<section id="task-3" class="task-section task-colors-3">
+<div class="task-header">
+  <h2>Task 3: Add <code>IsInfraIndependent()</code> to Component Framework</h2>
+  <span class="badge bg-primary">Proposal 1, Part A</span>
+  <span class="badge bg-light text-dark">Medium</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3502" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3502</a>
+</div>
+
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: controlplane-component.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: builder.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: controlplane-component_test.go</span>
+</div>
+
+<blockquote><p><strong>Note on interface change:</strong> The <code>ControlPlaneComponent</code> interface is only implemented by <code>controlPlaneWorkload[T]</code> within this repo (verified by the compile-time check at <code>controlplane-component.go:119</code>). No out-of-tree implementors exist. Adding <code>IsInfraIndependent()</code> is safe.</p></blockquote>
+
+<ol class="step-list">
+<li><strong>Write the failing test</strong>
+<div class="accordion my-2" id="task3Step1"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task3Step1Code">TestIsInfraIndependent</button></h2>
+<div id="task3Step1Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">func TestIsInfraIndependent(t *testing.T) {
+	t.Run("When a component is built without WithInfraIndependent it should return false", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		comp := NewDeploymentComponent("test-regular", &testComponent{}).Build()
+		g.Expect(comp.IsInfraIndependent()).To(BeFalse())
+	})
+
+	t.Run("When a component is built with WithInfraIndependent it should return true", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		comp := NewDeploymentComponent("test-infra-independent", &testComponent{}).
+			WithInfraIndependent().
+			Build()
+		g.Expect(comp.IsInfraIndependent()).To(BeTrue())
+	})
+}</code></pre>
+</div></div></div></div>
+</li>
+
+<li><strong>Run test to verify it fails</strong>
+<div class="step-run">Expected: FAIL &mdash; <code>WithInfraIndependent</code> undefined</div>
+</li>
+
+<li><strong>Add <code>infraIndependent</code> field and <code>IsInfraIndependent()</code> method</strong>
+<div class="step-run">Add field to <code>controlPlaneWorkload</code> struct, add method, update <code>ControlPlaneComponent</code> interface</div>
+</li>
+
+<li><strong>Add <code>WithInfraIndependent()</code> builder method</strong>
+<pre><code class="language-go">func (b *controlPlaneWorkloadBuilder[T]) WithInfraIndependent() *controlPlaneWorkloadBuilder[T] {
+	b.workload.infraIndependent = true
+	return b
+}</code></pre>
+</li>
+
+<li><strong>Run tests to verify they pass</strong></li>
+<li><strong>Run all framework tests for regressions</strong>
+<div class="step-run">Run: <code>go test ./support/controlplane-component/... -count=1 -short</code></div>
+</li>
+<li><strong>Commit</strong>
+<pre><code class="language-bash">git commit -m "feat: add WithInfraIndependent() builder option to component framework
+
+Extends the ControlPlaneComponent interface with IsInfraIndependent()
+and adds a WithInfraIndependent() builder method. Components marked as
+infra-independent can be reconciled before the infrastructure readiness
+gate passes."</code></pre>
+</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK 4 -->
+<!-- ============================================================ -->
+<section id="task-4" class="task-section task-colors-4">
+<div class="task-header">
+  <h2>Task 4: Split PKI Into Pre-Infra and Post-Infra Phases</h2>
+  <span class="badge bg-primary">Proposal 1, Part B</span>
+  <span class="badge bg-warning text-dark">Medium Risk</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3503" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3503</a>
+</div>
+
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: hostedcontrolplane_controller.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: hostedcontrolplane_controller_test.go</span>
+</div>
+
+<p>Splits <code>reconcilePKI()</code> into <code>reconcilePKIPreInfra()</code> (59 certs + platform-specific) and <code>reconcilePKIPostInfra()</code> (3 certs needing LB IPs). <strong>Verified:</strong> <code>reconcileAWSPlatformCerts</code> and <code>reconcileAzurePlatformCerts</code> use only <code>rootCASecret</code> and <code>p.OwnerRef</code> &mdash; no external addresses.</p>
+
+<ol class="step-list">
+<li><strong>Write tests for the PKI split</strong>
+<div class="step-run"><code>TestPKIPreInfraUsesEmptyExternalAddresses</code> validates empty-address assumption</div>
+</li>
+<li><strong>Run test to verify it passes (validates assumption)</strong></li>
+<li><strong>Write test validating post-infra PKI generates exactly 3 certs</strong>
+<div class="step-run"><code>TestPKIPostInfraGeneratesExactlyThreeCerts</code> &mdash; uses tracking client</div>
+</li>
+<li><strong>Split <code>reconcileKASCerts</code> into pre-infra and post-infra</strong>
+<div class="accordion my-2" id="task4Step3"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task4Step3Code">reconcileKASCertsPreInfra / PostInfra</button></h2>
+<div id="task4Step3Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">func (r *HostedControlPlaneReconciler) reconcileKASCertsPreInfra(ctx context.Context, hcp *hyperv1.HostedControlPlane, p *pki.PKIParams, createOrUpdate upsert.CreateOrUpdateFN, rootCASecret *corev1.Secret) error {
+	// KAS server private cert, total KAS client CA bundle, KAS client signers, SA signing key
+	// Everything EXCEPT KAS server cert (which needs ExternalAPIAddress)
+}
+
+func (r *HostedControlPlaneReconciler) reconcileKASCertsPostInfra(ctx context.Context, hcp *hyperv1.HostedControlPlane, p *pki.PKIParams, createOrUpdate upsert.CreateOrUpdateFN, rootCASecret *corev1.Secret) error {
+	// ONLY: KAS server cert (uses ExternalAPIAddress, InternalAPIAddress, ServiceCIDR)
+}</code></pre>
+</div></div></div></div>
+</li>
+<li><strong>Split <code>reconcileKonnectivityCerts</code> into pre-infra and post-infra</strong>
+<div class="step-run">Pre-infra: signer, CA configmap, server, client, agent. Post-infra: cluster cert only (uses <code>ExternalKconnectivityAddress</code>).</div>
+</li>
+<li><strong>Create <code>reconcilePKIPreInfra</code> (complete body)</strong>
+<div class="accordion my-2" id="task4Step5"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task4Step5Code">Full reconcilePKIPreInfra body</button></h2>
+<div id="task4Step5Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">func (r *HostedControlPlaneReconciler) reconcilePKIPreInfra(ctx context.Context, hcp *hyperv1.HostedControlPlane, createOrUpdate upsert.CreateOrUpdateFN) error {
+	p := pki.NewPKIParams(hcp, "", "", "")
+
+	// Root CA, root CA configmap
+	// reconcileEtcdCerts (all infra-independent)
+	// reconcileKASCertsPreInfra (SA signing key, KAS client certs)
+	// reconcileOpenshiftCerts (all internal addresses)
+	// reconcileKonnectivityCertsPreInfra (signer, server, client, agent)
+	// Ingress, MCS, ignition, OLM, network certs
+	// Platform-specific certs (AWS/Azure - use only rootCASecret)
+}</code></pre>
+</div></div></div></div>
+</li>
+<li><strong>Create <code>reconcilePKIPostInfra</code></strong>
+<div class="step-run">3 certs: KAS server cert, Konnectivity cluster cert, OAuth server cert</div>
+</li>
+<li><strong>Delete the old <code>reconcilePKI</code> function</strong></li>
+<li><strong>Verify compilation</strong></li>
+<li><strong>Run tests</strong></li>
+<li><strong>Commit</strong>
+<pre><code class="language-bash">git commit -m "refactor: split PKI reconciliation into pre-infra and post-infra phases
+
+Splits reconcilePKI into reconcilePKIPreInfra (59 certs + platform
+certs using internal addresses only) and reconcilePKIPostInfra (3
+certs needing LB IPs: KAS server, konnectivity cluster, OAuth server)."</code></pre>
+</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK 5 -->
+<!-- ============================================================ -->
+<section id="task-5" class="task-section task-colors-5">
+<div class="task-header">
+  <h2>Task 5: Restructure <code>update()</code> for Two-Phase Reconciliation</h2>
+  <span class="badge bg-primary">Proposal 1, Part C</span>
+  <span class="badge bg-danger">High Impact</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3504" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3504</a>
+</div>
+
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: hostedcontrolplane_controller.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: v2/etcd/component.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: v2/fg/component.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: hostedcontrolplane_controller_test.go</span>
+</div>
+
+<blockquote><p><strong>Behavioral note:</strong> This task moves the release image lookup before the infra gate. This is a fail-fast improvement: if the release image can't be resolved, the controller fails immediately instead of after waiting for infra readiness.</p></blockquote>
+
+<ol class="step-list">
+<li><strong>Mark etcd and featuregate-generator as infra-independent</strong>
+<div class="step-run">Add <code>.WithInfraIndependent()</code> to both component builders</div>
+</li>
+<li><strong>Write pre-gate failure propagation test</strong>
+<div class="step-run"><code>TestPreGateFailurePropagatesError</code> &mdash; controller must not swallow pre-gate errors</div>
+</li>
+<li><strong>Write per-component zero-value InfraStatus tests</strong>
+<div class="step-run"><code>TestInfraIndependentComponentsWithZeroValueInfraStatus</code> &mdash; etcd and fg must reconcile with zero-value <code>InfraStatus</code></div>
+</li>
+<li><strong>Write unmanaged etcd dispatch test</strong>
+<div class="step-run"><code>TestUnmanagedEtcdSkipsComponentDispatch</code> &mdash; unmanaged etcd handled by <code>reconcileUnmanagedEtcd</code>, not component loop</div>
+</li>
+<li><strong>Add <code>reconcileInfraIndependentComponents</code> method</strong>
+<div class="accordion my-2" id="task5Step3"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task5Step3Code">reconcileInfraIndependentComponents</button></h2>
+<div id="task5Step3Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">func (r *HostedControlPlaneReconciler) reconcileInfraIndependentComponents(ctx context.Context, hcp *hyperv1.HostedControlPlane, releaseImageProvider, userReleaseImageProvider imageprovider.ReleaseImageProvider, intraPassAvailability map[string]bool) error {
+	createOrUpdate := r.createOrUpdate(hcp)
+
+	// 1. Default service account
+	// 2. Pre-infra PKI (if not disabled)
+	// 3. Unmanaged etcd (if applicable)
+	// 4. Component loop: only IsInfraIndependent() == true
+
+	cpContext := component.ControlPlaneContext{...}
+	cpContext.SetIntraPassAvailability(intraPassAvailability)
+
+	for _, c := range r.components {
+		if !c.IsInfraIndependent() { continue }
+		if err := c.Reconcile(cpContext); err != nil { errs = append(errs, err) }
+	}
+	return utilerrors.NewAggregate(errs)
+}</code></pre>
+</div></div></div></div>
+</li>
+<li><strong>Restructure <code>update()</code></strong>
+<div class="accordion my-2" id="task5Step4"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed py-1 small" type="button" data-bs-toggle="collapse" data-bs-target="#task5Step4Code">Two-phase update() flow</button></h2>
+<div id="task5Step4Code" class="accordion-collapse collapse"><div class="accordion-body py-2">
+<pre><code class="language-go">func (r *HostedControlPlaneReconciler) update(ctx context.Context, ...) (reconcile.Result, error) {
+	// Phase 1: Infrastructure-independent work
+	r.reconcileInfrastructure(ctx, ...)     // create LB Services
+	// release image lookup (fail-fast)
+	intraPassAvailability := make(map[string]bool)
+	r.reconcileInfraIndependentComponents(ctx, ..., intraPassAvailability)
+
+	// Phase 2: Infrastructure-dependent work
+	infraStatus, err := r.reconcileInfrastructureStatus(ctx, ...)
+	if !infraStatus.IsReady() {
+		return reconcile.Result{RequeueAfter: hcpNotReadyRequeueInterval}, nil
+	}
+	r.milestones.recordMilestone(hcpKey, "infra_ready", ...)
+	r.reconcileCPOV2(ctx, ..., intraPassAvailability) // skips infra-independent components
+}</code></pre>
+</div></div></div></div>
+</li>
+<li><strong>Update <code>reconcileCPOV2</code> to skip infra-independent components</strong></li>
+<li><strong>Verify compilation</strong></li>
+<li><strong>Run all tests</strong></li>
+<li><strong>Commit</strong>
+<pre><code class="language-bash">git commit -m "feat: decouple infra-independent work from infrastructure gate
+
+Restructures update() into two phases: pre-gate (PKI, default SA,
+unmanaged etcd, etcd component, featuregate-generator) and post-gate
+(remaining components). Saves 60-110 seconds during cluster creation."</code></pre>
+</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK 6 -->
+<!-- ============================================================ -->
+<section id="task-6" class="task-section task-colors-6">
+<div class="task-header">
+  <h2>Task 6: Add In-Memory Dependency Propagation</h2>
+  <span class="badge bg-info text-dark">Proposal 4</span>
+  <span class="badge bg-success">Low Risk</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3505" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3505</a>
+</div>
+
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: controlplane-component.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: status.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: status_test.go</span>
+</div>
+
+<p>The <code>intraPassAvailability</code> map initialization was set up in Task 5. This task adds the framework-level read/write logic.</p>
+
+<ol class="step-list">
+<li><strong>Write the failing test for in-memory propagation</strong>
+<div class="step-run"><code>TestCheckDependenciesWithIntraPassAvailability</code> &mdash; 3 sub-tests: map resolves dependency, nil map falls through, partial map resolves only matching dep</div>
+</li>
+<li><strong>Run test to verify it fails</strong>
+<div class="step-run">Expected: FAIL &mdash; <code>SetIntraPassAvailability</code> undefined</div>
+</li>
+<li><strong>Add <code>intraPassAvailability</code> field to <code>ControlPlaneContext</code></strong>
+<pre><code class="language-go">type ControlPlaneContext struct {
+	// ... existing fields ...
+	intraPassAvailability map[string]bool
+}
+
+func (cp *ControlPlaneContext) SetIntraPassAvailability(m map[string]bool) {
+	cp.intraPassAvailability = m
+}</code></pre>
+</li>
+<li><strong>Add in-memory lookup to <code>checkDependencies</code></strong>
+<pre><code class="language-go">if cpContext.intraPassAvailability != nil {
+	for dep := range unavailableDependencies {
+		if cpContext.intraPassAvailability[dep] {
+			unavailableDependencies.Delete(dep)
+		}
+	}
+}</code></pre>
+</li>
+<li><strong>Record availability in <code>reconcileComponentStatus</code></strong>
+<pre><code class="language-go">if isAvailable && isComplete && cpContext.intraPassAvailability != nil {
+	cpContext.intraPassAvailability[c.Name()] = true
+}</code></pre>
+</li>
+<li><strong>Run tests to verify they pass</strong></li>
+<li><strong>Write test for status populating the map</strong>
+<div class="step-run"><code>TestReconcileComponentStatusPopulatesIntraPassAvailability</code></div>
+</li>
+<li><strong>Write test for version-mismatch guard</strong>
+<div class="step-run"><code>TestIntraPassAvailabilityVersionMismatch</code> &mdash; wrong version must NOT populate map</div>
+</li>
+<li><strong>Run all new tests</strong></li>
+<li><strong>Run all framework and controller tests</strong></li>
+<li><strong>Commit</strong>
+<pre><code class="language-bash">git commit -m "feat: add in-memory dependency propagation across component tiers
+
+Adds intraPassAvailability map to ControlPlaneContext that tracks
+components reaching Available+RolloutComplete during the current
+reconcile pass. The map is shared across pre-gate and post-gate phases."</code></pre>
+</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK 7 -->
+<!-- ============================================================ -->
+<section id="task-7" class="task-section task-colors-7">
+<div class="task-header">
+  <h2>Task 7: Add Framework-Native Image Pre-Pull</h2>
+  <span class="badge bg-info text-dark">Proposal 3</span>
+  <span class="badge bg-success">Low Risk</span>
+  <a href="https://redhat.atlassian.net/browse/CNTRLPLANE-3506" class="badge bg-light text-dark text-decoration-none">CNTRLPLANE-3506</a>
+</div>
+
+<div class="file-list">
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: builder.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: controlplane-component.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: defaults.go</span>
+  <span class="badge bg-warning-subtle text-dark file-badge">Modify: v2/etcd/component.go</span>
+  <span class="badge bg-info-subtle text-dark file-badge">Test: defaults_test.go</span>
+</div>
+
+<blockquote><p><strong>Cold-node interaction with Proposal 1:</strong> On cold nodes, pre-pull init containers add 30-60s of serial image pull time to etcd's startup. However, this time was going to be spent pulling these images anyway when downstream components start &mdash; pre-pulling shifts the pull earlier (overlapping with LB provisioning). On warm nodes (the common case), init containers exit in &lt;1 second each.</p></blockquote>
+
+<ol class="step-list">
+<li><strong>Write test for <code>WithPrePullImages</code></strong>
+<div class="step-run"><code>TestWithPrePullImages</code> &mdash; verifies keys stored correctly</div>
+</li>
+<li><strong>Run test to verify it fails</strong></li>
+<li><strong>Add <code>prePullImageKeys</code> field and builder method</strong>
+<pre><code class="language-go">func (b *controlPlaneWorkloadBuilder[T]) WithPrePullImages(imageKeys ...string) *controlPlaneWorkloadBuilder[T] {
+	b.workload.prePullImageKeys = imageKeys
+	return b
+}</code></pre>
+</li>
+<li><strong>Run test to verify it passes</strong></li>
+<li><strong>Write test for init container injection</strong>
+<div class="step-run"><code>TestPrePullInitContainerInjection</code> &mdash; verifies <code>pre-pull-*</code> init containers with <code>/bin/true</code> command, appended after existing init containers</div>
+</li>
+<li><strong>Run test to verify it fails</strong></li>
+<li><strong>Implement init container injection in <code>setDefaultOptions</code></strong>
+<pre><code class="language-go">if len(c.prePullImageKeys) > 0 {
+	podTemplateSpec := c.workloadProvider.PodTemplateSpec(obj)
+	for _, imageKey := range c.prePullImageKeys {
+		image, exists := cpContext.ReleaseImageProvider.ImageExist(imageKey)
+		if !exists { continue }
+		initContainer := corev1.Container{
+			Name:    fmt.Sprintf("pre-pull-%s", imageKey),
+			Image:   image,
+			Command: []string{"/bin/true"},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("1m"),
+					corev1.ResourceMemory: resource.MustParse("1Mi"),
+				},
+			},
+		}
+		podTemplateSpec.Spec.InitContainers = append(podTemplateSpec.Spec.InitContainers, initContainer)
+	}
+}</code></pre>
+</li>
+<li><strong>Run test to verify it passes</strong></li>
+<li><strong>Add <code>WithPrePullImages</code> to etcd component</strong>
+<pre><code class="language-go">return component.NewStatefulSetComponent(ComponentName, &etcd{}).
+	WithInfraIndependent().
+	WithPrePullImages("hyperkube", "openshift-apiserver", "cluster-version-operator", "token-minter").
+	// ...existing options...
+	Build()</code></pre>
+</li>
+<li><strong>Verify compilation and run all tests</strong></li>
+<li><strong>Commit</strong>
+<pre><code class="language-bash">git commit -m "feat: add WithPrePullImages() for framework-native image pre-pulling
+
+Extends the component framework with WithPrePullImages() builder option
+that injects init containers running /bin/true to pull specified images
+onto the node before the main workload starts."</code></pre>
+</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK 8 -->
+<!-- ============================================================ -->
+<section id="task-8" class="task-section task-colors-8">
+<div class="task-header">
+  <h2>Task 8: Final Verification</h2>
+  <span class="badge bg-secondary">Quality Gate</span>
+</div>
+
+<ol class="step-list">
+<li><strong>Run full build and test suite</strong>
+<pre><code class="language-bash">make build && make test</code></pre>
+<div class="step-run">Expected: all binaries build, all tests pass</div>
+</li>
+<li><strong>Run linter</strong>
+<pre><code class="language-bash">make lint</code></pre>
+<div class="step-run">Expected: no new lint errors</div>
+</li>
+<li><strong>Run staticcheck</strong>
+<pre><code class="language-bash">make staticcheck</code></pre>
+<div class="step-run">Expected: no new issues</div>
+</li>
+</ol>
+</section>
+
+</div><!-- col main -->
+
+<!-- Sidebar Nav -->
+<div class="col-lg-3 sidebar-col">
+<div class="sidebar">
+  <nav class="nav flex-column">
+    <div class="section-label">Plan</div>
+    <a class="nav-link" href="#overview">Goal & Architecture</a>
+    <a class="nav-link" href="#revisions">Revision Notes</a>
+    <a class="nav-link" href="#file-map">File Map</a>
+    <div class="section-label mt-2">Tasks</div>
+    <a class="nav-link" href="#task-1">1. Requeue Interval</a>
+    <a class="nav-link" href="#task-2">2. Metrics</a>
+    <a class="nav-link" href="#task-3">3. InfraIndependent</a>
+    <a class="nav-link" href="#task-4">4. PKI Split</a>
+    <a class="nav-link" href="#task-5">5. Two-Phase update()</a>
+    <a class="nav-link" href="#task-6">6. In-Memory Deps</a>
+    <a class="nav-link" href="#task-7">7. Image Pre-Pull</a>
+    <a class="nav-link" href="#task-8">8. Final Verification</a>
+  </nav>
+</div>
+</div>
+
+</div><!-- row -->
+</div><!-- container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script>
+hljs.highlightAll();
+// Scrollspy-lite: highlight active sidebar link
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.sidebar .nav-link');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+  navLinks.forEach(a => {
+    a.classList.remove('active');
+    if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
