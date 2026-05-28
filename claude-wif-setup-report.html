@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code WIF Auth Setup — openshift/hypershift</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  .section-icon { font-size: 1.3rem; margin-right: 0.5rem; vertical-align: -2px; }
+  .toc-link { color: #6c757d; text-decoration: none; padding: 0.35rem 0; display: block; }
+  .toc-link:hover { color: #0d6efd; }
+  .error-card { border-left: 4px solid #dc3545 !important; }
+  .fix-card { border-left: 4px solid #198754 !important; }
+  .mermaid svg { max-width: 100%; }
+</style>
+</head>
+<body>
+
+<nav class="navbar navbar-light bg-white sticky-top border-bottom px-3 shadow-sm">
+  <span class="navbar-brand mb-0 h1">
+    <i class="bi bi-shield-lock-fill me-2 text-primary"></i>Claude Code WIF Auth Setup
+  </span>
+  <span class="text-muted small">openshift/hypershift &mdash; May 2026</span>
+</nav>
+
+<div class="container-fluid py-4">
+<div class="row">
+
+<!-- Sidebar TOC -->
+<div class="col-lg-2 d-none d-lg-block">
+  <div class="position-sticky" style="top: 70px;">
+    <h6 class="text-secondary text-uppercase small mb-3">Contents</h6>
+    <a class="toc-link" href="#architecture"><i class="bi bi-diagram-3"></i> Architecture</a>
+    <a class="toc-link" href="#auth-flow"><i class="bi bi-arrow-repeat"></i> Auth Flow</a>
+    <a class="toc-link" href="#gcp-setup"><i class="bi bi-cloud"></i> GCP Setup</a>
+    <a class="toc-link" href="#it-requests"><i class="bi bi-person-badge"></i> IT Requests</a>
+    <a class="toc-link" href="#arc-runners"><i class="bi bi-cpu"></i> ARC Runners</a>
+    <a class="toc-link" href="#debugging"><i class="bi bi-bug"></i> Debugging</a>
+    <a class="toc-link" href="#env-ref"><i class="bi bi-list-check"></i> Env Reference</a>
+    <a class="toc-link" href="#files"><i class="bi bi-file-earmark-code"></i> Key Files</a>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="col-lg-10">
+
+<!-- Header -->
+<div class="mb-4">
+  <h1 class="display-6 fw-bold">Claude Code WIF Auth</h1>
+  <p class="lead text-muted">End-to-end setup of Claude Code with GCP Workload Identity Federation in GitHub Actions &mdash; keyless, short-lived credentials, no stored secrets.</p>
+</div>
+
+<!-- Architecture -->
+<h2 id="architecture" class="mt-5 mb-3 border-bottom pb-2"><i class="bi bi-diagram-3 section-icon text-primary"></i>Architecture Overview</h2>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <pre class="mermaid">
+graph TB
+    subgraph Runner["<b>ARC Runner</b> — ARM / Kubernetes"]
+        direction TB
+        T["Trigger:<br/>slash command on PR"]
+        OIDC["GitHub OIDC Provider<br/>mints short-lived JWT"]
+        AUTH["google-github-actions/auth<br/>presents JWT to GCP"]
+        INSTALL["Install Claude Code<br/>+ ai-helpers plugins"]
+        CLAUDE["Claude Code CLI"]
+        T --> OIDC --> AUTH --> INSTALL --> CLAUDE
+    end
+
+    subgraph GCP["<b>Google Cloud Platform</b>"]
+        direction TB
+        WIF["WIF Provider: github-com<br/>Pool: itpc-identity-pool<br/>Project: 21066242673"]
+        SA["Service Account<br/>claude-gha@hosted-control-planes"]
+        VERTEX["Vertex AI API<br/>claude-opus-4-6"]
+        WIF -->|"validate token +<br/>check org allowlist"| SA
+        SA -->|"roles/aiplatform.user"| VERTEX
+    end
+
+    AUTH -->|"federated token exchange"| WIF
+    SA -->|"short-lived credentials"| CLAUDE
+    CLAUDE -->|"API call with ADC"| VERTEX
+    </pre>
+  </div>
+</div>
+
+<p>The key insight: <strong>no stored secrets</strong>. GitHub mints a short-lived OIDC token for each workflow run, GCP validates it against attribute conditions, and issues temporary credentials scoped to Vertex AI only.</p>
+
+<div class="alert alert-info mb-4">
+  <h6 class="alert-heading"><i class="bi bi-info-circle me-1"></i>Why <code>issue_comment</code>?</h6>
+  <ul class="mb-0">
+    <li><strong>Fork PRs can't get <code>id-token: write</code></strong> &mdash; GitHub won't mint OIDC tokens for <code>pull_request</code> events from forks, so WIF auth is impossible with that trigger. In openshift/hypershift, all PRs come from personal forks.</li>
+    <li><strong><code>issue_comment</code> runs from <code>main</code></strong> &mdash; the workflow always executes from the default branch, not the PR branch. A "Get PR ref" step fetches the PR's head branch via the GitHub API and checks out that code.</li>
+    <li><strong>Chicken-and-egg</strong> &mdash; changes to the workflow file itself can't be tested until they're merged to <code>main</code>.</li>
+  </ul>
+</div>
+
+<!-- Auth Flow -->
+<h2 id="auth-flow" class="mt-5 mb-3 border-bottom pb-2"><i class="bi bi-arrow-repeat section-icon text-primary"></i>Authentication Flow</h2>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <pre class="mermaid">
+sequenceDiagram
+    participant User as Repo Member
+    participant GH as GitHub Actions
+    participant OIDC as GitHub OIDC
+    participant WIF as GCP WIF Provider
+    participant SA as Service Account
+    participant VAI as Vertex AI
+    participant CC as Claude Code
+
+    User->>GH: Slash command on PR
+    GH->>GH: Check author_association<br/>(MEMBER / OWNER / COLLABORATOR)
+    GH->>OIDC: Request OIDC token<br/>(id-token: write)
+    OIDC-->>GH: JWT with repo, org, workflow claims
+
+    GH->>WIF: Present JWT for token exchange
+    WIF->>WIF: Validate attribute conditions<br/>(org == openshift?)
+
+    alt Org not in allowlist
+        WIF-->>GH: credential rejected by attribute condition
+    else Org allowed
+        WIF->>SA: Impersonate service account
+        SA-->>GH: Short-lived GCP credentials
+    end
+
+    GH->>CC: Run claude -p "..."
+    CC->>VAI: API call with ADC credentials
+    VAI-->>CC: Model response
+    CC-->>GH: Output to workflow logs
+    </pre>
+  </div>
+</div>
+
+<!-- GCP Setup -->
+<h2 id="gcp-setup" class="mt-5 mb-3 border-bottom pb-2"><i class="bi bi-cloud section-icon text-primary"></i>GCP Infrastructure Setup</h2>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-folder2-open me-2"></i>Vertex AI Project</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td class="text-muted">Name</td><td><code>hosted-control-planes</code></td></tr>
+          <tr><td class="text-muted">Vertex AI</td><td><span class="badge bg-success">Enabled</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-person-gear me-2"></i>Service Account</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td class="text-muted">Email</td><td><code class="small">claude-gha@hosted-control-planes.iam.gserviceaccount.com</code></td></tr>
+          <tr><td class="text-muted">Role</td><td><code>roles/aiplatform.user</code></td></tr>
+          <tr><td class="text-muted">WIF binding</td><td><code>roles/iam.workloadIdentityUser</code></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-shield-lock me-2"></i>WIF Provider (IT-managed)</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td class="text-muted">Pool Project</td><td><code>21066242673</code></td></tr>
+          <tr><td class="text-muted">Pool</td><td><code>itpc-identity-pool</code></td></tr>
+          <tr><td class="text-muted">Provider</td><td><code>github-com</code></td></tr>
+          <tr><td class="text-muted">Condition</td><td>Org allowlist (includes <code>openshift</code>)</td></tr>
+        </table>
+        <small class="text-muted mt-2 d-block">This pool is in a separate IT-managed project, not <code>hosted-control-planes</code>.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header fw-semibold">PrincipalSet for IAM Binding</div>
+  <div class="card-body">
+    <pre class="bg-light rounded p-3 mb-0"><code>principalSet://iam.googleapis.com/projects/21066242673/locations/global/workloadIdentityPools/itpc-identity-pool/attribute.repository/openshift/hypershift</code></pre>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header fw-semibold"><i class="bi bi-stars me-2"></i>Enabled Vertex AI Models</div>
+  <div class="card-body">
+    <p class="mb-2">Models must be explicitly enabled in Vertex AI Model Garden. Claude Code defaults to <code>claude-sonnet-4-5</code>.</p>
+    <span class="badge bg-success me-1">claude-sonnet-4-5</span>
+    <span class="badge bg-success me-1">claude-sonnet-4-6</span>
+    <span class="badge bg-success">claude-opus-4-6</span>
+    <div class="alert alert-warning mt-3 mb-0 py-2">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      <small>Do NOT use model version suffixes (e.g., <code>claude-sonnet-4-5@20250929</code>) &mdash; they cause "model not available" errors. Use bare model IDs.</small>
+    </div>
+  </div>
+</div>
+
+<!-- IT Requests -->
+<h2 id="it-requests" class="mt-5 mb-3 border-bottom pb-2"><i class="bi bi-person-badge section-icon text-primary"></i>What IT Had to Do</h2>
+
+<p>The WIF pool is managed by IT, not individual teams. Here's what was required:</p>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <pre class="mermaid">
+flowchart LR
+    A["1. Create GCP Project<br/><i>hosted-control-planes</i>"] --> B["2. Create Service Account<br/><i>claude-gha@...</i>"]
+    B --> C["3. Grant aiplatform.user<br/>role on project"]
+    C --> D["4. Add 'openshift' to<br/>WIF org allowlist"]
+    D --> E["5. Bind workloadIdentityUser<br/>on SA for principalSet"]
+
+    style D fill:#dc3545,stroke:#dc3545,color:#fff
+    </pre>
+    <div class="alert alert-danger mt-3 mb-0">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <strong>Step 4 was the final blocker.</strong> The WIF provider uses an organization allowlist. Each GitHub org that needs to authenticate must be explicitly added. Without <code>openshift</code> in the list, every auth attempt returned: <em>"The given credential is rejected by the attribute condition."</em>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header fw-semibold">IT Contacts</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td><strong>rmahroua</strong></td><td>Primary &mdash; GCP/WIF setup</td></tr>
+          <tr><td><strong>cortega</strong></td><td>Backup</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header fw-semibold">Verify Provider Config</div>
+      <div class="card-body">
+        <pre class="bg-light rounded p-3 mb-0"><code>gcloud iam workload-identity-pools providers describe github-com \
+  --location=global \
+  --workload-identity-pool=itpc-identity-pool \
+  --project=21066242673 \
+  --format='value(attributeCondition)'</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARC Runners -->
+<h2 id="arc-runners" class="mt-5 mb-3 border-bottom pb-2"><i class="bi bi-cpu section-icon text-primary"></i>ARC Runner Constraints</h2>
+
+<p>All GHA runners in openshift/hypershift are self-hosted via Actions Runner Controller (ARC) on Kubernetes. Key constraints that affect workflow design:</p>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Runner Environment</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td class="text-muted">Architecture</td><td>ARM (aarch64)</td></tr>
+          <tr><td class="text-muted">Runner label</td><td><code>arc-runner-set</code></td></tr>
+          <tr><td class="text-muted">Shell</td><td><code>bash</code> (but <code>/bin/sh</code> is dash)</td></tr>
+          <tr><td class="text-muted">HOME</td><td>Unset &mdash; must set <code>HOME: /tmp</code></td></tr>
+          <tr><td class="text-muted">Docker</td><td>Not available</td></tr>
+          <tr><td class="text-muted">gh CLI</td><td>Not pre-installed</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">What Didn't Work</div>
+      <div class="card-body">
+        <ul class="mb-0">
+          <li><strong><code>container:</code> directive</strong> &mdash; requires <code>containerMode: kubernetes</code> on ARC, which needs <code>anyuid</code> SCC for non-numeric UIDs. Even with SCC, the container exited immediately (no long-running entrypoint).</li>
+          <li><strong>Pre-built container image</strong> &mdash; attempted but abandoned due to ARC compatibility issues.</li>
+        </ul>
+        <p class="text-muted small mt-2 mb-0">Solution: install Claude Code and clone ai-helpers directly in workflow steps.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Debugging -->
+<h2 id="debugging" class="mt-5 mb-3 border-bottom pb-2"><i class="bi bi-bug section-icon text-primary"></i>Debugging Timeline</h2>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <pre class="mermaid">
+gantt
+    title Debugging Timeline
+    dateFormat YYYY-MM-DD
+    axisFormat %b %d
+
+    section PRs
+    PR 8588 - Initial workflow            :done, pr1, 2026-05-26, 1d
+    PR 8598 - Fix gh + dash               :done, pr2, 2026-05-27, 12h
+    PR 8600 - Fix HOME                     :done, pr3, after pr2, 12h
+    PR 8609 - Container image + if fix     :done, pr4, after pr3, 12h
+    PR 8611 - Drop container, add plugins  :done, pr5, after pr4, 12h
+    PR 8614 - Test ai-sbom plugin          :done, pr6, 2026-05-28, 6h
+    PR 8621 - Address review comments      :active, pr7, 2026-05-28, 6h
+
+    section Blockers
+    gh not found                           :crit, b1, 2026-05-26, 1d
+    dash syntax error                      :crit, b2, 2026-05-26, 1d
+    HOME not set                           :crit, b3, 2026-05-27, 6h
+    WIF org not in allowlist               :crit, b4, after b3, 6h
+    Model not enabled                      :crit, b5, after b4, 6h
+    if condition missing COLLABORATOR      :crit, b6, after b5, 6h
+    max-turns too low                      :crit, b7, 2026-05-28, 3h
+    </pre>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card error-card h-100">
+      <div class="card-header"><span class="badge bg-danger me-2">PR #8588</span>gh: command not found</div>
+      <div class="card-body">
+        <pre class="bg-light rounded p-2 mb-2"><code>gh: command not found</code></pre>
+        <p class="mb-0 text-success"><i class="bi bi-check-circle me-1"></i>ARC runner image doesn't have <code>gh</code>. Replace <code>gh api</code> with <code>curl</code> + temp file. Fixed in PR #8598.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card error-card h-100">
+      <div class="card-header"><span class="badge bg-danger me-2">PR #8588</span>Syntax error: "(" unexpected</div>
+      <div class="card-body">
+        <pre class="bg-light rounded p-2 mb-2"><code>sh: 9: Syntax error: "(" unexpected</code></pre>
+        <p class="mb-0 text-success"><i class="bi bi-check-circle me-1"></i>ARC runner uses <code>sh</code> (dash) not <code>bash</code>. Change <code>curl ... | sh</code> to <code>curl ... | bash</code>. Fixed in PR #8598.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card error-card h-100">
+      <div class="card-header"><span class="badge bg-danger me-2">PR #8600</span>Cannot create directory '//.claude'</div>
+      <div class="card-body">
+        <pre class="bg-light rounded p-2 mb-2"><code>mkdir: cannot create directory '//.claude': Permission denied</code></pre>
+        <p class="mb-0 text-success"><i class="bi bi-check-circle me-1"></i>Set <code>HOME: /tmp</code> at job level</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card error-card h-100">
+      <div class="card-header"><span class="badge bg-secondary me-2">IT Fix</span>Credential rejected by attribute condition</div>
+      <div class="card-body">
+        <pre class="bg-light rounded p-2 mb-2"><code>The given credential is rejected by the attribute condition.</code></pre>
+        <p class="mb-0 text-success"><i class="bi bi-check-circle me-1"></i>IT added <code>openshift</code> to WIF org allowlist</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card error-card h-100">
+      <div class="card-header"><span class="badge bg-warning text-dark me-2">Config</span>Model not available</div>
+      <div class="card-body">
+        <pre class="bg-light rounded p-2 mb-2"><code>The model claude-sonnet-4-5@20250929 is not available on your vertex deployment.</code></pre>
+        <p class="mb-0 text-success"><i class="bi bi-check-circle me-1"></i>Enable models in Vertex AI Model Garden. Use bare IDs without version suffixes.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card error-card h-100">
+      <div class="card-header"><span class="badge bg-danger me-2">PR #8606</span><code>if</code> condition silently skipped runs</div>
+      <div class="card-body">
+        <pre class="bg-light rounded p-2 mb-2"><code>author_association == 'COLLABORATOR' not checked;
+operator precedence bug (missing parentheses)</code></pre>
+        <p class="mb-0 text-success"><i class="bi bi-check-circle me-1"></i>Add <code>COLLABORATOR</code> to allowed roles + wrap <code>||</code> chain in parentheses. Fixed in PR #8609.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Env Reference -->
+<h2 id="env-ref" class="mt-5 mb-3 border-bottom pb-2"><i class="bi bi-list-check section-icon text-primary"></i>Environment Variable Reference</h2>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light"><tr><th>Variable</th><th>Value</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>HOME</code></td><td><code>/tmp</code></td><td>Set at job level &mdash; ARC runners don't set HOME; without this, Claude writes to <code>//.claude</code></td></tr>
+        <tr><td><code>CLAUDE_CODE_USE_VERTEX</code></td><td><code>"1"</code></td><td>Use Vertex AI instead of Anthropic API</td></tr>
+        <tr><td><code>CLOUD_ML_REGION</code></td><td><code>global</code></td><td>Vertex AI region &mdash; <code>global</code> gives access to all models; regional endpoints may lack some</td></tr>
+        <tr><td><code>ANTHROPIC_VERTEX_PROJECT_ID</code></td><td><code>hosted-control-planes</code></td><td>GCP project for Vertex AI</td></tr>
+        <tr><td><code>GOOGLE_APPLICATION_CREDENTIALS</code></td><td><em>(set by auth action)</em></td><td>Path to WIF credentials file &mdash; set automatically by <code>google-github-actions/auth</code></td></tr>
+        <tr><td><code>GH_TOKEN</code></td><td><code>${{ github.token }}</code></td><td>GitHub token for <code>gh</code> CLI &mdash; enables posting PR comments and API access</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Key Files -->
+<h2 id="files" class="mt-5 mb-3 border-bottom pb-2"><i class="bi bi-file-earmark-code section-icon text-primary"></i>Key Files &amp; PRs</h2>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Files</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td><code>.github/workflows/address-review-comments.yaml</code></td><td>Claude Code workflow</td></tr>
+          <tr><td><code>hack/github-actions-runner/values.yaml</code></td><td>ARC runner Helm values</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Pull Requests</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8588">#8588</a></td>
+            <td>Initial workflow</td>
+            <td><span class="badge bg-success">merged</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8598">#8598</a></td>
+            <td>Fix gh CLI + dash shell</td>
+            <td><span class="badge bg-success">merged</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8600">#8600</a></td>
+            <td>Fix HOME env var</td>
+            <td><span class="badge bg-success">merged</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8609">#8609</a></td>
+            <td>Container image + if fix</td>
+            <td><span class="badge bg-success">merged</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8611">#8611</a></td>
+            <td>Drop container, install in steps</td>
+            <td><span class="badge bg-success">merged</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8614">#8614</a></td>
+            <td>Test ai-sbom plugin + verify loading</td>
+            <td><span class="badge bg-success">merged</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8619">#8619</a></td>
+            <td>Bump max-turns</td>
+            <td><span class="badge bg-success">merged</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8620">#8620</a></td>
+            <td>Clone ai-helpers into workspace</td>
+            <td><span class="badge bg-success">merged</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openshift/hypershift/pull/8621">#8621</a></td>
+            <td>Address review comments workflow</td>
+            <td><span class="badge bg-warning text-dark">open</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+<p class="text-center text-muted small py-3">Generated May 28, 2026</p>
+
+</div><!-- col -->
+</div><!-- row -->
+</div><!-- container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { curve: 'basis', padding: 15 },
+    sequence: { mirrorActors: false }
+  });
+</script>
+</body>
+</html>
