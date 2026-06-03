@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario 9: Keycloak Authentication &amp; SelfSubjectReview - CNTRLPLANE-3462</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">CNTRLPLANE-3462 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Azure AD App Registration</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Cluster OIDC Configuration</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: OAuth Server Not Deployed</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: KAS Auth Configuration</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Azure AD CLI Authentication</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: SelfSubjectReview Claims</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Console Login (Azure AD)</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Keycloak Setup &amp; Config</a></li>
+            <li><a class="dropdown-item active" href="scenario-9.html">9: Keycloak Auth &amp; Claims</a></li>
+            <li><a class="dropdown-item" href="scenario-10.html">10: Console Login (Keycloak)</a></li>
+          </ul>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active">Scenario 9</li>
+    </ol>
+  </nav>
+
+  <h1>Scenario 9: Keycloak Authentication &amp; SelfSubjectReview</h1>
+  <p><strong>Objective:</strong> Authenticate to the guest cluster using a Keycloak-issued ID token and verify that SelfSubjectReview returns the correct username, groups, and UID claim mappings.</p>
+  <p><strong>KAS endpoint:</strong> <code>https://api-brcox-sm-dev-hc.brcox.hcp-sm-azure.azure.devcluster.openshift.com:443</code></p>
+
+  <div class="alert alert-success"><strong>Overall Scenario 9:</strong> PASS &mdash; All 5 checks verified.</div>
+
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Obtain ID token from Keycloak via direct access grants</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>ID token returned from Keycloak token endpoint</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>ID token authenticates to guest cluster KAS</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>kubectl auth whoami</code> returned user identity (not Unauthorized)</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Username mapped from <code>email</code> claim (NoPrefix)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>keycloak-testuser-1@example.com</code></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Groups mapped from <code>groups</code> claim with <code>kc:</code> prefix</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>kc:keycloak-testgroup-1</code></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>UID mapped from <code>sub</code> claim</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>85369ad3-...0fd9</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="mt-4">Commands &amp; Outputs</h2>
+
+  <h4>Step 1: Obtain ID token from Keycloak</h4>
+  <pre class="log-output"># Direct access grants flow (resource owner password credentials)
+# Uses the public client "oc-cli-test" with test user credentials
+$ ID_TOKEN=$(curl -s -X POST \
+    --cacert /tmp/router-ca/ca-bundle.crt \
+    "https://keycloak-keycloak.apps.brcox-mgmt.brcox.hypershift\
+.devcluster.openshift.com/realms/master/protocol/openid-connect/token" \
+    -d "grant_type=password&amp;client_id=oc-cli-test\
+&amp;username=keycloak-testuser-1&amp;password=************&amp;scope=openid" \
+    | jq -r '.id_token') &amp;&amp; echo "Token obtained: ${ID_TOKEN:0:20}..."
+
+Token obtained: eyJhbGciOiJSUzI1NiIs...</pre>
+
+  <div class="alert alert-info">
+    <strong>Authentication flow difference:</strong> Unlike Azure AD (Scenario 5) which used the <strong>device code flow</strong>
+    (browser-based, suited for public clients on user devices), Keycloak here uses <strong>direct access grants</strong>
+    (password-based, suited for testing and trusted CLIs). Both flows produce a valid OIDC ID token that KAS accepts via
+    the configured JWT authenticator.
+  </div>
+
+  <h4>Steps 2&ndash;5: Authenticate to guest cluster and verify claim mappings</h4>
+  <pre class="log-output">$ kubectl --server="https://api-brcox-sm-dev-hc.brcox.hcp-sm-azure\
+.azure.devcluster.openshift.com:443" \
+    --token="${ID_TOKEN}" --insecure-skip-tls-verify auth whoami
+
+ATTRIBUTE                                           VALUE
+Username                                            keycloak-testuser-1@example.com
+UID                                                 85369ad3-...0fd9
+Groups                                              [kc:keycloak-testgroup-1
+                                                     system:authenticated]
+Extra: authentication.kubernetes.io/credential-id   [JTI=85c28448-...8366]</pre>
+
+  <h2 class="mt-4">Claim Mapping Verification</h2>
+  <table class="table table-bordered">
+    <thead class="table-dark">
+      <tr><th>Claim</th><th>OIDC Config</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>email</code></td>
+        <td><code>username</code> (prefixPolicy: NoPrefix)</td>
+        <td><code>keycloak-testuser-1@example.com</code></td>
+        <td><code>keycloak-testuser-1@example.com</code></td>
+        <td><span class="badge bg-success">MATCH</span></td>
+      </tr>
+      <tr>
+        <td><code>groups</code></td>
+        <td><code>groups</code> (prefix: <code>kc:</code>)</td>
+        <td><code>kc:keycloak-testgroup-1</code></td>
+        <td><code>kc:keycloak-testgroup-1</code></td>
+        <td><span class="badge bg-success">MATCH</span></td>
+      </tr>
+      <tr>
+        <td><code>sub</code></td>
+        <td><code>uid</code></td>
+        <td>Keycloak user UUID</td>
+        <td><code>85369ad3-...0fd9</code></td>
+        <td><span class="badge bg-success">MATCH</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="alert alert-info mt-3">
+    <strong>Key observations:</strong>
+    <ul class="mb-0">
+      <li>Unlike Azure AD which used <code>preferred_username</code> for username and <code>oid</code> for UID, Keycloak uses <code>email</code> for username and <code>sub</code> for UID &mdash; demonstrating that different claim mappings work correctly across providers</li>
+      <li>The group prefix changed from <code>aad:</code> (Azure AD) to <code>kc:</code> (Keycloak), confirming per-provider prefix isolation</li>
+      <li>The <code>system:authenticated</code> group is automatically added by KAS for all authenticated users</li>
+      <li>The <code>Extra</code> field contains the JTI (JWT Token Identifier), confirming structured authentication metadata is propagated</li>
+    </ul>
+  </div>
+
+  <div class="d-flex justify-content-between mt-4">
+    <a href="scenario-8.html" class="btn btn-outline-secondary">&larr; Scenario 8</a>
+    <a href="scenario-10.html" class="btn btn-outline-primary">Scenario 10 &rarr;</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
