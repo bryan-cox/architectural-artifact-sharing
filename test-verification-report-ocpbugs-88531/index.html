@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Verification Report: OCPBUGS-88531 / CNO PR #3030</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    .card-stat { text-align: center; }
+    .card-stat .display-4 { font-weight: 700; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">OCPBUGS-88531 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: CNCC Restart on restart-date</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: All Operands Restart Together</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Idempotent Same Value</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Second Update Triggers Rollout</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Healthy After Restart</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Non-Cloud Platform</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <h1>Test Verification Report: OCPBUGS-88531</h1>
+    <table class="table table-sm" style="max-width: 600px;">
+      <tbody>
+        <tr><th scope="row">JIRA</th><td><a href="https://redhat.atlassian.net/browse/OCPBUGS-88531" target="_blank">OCPBUGS-88531</a>: cloud-network-config-controller is not restarted by RestartDateAnnotation</td></tr>
+        <tr><th scope="row">PR</th><td><a href="https://github.com/openshift/cluster-network-operator/pull/3030" target="_blank">CNO #3030</a>: Propagate restart-date annotation to CNO operand pod templates</td></tr>
+        <tr><th scope="row">Branch</th><td><code>OCPBUGS-88531</code></td></tr>
+        <tr><th scope="row">Cluster</th><td><code>brcox-sm-dev-hc</code> (Azure, 4.22.0-rc.3)</td></tr>
+        <tr><th scope="row">Date</th><td>2026-06-15</td></tr>
+        <tr><th scope="row">Tester</th><td>Bryan Cox</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-bg-secondary card-stat">
+        <div class="card-body">
+          <div class="display-4">-/-</div>
+          <div class="card-text">Unit Tests Passing</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-secondary card-stat">
+        <div class="card-body">
+          <div class="display-4">-/-</div>
+          <div class="card-text">CI Jobs Passed</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-secondary card-stat">
+        <div class="card-body">
+          <div class="display-4">0/7</div>
+          <div class="card-text">Scenarios Verified</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-secondary card-stat">
+        <div class="card-body">
+          <div class="display-4">0/9</div>
+          <div class="card-text">Regression Checks</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Table -->
+  <h2>Summary</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Category</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><a href="automated-tests.html">Build (<code>make build</code>)</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="automated-tests.html">Unit Tests (<code>make test</code>)</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="automated-tests.html">Lint / Verify</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="scenario-1.html">Scenario 1: CNCC restarts on restart-date (primary bug fix)</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="scenario-2.html">Scenario 2: All CNO operands restart together</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="scenario-3.html">Scenario 3: Stable without annotation (no spurious restarts)</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="scenario-4.html">Scenario 4: Idempotent &mdash; same value no re-trigger</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="scenario-5.html">Scenario 5: Second update triggers another rollout</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="scenario-6.html">Scenario 6: Operands healthy after restart</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="scenario-7.html">Scenario 7: Non-cloud platform unaffected</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- Regression Checklist -->
+  <h2>Regression Checklist</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Check</th><th>Result</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Pod-to-pod networking works after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td>Pod-to-service networking works after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td>Egress networking works after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td>CNCC can manage cloud resources after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td>Node join/leave operations work after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td>No restart-date errors in CNO logs</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td><code>make build</code> passes</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td><code>make test</code> passes</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td>CNO not degraded after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- CI Job Results -->
+  <h2>CI Job Results</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Job</th><th>Status</th><th>Link</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>PR CI (CNO #3030)</td>
+        <td><span class="badge bg-secondary">PENDING</span></td>
+        <td><a href="https://github.com/openshift/cluster-network-operator/pull/3030" target="_blank">PR</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

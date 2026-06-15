@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appendices - OCPBUGS-88531 Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">OCPBUGS-88531 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: CNCC Restart on restart-date</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: All Operands Restart Together</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Idempotent Same Value</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Second Update Triggers Rollout</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Healthy After Restart</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Non-Cloud Platform</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link active" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <h1>Appendices</h1>
+  <p>Full logs, raw output, and troubleshooting notes for the OCPBUGS-88531 test verification.</p>
+
+  <hr>
+
+  <!-- Appendix A: Environment Details -->
+  <h2>A. Test Environment</h2>
+  <table class="table table-bordered">
+    <tbody>
+      <tr><th style="width:30%">Management Cluster</th><td>AWS (via <code>KUBECONFIG=/Users/brcox/aws_dev_kubeconfig</code>)</td></tr>
+      <tr><th>HostedCluster</th><td><code>brcox-sm-dev-hc</code> (namespace: <code>clusters</code>)</td></tr>
+      <tr><th>HCP Namespace</th><td><code>clusters-brcox-sm-dev-hc</code></td></tr>
+      <tr><th>Platform</th><td>Azure</td></tr>
+      <tr><th>OCP Version</th><td>4.22.0-rc.3</td></tr>
+      <tr><th>CNO Image</th><td><em>(fill in after image build completes)</em></td></tr>
+      <tr><th>PR</th><td><a href="https://github.com/openshift/cluster-network-operator/pull/3030">#3030</a></td></tr>
+      <tr><th>JIRA</th><td><a href="https://issues.redhat.com/browse/OCPBUGS-88531">OCPBUGS-88531</a></td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- Appendix B: CNO Logs -->
+  <h2>B. CNO Operator Logs</h2>
+  <div class="accordion mb-3" id="accordionCnoLogs">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCnoLogsBefore">CNO logs before restart-date set (click to expand)</button>
+      </h2>
+      <div id="collapseCnoLogsBefore" class="accordion-collapse collapse" data-bs-parent="#accordionCnoLogs">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0"><!-- Paste CNO logs here --></pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCnoLogsAfter">CNO logs after restart-date set (click to expand)</button>
+      </h2>
+      <div id="collapseCnoLogsAfter" class="accordion-collapse collapse" data-bs-parent="#accordionCnoLogs">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0"><!-- Paste CNO logs here --></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Appendix C: Pod State Snapshots -->
+  <h2>C. Pod State Snapshots</h2>
+  <div class="accordion mb-3" id="accordionPodState">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePodBefore">Pod state BEFORE restart-date annotation</button>
+      </h2>
+      <div id="collapsePodBefore" class="accordion-collapse collapse" data-bs-parent="#accordionPodState">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0"><!-- Paste oc get pods output here --></pre>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePodAfter">Pod state AFTER restart-date annotation</button>
+      </h2>
+      <div id="collapsePodAfter" class="accordion-collapse collapse" data-bs-parent="#accordionPodState">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0"><!-- Paste oc get pods output here --></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Appendix D: Deployment Annotations -->
+  <h2>D. Deployment Pod Template Annotations</h2>
+  <div class="accordion mb-3" id="accordionAnnotations">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnnoSnapshot">Deployment annotations snapshot (click to expand)</button>
+      </h2>
+      <div id="collapseAnnoSnapshot" class="accordion-collapse collapse" data-bs-parent="#accordionAnnotations">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0"># Command used:
+# for deploy in cloud-network-config-controller multus-admission-controller network-node-identity ovnkube-control-plane; do
+#   echo "=== $deploy ==="
+#   oc get deploy -n clusters-brcox-sm-dev-hc $deploy -o jsonpath='{.spec.template.metadata.annotations}' | jq .
+# done
+
+<!-- Paste output here --></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Appendix E: HCP CR -->
+  <h2>E. HostedControlPlane CR (annotations excerpt)</h2>
+  <div class="accordion mb-3" id="accordionHcp">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHcp">HCP annotations (click to expand)</button>
+      </h2>
+      <div id="collapseHcp" class="accordion-collapse collapse" data-bs-parent="#accordionHcp">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0"># oc get hcp -n clusters-brcox-sm-dev-hc brcox-sm-dev-hc -o jsonpath='{.metadata.annotations}' | jq .
+
+<!-- Paste output here --></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Appendix F: Troubleshooting -->
+  <h2>F. Troubleshooting Notes</h2>
+  <div class="accordion mb-3" id="accordionTroubleshooting">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTroubleshoot">Troubleshooting and known issues (click to expand)</button>
+      </h2>
+      <div id="collapseTroubleshoot" class="accordion-collapse collapse" data-bs-parent="#accordionTroubleshooting">
+        <div class="accordion-body">
+          <h5>CNO Reconcile Delay</h5>
+          <p>CNO uses a 3-minute <code>ResyncPeriod</code>. After setting the <code>restart-date</code> annotation on the HostedCluster, expect up to 3 minutes before CNO picks up the change and triggers a rollout.</p>
+
+          <h5>Server-Side Apply Idempotency</h5>
+          <p>CNO uses deterministic manifests with server-side apply. If the <code>restart-date</code> value is unchanged between reconciles, the pod template annotation stays identical, so Kubernetes does not trigger a new rollout. This is the expected idempotent behavior tested in Scenario 4.</p>
+
+          <h5>CNCC Only on Cloud Platforms</h5>
+          <p>The <code>cloud-network-config-controller</code> is only deployed on AWS, Azure, GCP, and OpenStack with OVN networking. On KubeVirt or None platform, there is no CNCC pod to restart, but <code>SetRestartDateAnnotation</code> still processes all rendered objects &mdash; there are simply no CNCC manifests to annotate.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
