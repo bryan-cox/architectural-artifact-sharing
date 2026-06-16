@@ -43,30 +43,49 @@
 
   <h1>Scenario 5: Second restart-date Update Triggers Another Rollout</h1>
   <p><strong>Objective:</strong> Verify successive restart-date changes each trigger exactly one rollout.</p>
+  <p><strong>Cluster:</strong> <code>brcox-88531-hc</code> on Azure dev mgmt cluster &mdash; HCP namespace: <code>clusters-brcox-88531-hc</code></p>
+  <p><em>Note: Follows directly from Scenario 4. Annotation was <code>2026-06-16T17:40:15Z</code>; updated to a new value.</em></p>
 
-  <div class="alert alert-secondary"><strong>Overall Scenario 5:</strong> PENDING</div>
+  <div class="alert alert-success"><strong>Overall Scenario 5:</strong> PASS</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark"><tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td>Operands stable after previous restart (from Test 4)</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>2</td><td>Record current pod timestamps</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>3</td><td>Set a NEW <code>restart-date</code> value</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>4</td><td>Operands restarted with newer timestamps</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td>1</td><td>Operands stable after Scenario 4 (same value re-apply)</td><td><span class="badge bg-success">PASS</span></td><td>All 4 pods unchanged at ~17:42 UTC (confirmed in Scenario 4)</td></tr>
+      <tr><td>2</td><td>Record current pod timestamps</td><td><span class="badge bg-success">PASS</span></td><td>See evidence below</td></tr>
+      <tr><td>3</td><td>Set a NEW <code>restart-date</code> value</td><td><span class="badge bg-success">PASS</span></td><td>Set to <code>2026-06-16T17:53:56Z</code> (new value, different from previous <code>17:40:15Z</code>)</td></tr>
+      <tr><td>4</td><td>Operands restarted with newer timestamps</td><td><span class="badge bg-success">PASS</span></td><td>All 4 pods replaced at ~17:56 UTC (see evidence below)</td></tr>
     </tbody>
   </table>
 
-  <h4>Commands</h4>
-  <pre class="log-output">HC_NAMESPACE=clusters-brcox-sm-dev-hc
+  <h4>Evidence</h4>
 
-# Step 2: Record before
-oc get pods -n $HC_NAMESPACE -l app=cloud-network-config-controller -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp
+  <h5>Steps 1-2 &mdash; Pod state before new annotation (captured at 17:53 UTC)</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase \
+    | grep -E 'NAME|cloud-network-config-controller|multus-admission|network-node-identity|ovnkube-control-plane'
+NAME                                                  CREATED                STATUS
+cloud-network-config-controller-f7c988c56-2tz6d       2026-06-16T17:42:24Z   Running
+multus-admission-controller-6f69d6c74c-28jpj          2026-06-16T17:42:31Z   Running
+network-node-identity-74c66bf4b7-jlclg                2026-06-16T17:42:46Z   Running
+ovnkube-control-plane-c4fb5d896-gfkj4                 2026-06-16T17:42:40Z   Running</pre>
 
-# Step 3: Set NEW annotation value
-oc annotate hostedcluster -n clusters brcox-sm-dev-hc hypershift.openshift.io/restart-date=$(date --iso-8601=seconds) --overwrite
+  <h5>Step 3 &mdash; Set new restart-date value</h5>
+  <pre class="log-output">$ oc annotate hostedcluster -n clusters brcox-88531-hc \
+    'hypershift.openshift.io/restart-date=2026-06-16T17:53:56Z' --overwrite
+hostedcluster.hypershift.openshift.io/brcox-88531-hc annotated</pre>
 
-# Step 4: Verify after (wait up to 5 min)
-oc get pods -n $HC_NAMESPACE -l app=cloud-network-config-controller -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp</pre>
+  <h5>Step 4 &mdash; Pod state after new annotation (captured at 17:59 UTC)</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase \
+    | grep -E 'NAME|cloud-network-config-controller|multus-admission|network-node-identity|ovnkube-control-plane'
+NAME                                                  CREATED                STATUS
+cloud-network-config-controller-bb95c4887-l5bnt       2026-06-16T17:56:07Z   Running
+multus-admission-controller-84ff4b74dd-fk2kc          2026-06-16T17:56:14Z   Running
+network-node-identity-d67fd4b6d-8pkbv                 2026-06-16T17:56:30Z   Running
+ovnkube-control-plane-c8c548b75-hwbs6                 2026-06-16T17:56:23Z   Running
+
+# All 4 operands restarted with new ReplicaSets and new creation timestamps.
+# Rollout time: ~2 min after annotation change (17:53:56Z &rarr; 17:56:07Z).
+# Second update successfully triggered a second rollout.</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="scenario-4.html" class="btn btn-outline-secondary">&larr; Scenario 4</a>

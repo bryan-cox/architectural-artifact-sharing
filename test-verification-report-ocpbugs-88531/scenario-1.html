@@ -52,9 +52,9 @@
   <h1>Scenario 1: CNCC Restarts on restart-date Annotation (Primary Bug Fix)</h1>
   <p><strong>Objective:</strong> Verify that <code>cloud-network-config-controller</code> restarts when <code>hypershift.openshift.io/restart-date</code> is set on the HostedCluster.</p>
   <p><strong>Maps to:</strong> JIRA reproduction steps and acceptance criteria</p>
-  <p><strong>Cluster:</strong> <code>brcox-sm-dev-hc</code> (Azure, 4.22.0-rc.3) &mdash; <code>KUBECONFIG=/Users/brcox/aws_dev_kubeconfig</code></p>
+  <p><strong>Cluster:</strong> <code>brcox-88531-hc</code> on Azure dev mgmt cluster &mdash; HCP namespace: <code>clusters-brcox-88531-hc</code></p>
 
-  <div class="alert alert-secondary"><strong>Overall Scenario 1:</strong> PENDING</div>
+  <div class="alert alert-success"><strong>Overall Scenario 1:</strong> PASS</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark">
@@ -64,53 +64,70 @@
       <tr>
         <td>1</td>
         <td>CNCC pod running in HCP namespace</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td><!-- oc get pods -n clusters-brcox-sm-dev-hc -l app=cloud-network-config-controller --></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>cloud-network-config-controller-859cdd9f9b-cdxls</code> Running</td>
       </tr>
       <tr>
         <td>2</td>
         <td>Record pod name and creation timestamp (before)</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td><!-- oc get pods -n clusters-brcox-sm-dev-hc -l app=cloud-network-config-controller -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp --></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Pod <code>859cdd9f9b-cdxls</code> created <code>2026-06-16T15:51:21Z</code></td>
       </tr>
       <tr>
         <td>3</td>
         <td>Set <code>restart-date</code> annotation on HostedCluster</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td><!-- oc annotate hostedcluster -n clusters brcox-sm-dev-hc hypershift.openshift.io/restart-date=$(date --iso-8601=seconds) --overwrite --></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Set to <code>2026-06-16T17:40:15Z</code>; annotation propagated to HCP</td>
       </tr>
       <tr>
         <td>4</td>
         <td>Wait up to 5 minutes for CNO reconcile</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td><!-- CNO ResyncPeriod = 3 minutes --></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>New pod appeared ~2 min after annotation set (CNO ResyncPeriod = 3 min)</td>
       </tr>
       <tr>
         <td>5</td>
         <td>CNCC pod has newer creation timestamp</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td><!-- oc get pods -n clusters-brcox-sm-dev-hc -l app=cloud-network-config-controller -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp --></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>15:51:21Z</code> &rarr; <code>17:42:24Z</code></td>
       </tr>
       <tr>
         <td>6</td>
         <td>CNCC pod name changed (new ReplicaSet rolled out)</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td><!-- Compare with step 2 --></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>859cdd9f9b-cdxls</code> &rarr; <code>f7c988c56-2tz6d</code> (new RS)</td>
       </tr>
     </tbody>
   </table>
 
-  <h4>Commands</h4>
-  <pre class="log-output">HC_NAMESPACE=clusters-brcox-sm-dev-hc
+  <h4>Evidence</h4>
 
-# Step 1-2: Record before state
-oc get pods -n $HC_NAMESPACE -l app=cloud-network-config-controller -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp
+  <h5>Steps 1-2 &mdash; CNCC pod before annotation</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -l app=cloud-network-config-controller \
+    -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase
+NAME                                               CREATED                STATUS
+cloud-network-config-controller-859cdd9f9b-cdxls   2026-06-16T15:51:21Z   Running</pre>
 
-# Step 3: Set annotation
-oc annotate hostedcluster -n clusters brcox-sm-dev-hc hypershift.openshift.io/restart-date=$(date --iso-8601=seconds) --overwrite
+  <h5>Step 3 &mdash; Set restart-date annotation</h5>
+  <pre class="log-output">$ RESTART_DATE=2026-06-16T17:40:15Z
+$ oc annotate hostedcluster -n clusters brcox-88531-hc \
+    "hypershift.openshift.io/restart-date=$RESTART_DATE" --overwrite
+hostedcluster.hypershift.openshift.io/brcox-88531-hc annotated</pre>
 
-# Step 4-6: Verify after (wait up to 5 min)
-oc get pods -n $HC_NAMESPACE -l app=cloud-network-config-controller -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp</pre>
+  <h5>Steps 5-6 &mdash; CNCC pod after annotation (captured at 17:43 UTC)</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -l app=cloud-network-config-controller \
+    -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase
+NAME                                              CREATED                STATUS
+cloud-network-config-controller-f7c988c56-2tz6d   2026-06-16T17:42:24Z   Running
+
+# New ReplicaSet rolled out: 859cdd9f9b -> f7c988c56
+# Creation timestamp changed: 15:51:21Z -> 17:42:24Z
+# Pod restarted ~2 minutes after restart-date annotation was set
+
+# HCP restart-date annotation confirmed:
+$ oc get hostedcontrolplane -n clusters-brcox-88531-hc brcox-88531-hc \
+    -o jsonpath='{.metadata.annotations.hypershift\.openshift\.io/restart-date}'
+2026-06-16T17:40:15Z</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="index.html" class="btn btn-outline-secondary">&larr; Dashboard</a>

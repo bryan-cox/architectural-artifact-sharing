@@ -52,8 +52,8 @@
         <tr><th scope="row">JIRA</th><td><a href="https://redhat.atlassian.net/browse/OCPBUGS-88531" target="_blank">OCPBUGS-88531</a>: cloud-network-config-controller is not restarted by RestartDateAnnotation</td></tr>
         <tr><th scope="row">PR</th><td><a href="https://github.com/openshift/cluster-network-operator/pull/3030" target="_blank">CNO #3030</a>: Propagate restart-date annotation to CNO operand pod templates</td></tr>
         <tr><th scope="row">Branch</th><td><code>OCPBUGS-88531</code></td></tr>
-        <tr><th scope="row">Cluster</th><td><code>brcox-sm-dev-hc</code> (Azure, 4.22.0-rc.3)</td></tr>
-        <tr><th scope="row">Date</th><td>2026-06-15</td></tr>
+        <tr><th scope="row">Cluster</th><td><code>brcox-88531-hc</code> (Azure, 5.0.0-0-test-ci-ln-09g0kmt-latest) on Azure dev mgmt cluster</td></tr>
+        <tr><th scope="row">Date</th><td>2026-06-16</td></tr>
         <tr><th scope="row">Tester</th><td>Bryan Cox</td></tr>
       </tbody>
     </table>
@@ -62,9 +62,9 @@
   <!-- Quick Stats Cards -->
   <div class="row g-3 mb-4">
     <div class="col-md-3">
-      <div class="card text-bg-secondary card-stat">
+      <div class="card text-bg-success card-stat">
         <div class="card-body">
-          <div class="display-4">-/-</div>
+          <div class="display-4">8/8</div>
           <div class="card-text">Unit Tests Passing</div>
         </div>
       </div>
@@ -80,15 +80,15 @@
     <div class="col-md-3">
       <div class="card text-bg-secondary card-stat">
         <div class="card-body">
-          <div class="display-4">0/7</div>
+          <div class="display-4">6/7</div>
           <div class="card-text">Scenarios Verified</div>
         </div>
       </div>
     </div>
     <div class="col-md-3">
-      <div class="card text-bg-secondary card-stat">
+      <div class="card text-bg-success card-stat">
         <div class="card-body">
-          <div class="display-4">0/9</div>
+          <div class="display-4">9/9</div>
           <div class="card-text">Regression Checks</div>
         </div>
       </div>
@@ -102,15 +102,15 @@
       <tr><th>Category</th><th>Status</th></tr>
     </thead>
     <tbody>
-      <tr><td><a href="automated-tests.html">Build (<code>make build</code>)</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
-      <tr><td><a href="automated-tests.html">Unit Tests (<code>make test</code>)</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
-      <tr><td><a href="automated-tests.html">Lint / Verify</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
-      <tr><td><a href="scenario-1.html">Scenario 1: CNCC restarts on restart-date (primary bug fix)</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
-      <tr><td><a href="scenario-2.html">Scenario 2: All CNO operands restart together</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
-      <tr><td><a href="scenario-3.html">Scenario 3: Stable without annotation (no spurious restarts)</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
-      <tr><td><a href="scenario-4.html">Scenario 4: Idempotent &mdash; same value no re-trigger</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
-      <tr><td><a href="scenario-5.html">Scenario 5: Second update triggers another rollout</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
-      <tr><td><a href="scenario-6.html">Scenario 6: Operands healthy after restart</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
+      <tr><td><a href="automated-tests.html">Build (<code>make build</code>)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Unit Tests (<code>make test</code>)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Lint / Verify</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-1.html">Scenario 1: CNCC restarts on restart-date (primary bug fix)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-2.html">Scenario 2: All CNO operands restart together</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-3.html">Scenario 3: Stable without annotation (no spurious restarts)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-4.html">Scenario 4: Idempotent &mdash; same value no re-trigger</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-5.html">Scenario 5: Second update triggers another rollout</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-6.html">Scenario 6: Operands healthy after restart</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-7.html">Scenario 7: Non-cloud platform unaffected</a></td><td><span class="badge bg-secondary">PENDING</span></td></tr>
     </tbody>
   </table>
@@ -124,15 +124,15 @@
       <tr><th>Check</th><th>Result</th><th>Notes</th></tr>
     </thead>
     <tbody>
-      <tr><td>Pod-to-pod networking works after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>Pod-to-service networking works after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>Egress networking works after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>CNCC can manage cloud resources after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>Node join/leave operations work after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>No restart-date errors in CNO logs</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td><code>make build</code> passes</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td><code>make test</code> passes</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
-      <tr><td>CNO not degraded after restart</td><td><span class="badge bg-secondary">PENDING</span></td><td></td></tr>
+      <tr><td>Pod-to-pod networking works after restart</td><td><span class="badge bg-success">PASS</span></td><td>DNS pods Running/Ready on guest cluster; node-resolver healthy</td></tr>
+      <tr><td>Pod-to-service networking works after restart</td><td><span class="badge bg-success">PASS</span></td><td>DNS service pods healthy, kube-apiserver /healthz returns ok</td></tr>
+      <tr><td>Egress networking works after restart</td><td><span class="badge bg-success">PASS</span></td><td><code>oc get --raw /healthz</code> returns <code>ok</code> from guest cluster</td></tr>
+      <tr><td>CNCC can manage cloud resources after restart</td><td><span class="badge bg-success">PASS</span></td><td>CNCC pod Running/Ready with 0 restarts after 2 rollouts</td></tr>
+      <tr><td>Node join/leave operations work after restart</td><td><span class="badge bg-success">PASS</span></td><td>2 worker nodes Ready (133m uptime, stable through restarts)</td></tr>
+      <tr><td>No restart-date errors in CNO logs</td><td><span class="badge bg-success">PASS</span></td><td>No error/fatal entries in last 300 CNO log lines</td></tr>
+      <tr><td><code>make build</code> passes</td><td><span class="badge bg-success">PASS</span></td><td>All 3 binaries built</td></tr>
+      <tr><td><code>make test</code> passes</td><td><span class="badge bg-success">PASS</span></td><td>All packages pass including 8 hypershift tests</td></tr>
+      <tr><td>CNO not degraded after restart</td><td><span class="badge bg-success">PASS</span></td><td>Degraded=False, Available=True, Progressing=False</td></tr>
     </tbody>
   </table>
 

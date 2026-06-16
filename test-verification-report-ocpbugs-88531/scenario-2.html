@@ -52,8 +52,10 @@
   <h1>Scenario 2: All CNO-Managed Operands Restart Together</h1>
   <p><strong>Objective:</strong> Verify that ALL CNO-managed control plane operands restart when restart-date is set, not just CNCC.</p>
   <p><strong>Maps to:</strong> The fix applies the annotation to ALL rendered workloads</p>
+  <p><strong>Cluster:</strong> <code>brcox-88531-hc</code> on Azure dev mgmt cluster &mdash; HCP namespace: <code>clusters-brcox-88531-hc</code></p>
+  <p><em>Note: This scenario shares the same annotation event as Scenario 1 (restart-date set at 17:40:15Z).</em></p>
 
-  <div class="alert alert-secondary"><strong>Overall Scenario 2:</strong> PENDING</div>
+  <div class="alert alert-success"><strong>Overall Scenario 2:</strong> PASS</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark">
@@ -63,65 +65,69 @@
       <tr>
         <td>1</td>
         <td>Record timestamps for all CNO operands (before)</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td><!-- cloud-network-config-controller, multus-admission-controller, network-node-identity, ovnkube-control-plane --></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>All 4 operands recorded at 15:51 UTC (see evidence below)</td>
       </tr>
       <tr>
         <td>2</td>
         <td>Set <code>restart-date</code> annotation</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Set to <code>2026-06-16T17:40:15Z</code> (same event as Scenario 1)</td>
       </tr>
       <tr>
         <td>3</td>
         <td><code>cloud-network-config-controller</code> restarted</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>859cdd9f9b-cdxls</code> &rarr; <code>f7c988c56-2tz6d</code> (17:42:24Z)</td>
       </tr>
       <tr>
         <td>4</td>
         <td><code>multus-admission-controller</code> restarted</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>66d8bc9788-tkqmw</code> &rarr; <code>6f69d6c74c-28jpj</code> (17:42:31Z)</td>
       </tr>
       <tr>
         <td>5</td>
         <td><code>network-node-identity</code> restarted</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>646dcc669f-k67qm</code> &rarr; <code>74c66bf4b7-jlclg</code> (17:42:46Z)</td>
       </tr>
       <tr>
         <td>6</td>
         <td><code>ovnkube-control-plane</code> restarted</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>6cb878df56-szcmv</code> &rarr; <code>c4fb5d896-gfkj4</code> (17:42:40Z)</td>
       </tr>
       <tr>
         <td>7</td>
         <td>All pods reach Running/Ready</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>All 4 pods Running at 17:43:28Z check</td>
       </tr>
     </tbody>
   </table>
 
-  <h4>Commands</h4>
-  <pre class="log-output">HC_NAMESPACE=clusters-brcox-sm-dev-hc
+  <h4>Evidence</h4>
 
-# Step 1: Record before state
-for deploy in cloud-network-config-controller multus-admission-controller network-node-identity ovnkube-control-plane; do
-  echo "--- $deploy ---"
-  oc get pods -n $HC_NAMESPACE -l app=$deploy -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp
-done
+  <h5>Step 1 &mdash; All CNO operands before annotation (captured at ~17:40 UTC)</h5>
+  <pre class="log-output">NAME                                                 CREATED                STATUS
+cloud-network-config-controller-859cdd9f9b-cdxls     2026-06-16T15:51:21Z   Running
+multus-admission-controller-66d8bc9788-tkqmw         2026-06-16T15:51:28Z   Running
+network-node-identity-646dcc669f-k67qm               2026-06-16T15:51:43Z   Running
+ovnkube-control-plane-6cb878df56-szcmv               2026-06-16T15:51:37Z   Running</pre>
 
-# Step 2: Set annotation
-oc annotate hostedcluster -n clusters brcox-sm-dev-hc hypershift.openshift.io/restart-date=$(date --iso-8601=seconds) --overwrite
+  <h5>Steps 3-7 &mdash; All CNO operands after annotation (captured at 17:43 UTC)</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase \
+    | grep -E 'NAME|cloud-network-config-controller|multus-admission|network-node-identity|ovnkube-control-plane'
+NAME                                                  CREATED                STATUS
+cloud-network-config-controller-f7c988c56-2tz6d       2026-06-16T17:42:24Z   Running
+multus-admission-controller-6f69d6c74c-28jpj          2026-06-16T17:42:31Z   Running
+network-node-identity-74c66bf4b7-jlclg                2026-06-16T17:42:46Z   Running
+ovnkube-control-plane-c4fb5d896-gfkj4                 2026-06-16T17:42:40Z   Running
 
-# Steps 3-7: Verify after (wait up to 5 min)
-for deploy in cloud-network-config-controller multus-admission-controller network-node-identity ovnkube-control-plane; do
-  echo "--- $deploy ---"
-  oc get pods -n $HC_NAMESPACE -l app=$deploy -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp
-done</pre>
+# All 4 operands have new ReplicaSets and new creation timestamps.
+# All rolled out within ~22 seconds of each other (17:42:24Z - 17:42:46Z).
+# All pods Running.</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="scenario-1.html" class="btn btn-outline-secondary">&larr; Scenario 1</a>
