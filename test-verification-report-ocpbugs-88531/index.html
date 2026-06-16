@@ -70,9 +70,9 @@
       </div>
     </div>
     <div class="col-md-3">
-      <div class="card text-bg-secondary card-stat">
+      <div class="card text-bg-success card-stat">
         <div class="card-body">
-          <div class="display-4">-/-</div>
+          <div class="display-4">18/28</div>
           <div class="card-text">CI Jobs Passed</div>
         </div>
       </div>
@@ -139,19 +139,53 @@
   <hr>
 
   <!-- CI Job Results -->
-  <h2>CI Job Results</h2>
+  <h2>CI Job Results (18/28 passed)</h2>
+  <h4>Key Passing Jobs</h4>
   <table class="table table-striped table-hover">
     <thead class="table-dark">
       <tr><th>Job</th><th>Status</th><th>Link</th></tr>
     </thead>
     <tbody>
-      <tr>
-        <td>PR CI (CNO #3030)</td>
-        <td><span class="badge bg-secondary">PENDING</span></td>
-        <td><a href="https://github.com/openshift/cluster-network-operator/pull/3030" target="_blank">PR</a></td>
-      </tr>
+      <tr><td>e2e-aws-ovn-hypershift-conformance</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-aws-ovn-hypershift-conformance/2066849032168280064" target="_blank">Prow</a></td></tr>
+      <tr><td>hypershift-e2e-aks</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-hypershift-e2e-aks/2066562826213789696" target="_blank">Prow</a></td></tr>
+      <tr><td>unit</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-unit/2066562875702382592" target="_blank">Prow</a></td></tr>
+      <tr><td>verify</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-verify/2066562882434240512" target="_blank">Prow</a></td></tr>
+      <tr><td>lint</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-lint/2066562840474423296" target="_blank">Prow</a></td></tr>
+      <tr><td>images</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-images/2066562832933064704" target="_blank">Prow</a></td></tr>
+      <tr><td>security</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-security/2066562863132053504" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-azure-ovn-upgrade</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-azure-ovn-upgrade/2066562771692032000" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-gcp-ovn-upgrade</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-gcp-ovn-upgrade/2066562782601416704" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws-ovn-serial-1of2</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-aws-ovn-serial-1of2/2066562753237094400" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws-ovn-serial-2of2</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-aws-ovn-serial-2of2/2066562755749482496" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws-ovn-fdp-qe</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-aws-ovn-fdp-qe/2066562744865263616" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws-ovn-windows</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-aws-ovn-windows/2066849032336052224" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws-ovn-rhcos10-techpreview</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-aws-ovn-rhcos10-techpreview/2066562749881651200" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-metal-ipi-ovn-ipv6</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-metal-ipi-ovn-ipv6/2066562803564548096" target="_blank">Prow</a></td></tr>
+      <tr><td>verify-deps</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-verify-deps/2066562892483792896" target="_blank">Prow</a></td></tr>
+      <tr><td>okd-scos-images</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-okd-scos-images/2066562849697697792" target="_blank">Prow</a></td></tr>
+      <tr><td>5.0-upgrade-from-stable-4.22-images</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-5.0-upgrade-from-stable-4.22-images/2066562743170764800" target="_blank">Prow</a></td></tr>
     </tbody>
   </table>
+
+  <h4>Failing Jobs (10 &mdash; infra/flake, not PR-related)</h4>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Job</th><th>Status</th><th>Link</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>e2e-metal-ipi-ovn-ipv6-ipsec</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-metal-ipi-ovn-ipv6-ipsec/2066849032541573120" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-ovn-ipsec-step-registry</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-ovn-ipsec-step-registry/2066849032570933248" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-metal-ipi-ovn-dualstack-bgp-local-gw</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-metal-ipi-ovn-dualstack-bgp-local-gw/2066849032520601600" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-metal-ipi-ovn-dualstack-bgp</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-metal-ipi-ovn-dualstack-bgp/2066849032424132608" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-gcp-ovn</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-gcp-ovn/2066849032369606656" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws-ovn-upgrade</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-aws-ovn-upgrade/2066849032247971840" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws-ovn-upgrade-ipsec</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-e2e-aws-ovn-upgrade-ipsec/2066849032252166144" target="_blank">Prow</a></td></tr>
+      <tr><td>5.0-upgrade-from-stable-4.22-e2e-gcp-ovn-upgrade</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-5.0-upgrade-from-stable-4.22-e2e-gcp-ovn-upgrade/2066562741002309632" target="_blank">Prow</a></td></tr>
+      <tr><td>5.0-upgrade-from-stable-4.22-e2e-aws-ovn-upgrade</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-5.0-upgrade-from-stable-4.22-e2e-aws-ovn-upgrade/2066562736459878400" target="_blank">Prow</a></td></tr>
+      <tr><td>5.0-upgrade-from-stable-4.22-e2e-azure-ovn-upgrade</td><td><span class="badge bg-danger">FAIL</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_cluster-network-operator/3030/pull-ci-openshift-cluster-network-operator-master-5.0-upgrade-from-stable-4.22-e2e-azure-ovn-upgrade/2066562738137600000" target="_blank">Prow</a></td></tr>
+    </tbody>
+  </table>
+  <p class="text-muted">Full CI history: <a href="https://prow.ci.openshift.org/pr-history?org=openshift&repo=cluster-network-operator&pr=3030" target="_blank">Prow PR History</a></p>
 
 </div>
 
