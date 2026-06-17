@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appendices — PR #8319 Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #8319 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Role Flags + Infra JSON (SPR)</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Role Flags + Infra JSON (Custom)</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Infra JSON Without Role Flags</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Create Infra Missing DNS Zone RG (SPR)</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Create Infra Missing DNS Zone RG (Custom)</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Create Infra With DNS Zone RG</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Whitespace DNS Zone RG</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link active" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active">Appendices</li>
+    </ol>
+  </nav>
+
+  <h1>Appendices</h1>
+
+  <!-- Appendix A -->
+  <h2 id="unit-tests-cluster" class="mt-5">Appendix A: Unit Test Output &mdash; <code>cmd/cluster/azure</code></h2>
+  <p>Unit tests covering the new validation logic in <code>create cluster azure</code>. Tests verify that role assignment flags are rejected when combined with <code>--infra-json</code>, and that <code>--dns-zone-rg-name</code> is required.</p>
+  <pre class="log-output">=== RUN   TestDNSZoneRGValidation
+=== RUN   TestDNSZoneRGValidation/When_assign-service-principal-roles_is_set_without_dns-zone-rg-name_it_should_return_an_error
+=== RUN   TestDNSZoneRGValidation/When_assign-custom-hcp-roles_is_set_without_dns-zone-rg-name_it_should_return_an_error
+--- PASS: TestDNSZoneRGValidation (0.00s)
+    --- PASS: TestDNSZoneRGValidation/When_assign-service-principal-roles_is_set_without_dns-zone-rg-name_it_should_return_an_error (0.00s)
+    --- PASS: TestDNSZoneRGValidation/When_assign-custom-hcp-roles_is_set_without_dns-zone-rg-name_it_should_return_an_error (0.00s)
+=== RUN   TestRoleAssignmentWithInfraJSON
+=== RUN   TestRoleAssignmentWithInfraJSON/When_role_assignment_flags_are_not_set_with_infra-json_it_should_succeed
+=== RUN   TestRoleAssignmentWithInfraJSON/When_assign-custom-hcp-roles_is_set_with_infra-json_it_should_return_an_error
+=== RUN   TestRoleAssignmentWithInfraJSON/When_assign-service-principal-roles_is_set_with_infra-json_it_should_return_an_error
+--- PASS: TestRoleAssignmentWithInfraJSON (0.00s)
+    --- PASS: TestRoleAssignmentWithInfraJSON/When_role_assignment_flags_are_not_set_with_infra-json_it_should_succeed (0.00s)
+    --- PASS: TestRoleAssignmentWithInfraJSON/When_assign-custom-hcp-roles_is_set_with_infra-json_it_should_return_an_error (0.00s)
+    --- PASS: TestRoleAssignmentWithInfraJSON/When_assign-service-principal-roles_is_set_with_infra-json_it_should_return_an_error (0.00s)
+PASS
+ok  	github.com/openshift/hypershift/cmd/cluster/azure	1.423s</pre>
+
+  <!-- Appendix B -->
+  <h2 id="unit-tests-infra" class="mt-5">Appendix B: Unit Test Output &mdash; <code>cmd/infra/azure</code></h2>
+  <p>Unit tests covering the new validation logic in <code>create infra azure</code>. Tests verify that <code>--dns-zone-rg-name</code> is required when role assignment flags are set.</p>
+  <pre class="log-output">=== RUN   TestValidate
+=== RUN   TestValidate/When_base_domain_is_provided_it_should_pass_validation
+=== RUN   TestValidate/When_base_domain_is_missing_it_should_return_an_error
+=== RUN   TestValidate/When_assign-identity-roles_is_set_without_dns-zone-rg-name_it_should_return_an_error
+=== RUN   TestValidate/When_assign-custom-hcp-roles_is_set_without_dns-zone-rg-name_it_should_return_an_error
+=== RUN   TestValidate/When_assign-identity-roles_is_set_with_dns-zone-rg-name_it_should_pass_validation
+=== RUN   TestValidate/When_assign-identity-roles_is_not_set_and_dns-zone-rg-name_is_empty_it_should_pass_validation
+--- PASS: TestValidate (0.00s)
+    --- PASS: TestValidate/When_base_domain_is_provided_it_should_pass_validation (0.00s)
+    --- PASS: TestValidate/When_base_domain_is_missing_it_should_return_an_error (0.00s)
+    --- PASS: TestValidate/When_assign-identity-roles_is_set_without_dns-zone-rg-name_it_should_return_an_error (0.00s)
+    --- PASS: TestValidate/When_assign-custom-hcp-roles_is_set_without_dns-zone-rg-name_it_should_return_an_error (0.00s)
+    --- PASS: TestValidate/When_assign-identity-roles_is_set_with_dns-zone-rg-name_it_should_pass_validation (0.00s)
+    --- PASS: TestValidate/When_assign-identity-roles_is_not_set_and_dns-zone-rg-name_is_empty_it_should_pass_validation (0.00s)
+PASS
+ok  	github.com/openshift/hypershift/cmd/infra/azure	0.976s</pre>
+
+  <!-- Appendix C -->
+  <h2 id="live-cluster" class="mt-5">Appendix C: Live Cluster Health Check</h2>
+  <p>Regression verification using live Azure self-managed hosted cluster <code>brcox-88531-hc</code> on management cluster <code>brcox-azure-dev-hc</code>.</p>
+  <pre class="log-output">$ oc get hostedclusters -n clusters brcox-88531-hc -o wide
+NAME             VERSION                                               CP VERSION                                            KUBECONFIG                        PROGRESS    AVAILABLE   PROGRESSING   MESSAGE                                 CP PROGRESS   DP PROGRESS
+brcox-88531-hc   5.0.0-0-2026-06-17-110400-test-ci-ln-1qhpr62-latest   5.0.0-0-2026-06-17-110400-test-ci-ln-1qhpr62-latest   brcox-88531-hc-admin-kubeconfig   Completed   True        False         The hosted control plane is available   Completed     Completed
+
+$ oc get nodepools -n clusters
+NAME             CLUSTER          DESIRED NODES   CURRENT NODES   AUTOSCALING   AUTOREPAIR   VERSION                                               UPDATINGVERSION   UPDATINGCONFIG   MESSAGE
+brcox-88531-hc   brcox-88531-hc   2               2               False         False        5.0.0-0-2026-06-17-110400-test-ci-ln-1qhpr62-latest   False             False
+
+$ oc get nodes  (guest cluster)
+NAME                         STATUS   ROLES    AGE    VERSION
+brcox-88531-hc-tgsvg-qjst8   Ready    worker   173m   v1.35.5
+brcox-88531-hc-tgsvg-wh797   Ready    worker   173m   v1.35.5
+
+$ oc get clusterversion  (guest cluster)
+NAME      VERSION                                               AVAILABLE   PROGRESSING   SINCE   STATUS
+version   5.0.0-0-2026-06-17-110400-test-ci-ln-1qhpr62-latest   True        False         162m    Cluster version is 5.0.0-0-2026-06-17-110400-test-ci-ln-1qhpr62-latest</pre>
+
+  <!-- Appendix D -->
+  <h2 id="scenario-1-output" class="mt-5">Appendix D: Scenario 1 Full Output</h2>
+  <p>Full CLI output for Scenario 1: <code>--assign-service-principal-roles</code> combined with <code>--infra-json</code>.</p>
+  <pre class="log-output">$ hypershift create cluster azure \
+    --name test-s1 \
+    --azure-creds creds.yaml \
+    --infra-json infra.json \
+    --assign-service-principal-roles \
+    --dns-zone-rg-name my-dns-rg \
+    --pull-secret pull-secret.json \
+    --release-image quay.io/openshift-release-dev/ocp-release:4.18.0-x86_64 \
+    --workload-identities-file wi.json \
+    --render --render-into manifests.yaml
+
+Error: role assignment flags cannot be used with --infra-json; use --assign-identity-roles on 'create infra azure' instead
+Exit code: 1</pre>
+
+  <!-- Appendix E -->
+  <h2 id="scenario-4-output" class="mt-5">Appendix E: Scenario 4 Full Output</h2>
+  <p>Full CLI output for Scenario 4: <code>--assign-identity-roles</code> without <code>--dns-zone-rg-name</code> on <code>create infra</code>.</p>
+  <pre class="log-output">$ hypershift create infra azure \
+    --name test-s4 \
+    --infra-id test-s4 \
+    --azure-creds creds.yaml \
+    --base-domain example.com \
+    --workload-identities-file wi.json \
+    --assign-identity-roles
+
+Error: --dns-zone-rg-name is required when --assign-identity-roles or --assign-custom-hcp-roles is set
+Exit code: 1</pre>
+
+  <!-- Appendix F -->
+  <h2 id="scenario-6-output" class="mt-5">Appendix F: Scenario 6 Full Output</h2>
+  <p>Full CLI output for Scenario 6: <code>--assign-identity-roles</code> with <code>--dns-zone-rg-name</code> (happy path &mdash; passes validation, fails on Azure auth with test credentials).</p>
+  <pre class="log-output">$ hypershift create infra azure \
+    --name test-s6 \
+    --infra-id test-s6 \
+    --azure-creds creds.yaml \
+    --base-domain example.com \
+    --workload-identities-file wi.json \
+    --assign-identity-roles \
+    --dns-zone-rg-name my-dns-rg
+
+{"level":"info","ts":"2026-06-17T10:12:23-04:00","msg":"Using credentials from file","path":"creds.yaml"}
+{"level":"error","ts":"2026-06-17T10:12:24-04:00","msg":"Failed to create infrastructure",
+  "error":"failed to create a resource group: ... DefaultAzureCredential: failed to acquire a token.
+  Attempted credentials: ClientSecretCredential authentication failed.
+  Tenant 'faketenantid' not found ..."}
+
+(Validation passed successfully — failure is Azure auth with test credentials, not validation)</pre>
+
+  <!-- Appendix G -->
+  <h2 id="scenario-7-output" class="mt-5">Appendix G: Scenario 7 Full Output</h2>
+  <p>Full CLI output for Scenario 7: whitespace-only <code>--dns-zone-rg-name</code> value.</p>
+  <pre class="log-output">$ hypershift create cluster azure \
+    --name test-s7 \
+    --azure-creds creds.yaml \
+    --assign-service-principal-roles \
+    --dns-zone-rg-name "   " \
+    --pull-secret pull-secret.json \
+    --release-image quay.io/openshift-release-dev/ocp-release:4.18.0-x86_64 \
+    --workload-identities-file wi.json \
+    --render --render-into manifests.yaml
+
+Error: --dns-zone-rg-name is required when --assign-service-principal-roles or --assign-custom-hcp-roles is set
+Exit code: 1</pre>
+
+  <div class="mt-5">
+    <a href="index.html" class="btn btn-outline-secondary">&larr; Dashboard</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

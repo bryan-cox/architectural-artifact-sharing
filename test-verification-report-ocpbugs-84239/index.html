@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Verification Report: PR #8319</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    .card-stat { text-align: center; }
+    .card-stat .display-4 { font-weight: 700; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #8319 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Role Flags + Infra JSON (SPR)</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Role Flags + Infra JSON (Custom)</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Infra JSON Without Role Flags</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Create Infra Missing DNS Zone RG (SPR)</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Create Infra Missing DNS Zone RG (Custom)</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Create Infra With DNS Zone RG</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Whitespace DNS Zone RG</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <h1>Test Verification Report: PR #8319</h1>
+    <table class="table table-sm" style="max-width: 600px;">
+      <tbody>
+        <tr><th scope="row">PR</th><td>OCPBUGS-84239: fix Azure role assignment flag validation gaps that silently fail</td></tr>
+        <tr><th scope="row">URL</th><td><a href="https://github.com/openshift/hypershift/pull/8319" target="_blank">github.com/openshift/hypershift/pull/8319</a></td></tr>
+        <tr><th scope="row">Branch</th><td><code>fix-OCPBUGS-84239</code></td></tr>
+        <tr><th scope="row">Date</th><td>2026-06-17</td></tr>
+        <tr><th scope="row">Tester</th><td>Bryan Cox</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">11/11</div>
+          <div class="card-text">Unit Tests Passing</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">7/7</div>
+          <div class="card-text">CLI Scenarios Verified</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">1/1</div>
+          <div class="card-text">Live HC Regression</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">2/2</div>
+          <div class="card-text">Nodes Ready</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Table -->
+  <h2>Summary</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Category</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><a href="appendices.html#unit-tests-cluster">Unit Tests &mdash; <code>cmd/cluster/azure</code> (5 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="appendices.html#unit-tests-infra">Unit Tests &mdash; <code>cmd/infra/azure</code> (6 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-1.html">Scenario 1: <code>--assign-service-principal-roles</code> + <code>--infra-json</code></a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-2.html">Scenario 2: <code>--assign-custom-hcp-roles</code> + <code>--infra-json</code></a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-3.html">Scenario 3: <code>--infra-json</code> without role flags</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-4.html">Scenario 4: <code>create infra</code> missing DNS zone RG (SPR)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-5.html">Scenario 5: <code>create infra</code> missing DNS zone RG (Custom)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-6.html">Scenario 6: <code>create infra</code> with DNS zone RG</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-7.html">Scenario 7: Whitespace <code>--dns-zone-rg-name</code></a></td><td><span class="badge bg-success">PASS</span></td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Unit tests passing:</strong> 11/11 (5 cluster + 6 infra)<br>
+  <strong>CLI scenarios verified:</strong> 7/7 &mdash; all validation errors trigger correctly, happy paths succeed<br>
+  <strong>Live regression:</strong> HostedCluster <code>brcox-88531-hc</code> on Azure self-managed management cluster &mdash; Available, 2/2 nodes Ready, v1.35.5</p>
+
+  <hr>
+
+  <!-- Regression Checklist -->
+  <h2>Regression Checklist</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Check</th><th>Result</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Live Azure self-managed HC is healthy</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>brcox-88531-hc</code> &mdash; Available=True, Progressing=False, 5.0.0 nightly</td>
+      </tr>
+      <tr>
+        <td>Guest cluster nodes Ready</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>2/2 nodes Ready, v1.35.5</td>
+      </tr>
+      <tr>
+        <td>Guest ClusterVersion available</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>5.0.0-0-2026-06-17-110400-test-ci-ln-1qhpr62-latest</code>, Available=True, Progressing=False</td>
+      </tr>
+      <tr>
+        <td>NodePool not updating</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>UpdatingVersion=False, UpdatingConfig=False, 2/2 desired nodes</td>
+      </tr>
+      <tr>
+        <td><code>create cluster azure --infra-json</code> (no role flags) succeeds</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Scenario 3 &mdash; exit code 0, manifests rendered</td>
+      </tr>
+      <tr>
+        <td><code>create infra azure</code> (no role flags) passes validation</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>No new validation requirements for users who don't use role assignment flags</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- Environment -->
+  <h2>Test Environment</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Component</th><th>Details</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Management Cluster</td><td><code>brcox-azure-dev-hc</code> (hosted on AWS, managing Azure HCPs)</td></tr>
+      <tr><td>Hosted Cluster</td><td><code>brcox-88531-hc</code> (Azure self-managed, 5.0.0 nightly)</td></tr>
+      <tr><td>CLI Binary</td><td>Built from PR #8319 commit <code>9d15d7a8f7</code></td></tr>
+      <tr><td>Azure Subscription</td><td><code>237432b9-9dc5-4b0b-b058-8868ac6a774b</code></td></tr>
+      <tr><td>Platform</td><td>Azure self-managed (workload identity federation)</td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
