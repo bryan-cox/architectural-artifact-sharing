@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scenario 3: Stable Without Annotation - OCPBUGS-88531</title>
+  <title>Scenario 3: All Operands Restart Together - OCPBUGS-88531</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
@@ -23,13 +23,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: CNCC Restart on restart-date</a></li>
-            <li><a class="dropdown-item" href="scenario-2.html">2: All Operands Restart Together</a></li>
-            <li><a class="dropdown-item active" href="scenario-3.html">3: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: CNCC Restart on restart-date</a></li>
+            <li><a class="dropdown-item active" href="scenario-3.html">3: All Operands Restart Together</a></li>
             <li><a class="dropdown-item" href="scenario-4.html">4: Idempotent Same Value</a></li>
             <li><a class="dropdown-item" href="scenario-5.html">5: Second Update Triggers Rollout</a></li>
             <li><a class="dropdown-item" href="scenario-6.html">6: Healthy After Restart</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Non-Cloud Platform</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
@@ -41,65 +40,130 @@
 <div class="container my-4">
   <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.html">Dashboard</a></li><li class="breadcrumb-item active">Scenario 3</li></ol></nav>
 
-  <h1>Scenario 3: Operands Remain Stable Without restart-date Annotation</h1>
-  <p><strong>Objective:</strong> Verify CNO does not spuriously restart operands when no restart-date annotation is present.</p>
-  <p><strong>Maps to:</strong> Regression &mdash; ensure no unintended side effects</p>
+  <h1>Scenario 3: All CNO-Managed Operands Restart Together</h1>
+  <p><strong>Objective:</strong> Verify that ALL CNO-managed control plane operands restart when restart-date is set, not just CNCC.</p>
+  <p><strong>Maps to:</strong> The fix applies the annotation to ALL rendered workloads</p>
   <p><strong>Cluster:</strong> <code>brcox-88531-hc</code> on Azure dev mgmt cluster &mdash; HCP namespace: <code>clusters-brcox-88531-hc</code></p>
+  <p><strong>Release image:</strong> <code>registry.build10.ci.openshift.org/ci-ln-1qhpr62/release:latest</code> (CNO PR #3030 + HyperShift PR #8751)</p>
+  <p><em>Note: This scenario shares the same annotation event as Scenario 2 (restart-date set at 11:43:15Z).</em></p>
 
   <div class="alert alert-success"><strong>Overall Scenario 3:</strong> PASS</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark"><tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td>Verify no <code>restart-date</code> annotation on HCP</td><td><span class="badge bg-success">PASS</span></td><td>No restart-date annotation found (empty <code>{}</code>)</td></tr>
-      <tr><td>2</td><td>Record CNCC pod name and creation timestamp</td><td><span class="badge bg-success">PASS</span></td><td><code>cloud-network-config-controller-859cdd9f9b-cdxls</code> created <code>2026-06-16T15:51:21Z</code></td></tr>
-      <tr><td>3</td><td>Wait 10 minutes (3+ CNO reconcile cycles)</td><td><span class="badge bg-success">PASS</span></td><td>Waited 1h42m (15:51:21Z &rarr; 17:33:34Z) &mdash; well over 3 reconcile cycles (3 min each)</td></tr>
-      <tr><td>4</td><td>Pod name and timestamp unchanged</td><td><span class="badge bg-success">PASS</span></td><td>Same pod name and timestamp after 1h42m; all 4 CNO operands unchanged</td></tr>
+      <tr>
+        <td>1</td>
+        <td>Record timestamps for all CNO operands (before)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>All 4 operands recorded at 11:13 UTC (see evidence below)</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Set <code>restart-date</code> annotation</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Set to <code>2026-06-17T11:43:15Z</code> (same event as Scenario 2)</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>cloud-network-config-controller</code> restarted</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>5c7997f74f-7hllb</code> &rarr; <code>76dd98d985-k6zvs</code> (11:45:28Z)</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>multus-admission-controller</code> restarted</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>6d7b6dfc49-mgxlc</code> &rarr; <code>5fd559d858-75t5j</code> (11:45:35Z)</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>network-node-identity</code> restarted</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>b5d5546d8-kdgb7</code> &rarr; <code>85d874994d-pd9ks</code> (11:45:50Z)</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>ovnkube-control-plane</code> restarted</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>6c56d86876-ksfc5</code> &rarr; <code>7dbccb64d4-g8stz</code> (11:45:44Z)</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>All pods reach Running/Ready</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>All 4 pods Running/Ready at 11:47:37Z check</td>
+      </tr>
     </tbody>
   </table>
 
   <h4>Evidence</h4>
 
-  <h5>Step 1 &mdash; No restart-date annotation</h5>
-  <pre class="log-output">$ oc get hostedcontrolplane -n clusters-brcox-88531-hc brcox-88531-hc \
-    -o jsonpath='{.metadata.annotations}' | jq 'with_entries(select(.key | contains("restart-date")))'
-{}</pre>
+  <h5>Step 1 &mdash; All CNO operands before annotation</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc \
+    -o custom-columns='NAME:.metadata.name,READY:.status.containerStatuses[0].ready,RESTARTS:.status.containerStatuses[0].restartCount,CREATED:.metadata.creationTimestamp' \
+    | grep -E "multus|network-node-identity|ovnkube-control-plane|cloud-network-config"
+cloud-network-config-controller-5c7997f74f-7hllb     true    0          2026-06-17T11:13:20Z
+multus-admission-controller-6d7b6dfc49-mgxlc         true    0          2026-06-17T11:13:27Z
+network-node-identity-b5d5546d8-kdgb7                true    0          2026-06-17T11:13:42Z
+ovnkube-control-plane-6c56d86876-ksfc5               true    0          2026-06-17T11:13:36Z</pre>
 
-  <h5>Step 2 &mdash; Baseline pod state (captured at 15:51 UTC)</h5>
-  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -l app=cloud-network-config-controller \
-    -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase
-NAME                                               CREATED                STATUS
-cloud-network-config-controller-859cdd9f9b-cdxls   2026-06-16T15:51:21Z   Running
+  <h5>Steps 3-7 &mdash; All CNO operands after annotation (captured at 11:47 UTC)</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc \
+    -o custom-columns='NAME:.metadata.name,READY:.status.containerStatuses[0].ready,RESTARTS:.status.containerStatuses[0].restartCount,CREATED:.metadata.creationTimestamp' \
+    | grep -E "multus|network-node-identity|ovnkube-control-plane|cloud-network-config"
+cloud-network-config-controller-76dd98d985-k6zvs      true    0          2026-06-17T11:45:28Z
+multus-admission-controller-5fd559d858-75t5j          true    0          2026-06-17T11:45:35Z
+network-node-identity-85d874994d-pd9ks                true    0          2026-06-17T11:45:50Z
+ovnkube-control-plane-7dbccb64d4-g8stz                true    0          2026-06-17T11:45:44Z
 
-# All CNO operand pods:
-NAME                                                 CREATED                STATUS
-cloud-network-config-controller-859cdd9f9b-cdxls     2026-06-16T15:51:21Z   Running
-multus-admission-controller-66d8bc9788-tkqmw         2026-06-16T15:51:28Z   Running
-network-node-identity-646dcc669f-k67qm               2026-06-16T15:51:43Z   Running
-ovnkube-control-plane-6cb878df56-szcmv               2026-06-16T15:51:37Z   Running</pre>
+# All 4 operands have new ReplicaSets and new creation timestamps.
+# All rolled out within ~22 seconds of each other (11:45:28Z - 11:45:50Z).
+# All pods Running/Ready with 0 restarts.
 
-  <h5>Step 4 &mdash; Pod state after 1h42m (captured at 17:33 UTC)</h5>
-  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -l app=cloud-network-config-controller \
-    -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase
-NAME                                               CREATED                STATUS
-cloud-network-config-controller-859cdd9f9b-cdxls   2026-06-16T15:51:21Z   Running
+# Deployment generations all bumped to 2 with restart-date on pod templates:
+$ oc get deployment -n clusters-brcox-88531-hc \
+    cloud-network-config-controller multus-admission-controller \
+    network-node-identity ovnkube-control-plane \
+    -o jsonpath='{range .items[*]}Deployment: {.metadata.name}
+  generation: {.metadata.generation}
+  observedGeneration: {.status.observedGeneration}
+  restart-date: {.spec.template.metadata.annotations.hypershift\.openshift\.io/restart-date}
+  replicas/ready/updated: {.status.replicas}/{.status.readyReplicas}/{.status.updatedReplicas}
+{end}'
+Deployment: cloud-network-config-controller
+  generation: 2
+  observedGeneration: 2
+  restart-date: 2026-06-17T11:43:15Z
+  replicas/ready/updated: 1/1/1
+Deployment: multus-admission-controller
+  generation: 2
+  observedGeneration: 2
+  restart-date: 2026-06-17T11:43:15Z
+  replicas/ready/updated: 1/1/1
+Deployment: network-node-identity
+  generation: 2
+  observedGeneration: 2
+  restart-date: 2026-06-17T11:43:15Z
+  replicas/ready/updated: 1/1/1
+Deployment: ovnkube-control-plane
+  generation: 2
+  observedGeneration: 2
+  restart-date: 2026-06-17T11:43:15Z
+  replicas/ready/updated: 1/1/1
 
-# All CNO operand pods (unchanged):
-NAME                                                 CREATED                STATUS
-cloud-network-config-controller-859cdd9f9b-cdxls     2026-06-16T15:51:21Z   Running
-multus-admission-controller-66d8bc9788-tkqmw         2026-06-16T15:51:28Z   Running
-network-node-identity-646dcc669f-k67qm               2026-06-16T15:51:43Z   Running
-ovnkube-control-plane-6cb878df56-szcmv               2026-06-16T15:51:37Z   Running
-
-# All deployments stable:
-$ oc rollout status deployment/cloud-network-config-controller -n clusters-brcox-88531-hc
-deployment "cloud-network-config-controller" successfully rolled out
-$ oc rollout status deployment/multus-admission-controller -n clusters-brcox-88531-hc
-deployment "multus-admission-controller" successfully rolled out
-$ oc rollout status deployment/network-node-identity -n clusters-brcox-88531-hc
-deployment "network-node-identity" successfully rolled out
-$ oc rollout status deployment/ovnkube-control-plane -n clusters-brcox-88531-hc
-deployment "ovnkube-control-plane" successfully rolled out</pre>
+# ReplicaSet history showing old RS scaled down, new RS active:
+$ oc get rs -n clusters-brcox-88531-hc \
+    -o custom-columns='NAME:.metadata.name,DESIRED:.spec.replicas,CURRENT:.status.replicas,READY:.status.readyReplicas,CREATED:.metadata.creationTimestamp' \
+    | grep -E "multus|network-node-identity|ovnkube-control-plane|cloud-network-config"
+cloud-network-config-controller-5c7997f74f      0         0         &lt;none&gt;   2026-06-17T11:13:20Z
+cloud-network-config-controller-76dd98d985      1         1         1        2026-06-17T11:45:28Z
+multus-admission-controller-5fd559d858          1         1         1        2026-06-17T11:45:35Z
+multus-admission-controller-6d7b6dfc49          0         0         &lt;none&gt;   2026-06-17T11:13:27Z
+network-node-identity-85d874994d                1         1         1        2026-06-17T11:45:50Z
+network-node-identity-b5d5546d8                 0         0         &lt;none&gt;   2026-06-17T11:13:42Z
+ovnkube-control-plane-6c56d86876                0         0         &lt;none&gt;   2026-06-17T11:13:36Z
+ovnkube-control-plane-7dbccb64d4                1         1         1        2026-06-17T11:45:44Z</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="scenario-2.html" class="btn btn-outline-secondary">&larr; Scenario 2</a>

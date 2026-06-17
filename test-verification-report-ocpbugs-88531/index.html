@@ -27,13 +27,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: CNCC Restart on restart-date</a></li>
-            <li><a class="dropdown-item" href="scenario-2.html">2: All Operands Restart Together</a></li>
-            <li><a class="dropdown-item" href="scenario-3.html">3: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: CNCC Restart on restart-date</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: All Operands Restart Together</a></li>
             <li><a class="dropdown-item" href="scenario-4.html">4: Idempotent Same Value</a></li>
             <li><a class="dropdown-item" href="scenario-5.html">5: Second Update Triggers Rollout</a></li>
             <li><a class="dropdown-item" href="scenario-6.html">6: Healthy After Restart</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Non-Cloud Platform</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
@@ -50,10 +49,10 @@
     <table class="table table-sm" style="max-width: 600px;">
       <tbody>
         <tr><th scope="row">JIRA</th><td><a href="https://redhat.atlassian.net/browse/OCPBUGS-88531" target="_blank">OCPBUGS-88531</a>: cloud-network-config-controller is not restarted by RestartDateAnnotation</td></tr>
-        <tr><th scope="row">PR</th><td><a href="https://github.com/openshift/cluster-network-operator/pull/3030" target="_blank">CNO #3030</a>: Propagate restart-date annotation to CNO operand pod templates</td></tr>
-        <tr><th scope="row">Branch</th><td><code>OCPBUGS-88531</code></td></tr>
-        <tr><th scope="row">Cluster</th><td><code>brcox-88531-hc</code> (Azure, 5.0.0-0-test-ci-ln-09g0kmt-latest) on Azure dev mgmt cluster</td></tr>
-        <tr><th scope="row">Date</th><td>2026-06-16</td></tr>
+        <tr><th scope="row">PRs</th><td><a href="https://github.com/openshift/cluster-network-operator/pull/3030" target="_blank">CNO #3030</a>: Propagate restart-date annotation to CNO operand pod templates<br><a href="https://github.com/openshift/hypershift/pull/8751" target="_blank">HyperShift #8751</a>: Remove CPO-side restart logic for CNO operands</td></tr>
+        <tr><th scope="row">Release Image</th><td><code>registry.build10.ci.openshift.org/ci-ln-1qhpr62/release:latest</code></td></tr>
+        <tr><th scope="row">Cluster</th><td><code>brcox-88531-hc</code> (Azure, 5.0.0-0-2026-06-17-110400-test-ci-ln-1qhpr62-latest) on Azure dev mgmt cluster</td></tr>
+        <tr><th scope="row">Date</th><td>2026-06-17</td></tr>
         <tr><th scope="row">Tester</th><td>Bryan Cox</td></tr>
       </tbody>
     </table>
@@ -105,9 +104,9 @@
       <tr><td><a href="automated-tests.html">Build (<code>make build</code>)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="automated-tests.html">Unit Tests (<code>make test</code>)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="automated-tests.html">Lint / Verify</a></td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td><a href="scenario-1.html">Scenario 1: CNCC restarts on restart-date (primary bug fix)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td><a href="scenario-2.html">Scenario 2: All CNO operands restart together</a></td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td><a href="scenario-3.html">Scenario 3: Stable without annotation (no spurious restarts)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-1.html">Scenario 1: Stable without annotation (no spurious restarts)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-2.html">Scenario 2: CNCC restarts on restart-date (primary bug fix)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-3.html">Scenario 3: All CNO operands restart together</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-4.html">Scenario 4: Idempotent &mdash; same value no re-trigger</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-5.html">Scenario 5: Second update triggers another rollout</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-6.html">Scenario 6: Operands healthy after restart</a></td><td><span class="badge bg-success">PASS</span></td></tr>

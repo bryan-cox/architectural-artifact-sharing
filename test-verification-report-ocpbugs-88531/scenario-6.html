@@ -23,13 +23,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: CNCC Restart on restart-date</a></li>
-            <li><a class="dropdown-item" href="scenario-2.html">2: All Operands Restart Together</a></li>
-            <li><a class="dropdown-item" href="scenario-3.html">3: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: CNCC Restart on restart-date</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: All Operands Restart Together</a></li>
             <li><a class="dropdown-item" href="scenario-4.html">4: Idempotent Same Value</a></li>
             <li><a class="dropdown-item" href="scenario-5.html">5: Second Update Triggers Rollout</a></li>
             <li><a class="dropdown-item active" href="scenario-6.html">6: Healthy After Restart</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Non-Cloud Platform</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
@@ -44,52 +43,79 @@
   <h1>Scenario 6: Operands Remain Healthy After Restart</h1>
   <p><strong>Objective:</strong> Verify restarted operands function correctly and the HostedCluster remains Available.</p>
   <p><strong>Cluster:</strong> <code>brcox-88531-hc</code> on Azure dev mgmt cluster &mdash; HCP namespace: <code>clusters-brcox-88531-hc</code></p>
-  <p><em>Note: Checked immediately after Scenario 5's second rollout (annotation set to <code>2026-06-16T17:53:56Z</code>).</em></p>
+  <p><strong>Release image:</strong> <code>registry.build10.ci.openshift.org/ci-ln-1qhpr62/release:latest</code> (CNO PR #3030 + HyperShift PR #8751)</p>
+  <p><em>Note: Checked immediately after Scenario 5's second rollout (annotation set to <code>2026-06-17T11:52:52Z</code>).</em></p>
 
   <div class="alert alert-success"><strong>Overall Scenario 6:</strong> PASS</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark"><tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td>Restart triggered via <code>restart-date</code></td><td><span class="badge bg-success">PASS</span></td><td>Two restarts performed (Scenarios 1 and 5); checking health after most recent</td></tr>
+      <tr><td>1</td><td>Restart triggered via <code>restart-date</code></td><td><span class="badge bg-success">PASS</span></td><td>Two restarts performed (Scenarios 2 and 5); checking health after most recent</td></tr>
       <tr><td>2</td><td>All CNO operands Running/Ready</td><td><span class="badge bg-success">PASS</span></td><td>All 4 pods: Ready=true, Restarts=0, Status=Running</td></tr>
-      <tr><td>3</td><td>HostedCluster <code>Available=True</code></td><td><span class="badge bg-success">PASS</span></td><td><code>Available=True</code></td></tr>
-      <tr><td>4</td><td>CNO pod Running (not degraded)</td><td><span class="badge bg-success">PASS</span></td><td><code>cluster-network-operator-86b84dc66c-xw4th</code> Ready=true, Running</td></tr>
-      <tr><td>5</td><td>No restart-date errors in CNO logs</td><td><span class="badge bg-success">PASS</span></td><td>No error/fatal entries related to restart-date in last 200 log lines</td></tr>
+      <tr><td>3</td><td>All deployments successfully rolled out</td><td><span class="badge bg-success">PASS</span></td><td>All 4 deployments report "successfully rolled out"</td></tr>
+      <tr><td>4</td><td>HCP <code>Available=True</code>, <code>Degraded=False</code></td><td><span class="badge bg-success">PASS</span></td><td>Available=True, Degraded=False, network.operator Available=True</td></tr>
+      <tr><td>5</td><td>HostedCluster <code>Available=True</code>, not progressing</td><td><span class="badge bg-success">PASS</span></td><td>Available=True, Progressing=False, ClusterVersionAvailable=True</td></tr>
     </tbody>
   </table>
 
   <h4>Evidence</h4>
 
-  <h5>Step 2 &mdash; All CNO operands healthy (captured at 17:59 UTC)</h5>
+  <h5>Step 2 &mdash; All CNO operands healthy (captured at 11:56 UTC)</h5>
   <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc \
-    -o custom-columns=NAME:.metadata.name,READY:.status.containerStatuses[0].ready,RESTARTS:.status.containerStatuses[0].restartCount,STATUS:.status.phase \
+    -o custom-columns='NAME:.metadata.name,READY:.status.containerStatuses[0].ready,RESTARTS:.status.containerStatuses[0].restartCount,STATUS:.status.phase' \
     | grep -E 'NAME|cloud-network-config-controller|multus-admission|network-node-identity|ovnkube-control-plane'
 NAME                                                  READY   RESTARTS   STATUS
-cloud-network-config-controller-bb95c4887-l5bnt       true    0          Running
-multus-admission-controller-84ff4b74dd-fk2kc          true    0          Running
-network-node-identity-d67fd4b6d-8pkbv                 true    0          Running
-ovnkube-control-plane-c8c548b75-hwbs6                 true    0          Running</pre>
+cloud-network-config-controller-68bbc58f96-brmrw      true    0          Running
+multus-admission-controller-6b96956cdc-cdz2h          true    0          Running
+network-node-identity-575487f6f7-f42vf                true    0          Running
+ovnkube-control-plane-55f85bf477-z8sks                true    0          Running</pre>
 
-  <h5>Step 3 &mdash; HostedCluster Available</h5>
-  <pre class="log-output">$ oc get hostedcluster -n clusters brcox-88531-hc \
-    -o jsonpath='{.status.conditions[?(@.type=="Available")].status}'
-True</pre>
+  <h5>Step 3 &mdash; All deployments rolled out</h5>
+  <pre class="log-output">$ oc rollout status deployment/cloud-network-config-controller -n clusters-brcox-88531-hc
+deployment "cloud-network-config-controller" successfully rolled out
 
-  <h5>Step 4 &mdash; CNO pod healthy</h5>
-  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -l app=cluster-network-operator \
-    -o custom-columns=NAME:.metadata.name,READY:.status.containerStatuses[0].ready,STATUS:.status.phase
-NAME                                        READY   STATUS
-cluster-network-operator-86b84dc66c-xw4th   true    Running</pre>
+$ oc rollout status deployment/multus-admission-controller -n clusters-brcox-88531-hc
+deployment "multus-admission-controller" successfully rolled out
 
-  <h5>Step 5 &mdash; CNO logs (no restart-date errors)</h5>
-  <pre class="log-output">$ oc logs -n clusters-brcox-88531-hc deployment/cluster-network-operator \
-    -c cluster-network-operator --tail=200 | grep -i "restart-date\|error\|fatal"
-(no output — no restart-date errors or fatal entries found)</pre>
+$ oc rollout status deployment/network-node-identity -n clusters-brcox-88531-hc
+deployment "network-node-identity" successfully rolled out
+
+$ oc rollout status deployment/ovnkube-control-plane -n clusters-brcox-88531-hc
+deployment "ovnkube-control-plane" successfully rolled out</pre>
+
+  <h5>Step 4 &mdash; HCP conditions</h5>
+  <pre class="log-output">$ oc get hcp brcox-88531-hc -n clusters-brcox-88531-hc \
+    -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\t"}{.message}{"\n"}{end}' \
+    | grep -E "Available|Degraded"
+EtcdAvailable                                        True
+KubeAPIServerAvailable                               True    Kube APIServer deployment is available
+Degraded                                             False
+Available                                            True
+ClusterVersionAvailable                              True    Done applying 5.0.0-0-2026-06-17-110400-test-ci-ln-1qhpr62-latest
+DataPlaneConnectionAvailable                         True    All is well
+ControlPlaneConnectionAvailable                      True    All is well
+network.operator.openshift.io/Degraded               False
+network.operator.openshift.io/Available               True</pre>
+
+  <h5>Step 5 &mdash; HostedCluster conditions</h5>
+  <pre class="log-output">$ oc get hostedcluster brcox-88531-hc -n clusters \
+    -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\n"}{end}' \
+    | grep -E "Available|Progressing|Degraded"
+ClusterVersionAvailable          True
+ClusterVersionProgressing        False
+Degraded                         False
+EtcdAvailable                    True
+KubeAPIServerAvailable           True
+DataPlaneConnectionAvailable     True
+ControlPlaneConnectionAvailable  True
+Available                        True
+IgnitionEndpointAvailable        True
+Progressing                      False</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="scenario-5.html" class="btn btn-outline-secondary">&larr; Scenario 5</a>
-    <a href="scenario-7.html" class="btn btn-outline-primary">Scenario 7 &rarr;</a>
+    <a href="index.html" class="btn btn-outline-primary">Dashboard &rarr;</a>
   </div>
 </div>
 

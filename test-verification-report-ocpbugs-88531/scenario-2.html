@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scenario 2: All Operands Restart Together - OCPBUGS-88531</title>
+  <title>Scenario 2: CNCC Restart on restart-date - OCPBUGS-88531</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
@@ -15,9 +15,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
   <div class="container-fluid">
     <a class="navbar-brand" href="index.html">OCPBUGS-88531 Report</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
@@ -25,13 +23,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: CNCC Restart on restart-date</a></li>
-            <li><a class="dropdown-item active" href="scenario-2.html">2: All Operands Restart Together</a></li>
-            <li><a class="dropdown-item" href="scenario-3.html">3: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item active" href="scenario-2.html">2: CNCC Restart on restart-date</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: All Operands Restart Together</a></li>
             <li><a class="dropdown-item" href="scenario-4.html">4: Idempotent Same Value</a></li>
             <li><a class="dropdown-item" href="scenario-5.html">5: Second Update Triggers Rollout</a></li>
             <li><a class="dropdown-item" href="scenario-6.html">6: Healthy After Restart</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Non-Cloud Platform</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
@@ -41,99 +38,103 @@
 </nav>
 
 <div class="container my-4">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.html">Dashboard</a></li><li class="breadcrumb-item active">Scenario 2</li></ol></nav>
 
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
-      <li class="breadcrumb-item active">Scenario 2</li>
-    </ol>
-  </nav>
-
-  <h1>Scenario 2: All CNO-Managed Operands Restart Together</h1>
-  <p><strong>Objective:</strong> Verify that ALL CNO-managed control plane operands restart when restart-date is set, not just CNCC.</p>
-  <p><strong>Maps to:</strong> The fix applies the annotation to ALL rendered workloads</p>
+  <h1>Scenario 2: CNCC Restarts on restart-date Annotation (Primary Bug Fix)</h1>
+  <p><strong>Objective:</strong> Verify that <code>cloud-network-config-controller</code> restarts when <code>hypershift.openshift.io/restart-date</code> is set on the HostedCluster.</p>
+  <p><strong>Maps to:</strong> JIRA reproduction steps and acceptance criteria</p>
   <p><strong>Cluster:</strong> <code>brcox-88531-hc</code> on Azure dev mgmt cluster &mdash; HCP namespace: <code>clusters-brcox-88531-hc</code></p>
-  <p><em>Note: This scenario shares the same annotation event as Scenario 1 (restart-date set at 17:40:15Z).</em></p>
+  <p><strong>Release image:</strong> <code>registry.build10.ci.openshift.org/ci-ln-1qhpr62/release:latest</code> (CNO PR #3030 + HyperShift PR #8751)</p>
 
   <div class="alert alert-success"><strong>Overall Scenario 2:</strong> PASS</div>
 
   <table class="table table-striped table-hover">
-    <thead class="table-dark">
-      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
-    </thead>
+    <thead class="table-dark"><tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr></thead>
     <tbody>
       <tr>
         <td>1</td>
-        <td>Record timestamps for all CNO operands (before)</td>
+        <td>CNCC pod running in HCP namespace</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>All 4 operands recorded at 15:51 UTC (see evidence below)</td>
+        <td><code>cloud-network-config-controller-5c7997f74f-7hllb</code> Running</td>
       </tr>
       <tr>
         <td>2</td>
-        <td>Set <code>restart-date</code> annotation</td>
+        <td>Record pod name and creation timestamp (before)</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Set to <code>2026-06-16T17:40:15Z</code> (same event as Scenario 1)</td>
+        <td>Pod <code>5c7997f74f-7hllb</code> created <code>2026-06-17T11:13:20Z</code></td>
       </tr>
       <tr>
         <td>3</td>
-        <td><code>cloud-network-config-controller</code> restarted</td>
+        <td>Set <code>restart-date</code> annotation on HostedCluster</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>859cdd9f9b-cdxls</code> &rarr; <code>f7c988c56-2tz6d</code> (17:42:24Z)</td>
+        <td>Set to <code>2026-06-17T11:43:15Z</code>; annotation propagated to HCP</td>
       </tr>
       <tr>
         <td>4</td>
-        <td><code>multus-admission-controller</code> restarted</td>
+        <td>Wait up to 5 minutes for CNO reconcile</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>66d8bc9788-tkqmw</code> &rarr; <code>6f69d6c74c-28jpj</code> (17:42:31Z)</td>
+        <td>New pod appeared ~2 min after annotation set (CNO ResyncPeriod = 3 min)</td>
       </tr>
       <tr>
         <td>5</td>
-        <td><code>network-node-identity</code> restarted</td>
+        <td>CNCC pod has newer creation timestamp</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>646dcc669f-k67qm</code> &rarr; <code>74c66bf4b7-jlclg</code> (17:42:46Z)</td>
+        <td><code>11:13:20Z</code> &rarr; <code>11:45:28Z</code></td>
       </tr>
       <tr>
         <td>6</td>
-        <td><code>ovnkube-control-plane</code> restarted</td>
+        <td>CNCC pod name changed (new ReplicaSet rolled out)</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>6cb878df56-szcmv</code> &rarr; <code>c4fb5d896-gfkj4</code> (17:42:40Z)</td>
-      </tr>
-      <tr>
-        <td>7</td>
-        <td>All pods reach Running/Ready</td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td>All 4 pods Running at 17:43:28Z check</td>
+        <td><code>5c7997f74f-7hllb</code> &rarr; <code>76dd98d985-k6zvs</code> (new RS)</td>
       </tr>
     </tbody>
   </table>
 
   <h4>Evidence</h4>
 
-  <h5>Step 1 &mdash; All CNO operands before annotation (captured at ~17:40 UTC)</h5>
-  <pre class="log-output">NAME                                                 CREATED                STATUS
-cloud-network-config-controller-859cdd9f9b-cdxls     2026-06-16T15:51:21Z   Running
-multus-admission-controller-66d8bc9788-tkqmw         2026-06-16T15:51:28Z   Running
-network-node-identity-646dcc669f-k67qm               2026-06-16T15:51:43Z   Running
-ovnkube-control-plane-6cb878df56-szcmv               2026-06-16T15:51:37Z   Running</pre>
+  <h5>Steps 1-2 &mdash; CNCC pod before annotation</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc \
+    -o custom-columns='NAME:.metadata.name,READY:.status.containerStatuses[0].ready,RESTARTS:.status.containerStatuses[0].restartCount,CREATED:.metadata.creationTimestamp' \
+    | grep cloud-network-config
+cloud-network-config-controller-5c7997f74f-7hllb     true    0          2026-06-17T11:13:20Z</pre>
 
-  <h5>Steps 3-7 &mdash; All CNO operands after annotation (captured at 17:43 UTC)</h5>
-  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase \
-    | grep -E 'NAME|cloud-network-config-controller|multus-admission|network-node-identity|ovnkube-control-plane'
-NAME                                                  CREATED                STATUS
-cloud-network-config-controller-f7c988c56-2tz6d       2026-06-16T17:42:24Z   Running
-multus-admission-controller-6f69d6c74c-28jpj          2026-06-16T17:42:31Z   Running
-network-node-identity-74c66bf4b7-jlclg                2026-06-16T17:42:46Z   Running
-ovnkube-control-plane-c4fb5d896-gfkj4                 2026-06-16T17:42:40Z   Running
+  <h5>Step 3 &mdash; Set restart-date annotation</h5>
+  <pre class="log-output">$ RESTART_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+# RESTART_DATE=2026-06-17T11:43:15Z
 
-# All 4 operands have new ReplicaSets and new creation timestamps.
-# All rolled out within ~22 seconds of each other (17:42:24Z - 17:42:46Z).
-# All pods Running.</pre>
+$ oc annotate hostedcluster -n clusters brcox-88531-hc \
+    "hypershift.openshift.io/restart-date=$RESTART_DATE" --overwrite
+hostedcluster.hypershift.openshift.io/brcox-88531-hc annotated
+
+# Verify annotation propagated to HCP:
+$ oc get hcp brcox-88531-hc -n clusters-brcox-88531-hc \
+    -o jsonpath='{.metadata.annotations.hypershift\.openshift\.io/restart-date}'
+2026-06-17T11:43:15Z</pre>
+
+  <h5>Steps 4-6 &mdash; CNCC pod after annotation (captured at 11:47 UTC)</h5>
+  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc \
+    -o custom-columns='NAME:.metadata.name,READY:.status.containerStatuses[0].ready,RESTARTS:.status.containerStatuses[0].restartCount,CREATED:.metadata.creationTimestamp' \
+    | grep cloud-network-config
+cloud-network-config-controller-76dd98d985-k6zvs      true    0          2026-06-17T11:45:28Z
+
+# New ReplicaSet rolled out: 5c7997f74f -> 76dd98d985
+# Creation timestamp changed: 11:13:20Z -> 11:45:28Z
+# Pod restarted ~2 minutes after restart-date annotation was set
+
+# Deployment now at generation 2 with restart-date on pod template:
+$ oc get deployment cloud-network-config-controller -n clusters-brcox-88531-hc \
+    -o jsonpath='generation: {.metadata.generation}  restart-date: {.spec.template.metadata.annotations.hypershift\.openshift\.io/restart-date}'
+generation: 2  restart-date: 2026-06-17T11:43:15Z
+
+# ReplicaSet history showing old RS scaled down:
+$ oc get rs -n clusters-brcox-88531-hc | grep cloud-network-config
+cloud-network-config-controller-5c7997f74f      0         0         &lt;none&gt;   2026-06-17T11:13:20Z
+cloud-network-config-controller-76dd98d985      1         1         1        2026-06-17T11:45:28Z</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="scenario-1.html" class="btn btn-outline-secondary">&larr; Scenario 1</a>
     <a href="scenario-3.html" class="btn btn-outline-primary">Scenario 3 &rarr;</a>
   </div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

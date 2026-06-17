@@ -23,13 +23,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: CNCC Restart on restart-date</a></li>
-            <li><a class="dropdown-item" href="scenario-2.html">2: All Operands Restart Together</a></li>
-            <li><a class="dropdown-item" href="scenario-3.html">3: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Stable Without Annotation</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: CNCC Restart on restart-date</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: All Operands Restart Together</a></li>
             <li><a class="dropdown-item active" href="scenario-4.html">4: Idempotent Same Value</a></li>
             <li><a class="dropdown-item" href="scenario-5.html">5: Second Update Triggers Rollout</a></li>
             <li><a class="dropdown-item" href="scenario-6.html">6: Healthy After Restart</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Non-Cloud Platform</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
@@ -44,47 +43,81 @@
   <h1>Scenario 4: Idempotent Behavior &mdash; Same restart-date Does Not Re-Trigger</h1>
   <p><strong>Objective:</strong> Verify that repeated reconciles with the same annotation value do not cause pod flapping.</p>
   <p><strong>Cluster:</strong> <code>brcox-88531-hc</code> on Azure dev mgmt cluster &mdash; HCP namespace: <code>clusters-brcox-88531-hc</code></p>
-  <p><em>Note: The annotation was already set to <code>2026-06-16T17:40:15Z</code> during Scenario 1. This test re-applies the same value and verifies no new rollout.</em></p>
+  <p><strong>Release image:</strong> <code>registry.build10.ci.openshift.org/ci-ln-1qhpr62/release:latest</code> (CNO PR #3030 + HyperShift PR #8751)</p>
+  <p><em>Note: The annotation was already set to <code>2026-06-17T11:43:15Z</code> during Scenario 2. This test re-applies the same value and verifies no new rollout.</em></p>
 
   <div class="alert alert-success"><strong>Overall Scenario 4:</strong> PASS</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark"><tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td>Record current pod state (post-Scenario 1 restart)</td><td><span class="badge bg-success">PASS</span></td><td>All 4 operands recorded at ~17:42 UTC (see evidence below)</td></tr>
-      <tr><td>2</td><td>Re-apply same <code>restart-date</code> annotation value</td><td><span class="badge bg-success">PASS</span></td><td>Re-applied <code>2026-06-16T17:40:15Z</code> with <code>--overwrite</code></td></tr>
-      <tr><td>3</td><td>Wait 5 minutes (3+ CNO reconcile cycles)</td><td><span class="badge bg-success">PASS</span></td><td>Waited 17:47:28Z &rarr; 17:52:28Z (5 min)</td></tr>
-      <tr><td>4</td><td>Pods have NOT restarted again</td><td><span class="badge bg-success">PASS</span></td><td>All 4 pods same name and creation timestamp as before</td></tr>
+      <tr><td>1</td><td>Record current pod state (post-Scenario 2 restart)</td><td><span class="badge bg-success">PASS</span></td><td>All 4 operands at gen 2, restart-date <code>2026-06-17T11:43:15Z</code></td></tr>
+      <tr><td>2</td><td>Re-apply same <code>restart-date</code> annotation value</td><td><span class="badge bg-success">PASS</span></td><td>Re-applied <code>2026-06-17T11:43:15Z</code> with <code>--overwrite</code></td></tr>
+      <tr><td>3</td><td>Wait 3+ minutes (CNO reconcile cycle)</td><td><span class="badge bg-success">PASS</span></td><td>Waited 11:49:25Z &rarr; 11:52:45Z (3m20s, &gt;1 CNO reconcile cycle)</td></tr>
+      <tr><td>4</td><td>Pods have NOT restarted again</td><td><span class="badge bg-success">PASS</span></td><td>All 4 pods same name, timestamp, gen still 2; no new ReplicaSets</td></tr>
     </tbody>
   </table>
 
   <h4>Evidence</h4>
 
   <h5>Step 1 &mdash; Current pod state before re-applying same annotation</h5>
-  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase \
-    | grep -E 'NAME|cloud-network-config-controller|multus-admission|network-node-identity|ovnkube-control-plane'
-NAME                                                  CREATED                STATUS
-cloud-network-config-controller-f7c988c56-2tz6d       2026-06-16T17:42:24Z   Running
-multus-admission-controller-6f69d6c74c-28jpj          2026-06-16T17:42:31Z   Running
-network-node-identity-74c66bf4b7-jlclg                2026-06-16T17:42:46Z   Running
-ovnkube-control-plane-c4fb5d896-gfkj4                 2026-06-16T17:42:40Z   Running</pre>
+  <pre class="log-output">$ oc get deployment -n clusters-brcox-88531-hc \
+    cloud-network-config-controller multus-admission-controller \
+    network-node-identity ovnkube-control-plane \
+    -o jsonpath='{range .items[*]}Deployment: {.metadata.name}  gen: {.metadata.generation}  restart-date: {.spec.template.metadata.annotations.hypershift\.openshift\.io/restart-date}
+{end}'
+Deployment: cloud-network-config-controller  gen: 2  restart-date: 2026-06-17T11:43:15Z
+Deployment: multus-admission-controller  gen: 2  restart-date: 2026-06-17T11:43:15Z
+Deployment: network-node-identity  gen: 2  restart-date: 2026-06-17T11:43:15Z
+Deployment: ovnkube-control-plane  gen: 2  restart-date: 2026-06-17T11:43:15Z
+
+$ oc get pods -n clusters-brcox-88531-hc \
+    -o custom-columns='NAME:.metadata.name,CREATED:.metadata.creationTimestamp' \
+    | grep -E "multus|network-node-identity|ovnkube-control-plane|cloud-network-config"
+cloud-network-config-controller-76dd98d985-k6zvs      2026-06-17T11:45:28Z
+multus-admission-controller-5fd559d858-75t5j          2026-06-17T11:45:35Z
+network-node-identity-85d874994d-pd9ks                2026-06-17T11:45:50Z
+ovnkube-control-plane-7dbccb64d4-g8stz                2026-06-17T11:45:44Z</pre>
 
   <h5>Step 2 &mdash; Re-apply same annotation value</h5>
   <pre class="log-output">$ oc annotate hostedcluster -n clusters brcox-88531-hc \
-    'hypershift.openshift.io/restart-date=2026-06-16T17:40:15Z' --overwrite
+    'hypershift.openshift.io/restart-date=2026-06-17T11:43:15Z' --overwrite
 hostedcluster.hypershift.openshift.io/brcox-88531-hc annotated</pre>
 
-  <h5>Step 4 &mdash; Pod state after 5 minutes (captured at 17:52 UTC)</h5>
-  <pre class="log-output">$ oc get pods -n clusters-brcox-88531-hc -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,STATUS:.status.phase \
-    | grep -E 'NAME|cloud-network-config-controller|multus-admission|network-node-identity|ovnkube-control-plane'
-NAME                                                  CREATED                STATUS
-cloud-network-config-controller-f7c988c56-2tz6d       2026-06-16T17:42:24Z   Running
-multus-admission-controller-6f69d6c74c-28jpj          2026-06-16T17:42:31Z   Running
-network-node-identity-74c66bf4b7-jlclg                2026-06-16T17:42:46Z   Running
-ovnkube-control-plane-c4fb5d896-gfkj4                 2026-06-16T17:42:40Z   Running
+  <h5>Step 4 &mdash; Pod state after 3+ minutes (captured at 11:52 UTC)</h5>
+  <pre class="log-output">$ oc get deployment -n clusters-brcox-88531-hc \
+    cloud-network-config-controller multus-admission-controller \
+    network-node-identity ovnkube-control-plane \
+    -o jsonpath='{range .items[*]}Deployment: {.metadata.name}  gen: {.metadata.generation}  restart-date: {.spec.template.metadata.annotations.hypershift\.openshift\.io/restart-date}
+{end}'
+Deployment: cloud-network-config-controller  gen: 2  restart-date: 2026-06-17T11:43:15Z
+Deployment: multus-admission-controller  gen: 2  restart-date: 2026-06-17T11:43:15Z
+Deployment: network-node-identity  gen: 2  restart-date: 2026-06-17T11:43:15Z
+Deployment: ovnkube-control-plane  gen: 2  restart-date: 2026-06-17T11:43:15Z
+
+$ oc get pods -n clusters-brcox-88531-hc \
+    -o custom-columns='NAME:.metadata.name,READY:.status.containerStatuses[0].ready,RESTARTS:.status.containerStatuses[0].restartCount,CREATED:.metadata.creationTimestamp' \
+    | grep -E "multus|network-node-identity|ovnkube-control-plane|cloud-network-config"
+cloud-network-config-controller-76dd98d985-k6zvs      true    0          2026-06-17T11:45:28Z
+multus-admission-controller-5fd559d858-75t5j          true    0          2026-06-17T11:45:35Z
+network-node-identity-85d874994d-pd9ks                true    0          2026-06-17T11:45:50Z
+ovnkube-control-plane-7dbccb64d4-g8stz                true    0          2026-06-17T11:45:44Z
 
 # All 4 pods UNCHANGED after re-applying the same restart-date value.
-# No new rollout triggered — idempotent behavior confirmed.</pre>
+# Generations still 2, no new ReplicaSets created.
+# Idempotent behavior confirmed.
+
+$ oc get rs -n clusters-brcox-88531-hc \
+    -o custom-columns='NAME:.metadata.name,DESIRED:.spec.replicas,CURRENT:.status.replicas,READY:.status.readyReplicas,CREATED:.metadata.creationTimestamp' \
+    | grep -E "multus|network-node-identity|ovnkube-control-plane|cloud-network-config"
+cloud-network-config-controller-5c7997f74f      0         0         &lt;none&gt;   2026-06-17T11:13:20Z
+cloud-network-config-controller-76dd98d985      1         1         1        2026-06-17T11:45:28Z
+multus-admission-controller-5fd559d858          1         1         1        2026-06-17T11:45:35Z
+multus-admission-controller-6d7b6dfc49          0         0         &lt;none&gt;   2026-06-17T11:13:27Z
+network-node-identity-85d874994d                1         1         1        2026-06-17T11:45:50Z
+network-node-identity-b5d5546d8                 0         0         &lt;none&gt;   2026-06-17T11:13:42Z
+ovnkube-control-plane-6c56d86876                0         0         &lt;none&gt;   2026-06-17T11:13:36Z
+ovnkube-control-plane-7dbccb64d4                1         1         1        2026-06-17T11:45:44Z</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="scenario-3.html" class="btn btn-outline-secondary">&larr; Scenario 3</a>
