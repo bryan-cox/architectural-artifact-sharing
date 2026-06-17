@@ -52,95 +52,53 @@
 
   <p><strong>Objective:</strong> Verify that providing <code>--dns-zone-rg-name</code> with <code>--assign-identity-roles</code> passes validation and proceeds to Azure API calls.</p>
 
-  <div class="alert alert-success"><strong>Result: PASS</strong> &mdash; Validation passed. Failure is Azure auth with test credentials, not validation.</div>
+  <div class="alert alert-success"><strong>Result: PASS</strong> &mdash; End-to-end success. Infrastructure created, role assignments completed, DNS zone and egress LB provisioned.</div>
 
   <h4>Command</h4>
   <pre class="log-output">$ hypershift create infra azure \
     --name test-s6 \
     --infra-id test-s6 \
-    --azure-creds creds.yaml \
-    --base-domain example.com \
-    --workload-identities-file wi.json \
+    --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
+    --base-domain hcp-sm-azure.azure.devcluster.openshift.com \
+    --location eastus \
+    --dns-zone-rg-name os4-common \
+    --workload-identities-file wi-s6.json \
     --assign-identity-roles \
-    --dns-zone-rg-name my-dns-rg</pre>
+    --output-file s6-infra-output.json</pre>
 
   <h4>Full Output</h4>
-  <pre class="log-output">{"level":"info","ts":"2026-06-17T10:30:17-04:00","msg":"Using credentials from file","path":"creds.yaml"}
-{"level":"error","ts":"2026-06-17T10:30:18-04:00","msg":"Failed to create infrastructure","error":"failed to create a resource group: createResourceGroup: failed to create a resource group: DefaultAzureCredential: failed to acquire a token.
-Attempted credentials:
-	ClientSecretCredential authentication failed.
-		GET https://login.microsoftonline.com/faketenantid/v2.0/.well-known/openid-configuration
-		--------------------------------------------------------------------------------
-		RESPONSE 400: 400 Bad Request
-		--------------------------------------------------------------------------------
-		{
-		  \"error\": \"invalid_tenant\",
-		  \"error_description\": \"AADSTS90002: Tenant 'faketenantid' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: 5dc3bfec-0036-4771-bb0b-bf9a73738400 Correlation ID: f587061a-d0e2-4df5-9953-5a68f7d2fa5e Timestamp: 2026-06-17 14:30:18Z\",
-		  \"error_codes\": [
-		    90002
-		  ],
-		  \"timestamp\": \"2026-06-17 14:30:18Z\",
-		  \"trace_id\": \"5dc3bfec-0036-4771-bb0b-bf9a73738400\",
-		  \"correlation_id\": \"f587061a-d0e2-4df5-9953-5a68f7d2fa5e\",
-		  \"error_uri\": \"https://login.microsoftonline.com/error?code=90002\"
-		}
-		--------------------------------------------------------------------------------
-		To troubleshoot, visit https://aka.ms/azsdk/go/identity/troubleshoot#client-secret","stacktrace":"github.com/openshift/hypershift/cmd/infra/azure.NewCreateCommand.func1
-	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/cmd/infra/azure/create.go:74
-github.com/spf13/cobra.(*Command).execute
-	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1015
-github.com/spf13/cobra.(*Command).ExecuteC
-	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1148
-github.com/spf13/cobra.(*Command).Execute
-	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1071
-github.com/spf13/cobra.(*Command).ExecuteContext
-	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1064
-main.main
-	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/main.go:80
-runtime.main
-	/opt/homebrew/Cellar/go/1.26.0/libexec/src/runtime/proc.go:290"}
-Error: failed to create a resource group: createResourceGroup: failed to create a resource group: DefaultAzureCredential: failed to acquire a token.
-Attempted credentials:
-	ClientSecretCredential authentication failed.
-		GET https://login.microsoftonline.com/faketenantid/v2.0/.well-known/openid-configuration
-		--------------------------------------------------------------------------------
-		RESPONSE 400: 400 Bad Request
-		--------------------------------------------------------------------------------
-		{
-		  "error": "invalid_tenant",
-		  "error_description": "AADSTS90002: Tenant 'faketenantid' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: 5dc3bfec-0036-4771-bb0b-bf9a73738400 Correlation ID: f587061a-d0e2-4df5-9953-5a68f7d2fa5e Timestamp: 2026-06-17 14:30:18Z",
-		  "error_codes": [
-		    90002
-		  ],
-		  "timestamp": "2026-06-17 14:30:18Z",
-		  "trace_id": "5dc3bfec-0036-4771-bb0b-bf9a73738400",
-		  "correlation_id": "f587061a-d0e2-4df5-9953-5a68f7d2fa5e",
-		  "error_uri": "https://login.microsoftonline.com/error?code=90002"
-		}
-		--------------------------------------------------------------------------------
-		To troubleshoot, visit https://aka.ms/azsdk/go/identity/troubleshoot#client-secret
-failed to create a resource group: createResourceGroup: failed to create a resource group: DefaultAzureCredential: failed to acquire a token.
-Attempted credentials:
-	ClientSecretCredential authentication failed.
-		GET https://login.microsoftonline.com/faketenantid/v2.0/.well-known/openid-configuration
-		--------------------------------------------------------------------------------
-		RESPONSE 400: 400 Bad Request
-		--------------------------------------------------------------------------------
-		{
-		  "error": "invalid_tenant",
-		  "error_description": "AADSTS90002: Tenant 'faketenantid' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: 5dc3bfec-0036-4771-bb0b-bf9a73738400 Correlation ID: f587061a-d0e2-4df5-9953-5a68f7d2fa5e Timestamp: 2026-06-17 14:30:18Z",
-		  "error_codes": [
-		    90002
-		  ],
-		  "timestamp": "2026-06-17 14:30:18Z",
-		  "trace_id": "5dc3bfec-0036-4771-bb0b-bf9a73738400",
-		  "correlation_id": "f587061a-d0e2-4df5-9953-5a68f7d2fa5e",
-		  "error_uri": "https://login.microsoftonline.com/error?code=90002"
-		}
-		--------------------------------------------------------------------------------
-		To troubleshoot, visit https://aka.ms/azsdk/go/identity/troubleshoot#client-secret
+  <pre class="log-output">{"level":"info","ts":"2026-06-17T11:35:59-04:00","msg":"Using credentials from file","path":"/Users/brcox/.azure/self-managed-azure-credentials.json"}
+{"level":"info","ts":"2026-06-17T11:36:00-04:00","msg":"Successfully created resource group","name":"test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:00-04:00","msg":"Successfully created resource group","name":"test-s6-nsg-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:01-04:00","msg":"Successfully created network security group","ID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-nsg-test-s6/providers/Microsoft.Network/networkSecurityGroups/test-s6-test-s6-nsg"}
+{"level":"info","ts":"2026-06-17T11:36:01-04:00","msg":"Successfully created resource group","name":"test-s6-vnet-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:01-04:00","msg":"Creating new subnet for vnet creation"}
+{"level":"info","ts":"2026-06-17T11:36:01-04:00","msg":"Successfully created vnet","ID":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-vnet-test-s6/providers/Microsoft.Network/virtualNetworks/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:04-04:00","msg":"successfully created role assignment","role":"a1f96423-95ce-4224-ab27-4e3dc72facd4","assigneeID":"38bd2413-83dc-452d-a3df-891991ca9292","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:07-04:00","msg":"successfully created role assignment","role":"a1f96423-95ce-4224-ab27-4e3dc72facd4","assigneeID":"38bd2413-83dc-452d-a3df-891991ca9292","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-nsg-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:10-04:00","msg":"successfully created role assignment","role":"a1f96423-95ce-4224-ab27-4e3dc72facd4","assigneeID":"38bd2413-83dc-452d-a3df-891991ca9292","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-vnet-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:13-04:00","msg":"successfully created role assignment","role":"0d7aedc0-15fd-4a67-a412-efad370c947e","assigneeID":"bc50afa4-7eda-48fc-9493-a81d6f9f5723","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:15-04:00","msg":"successfully created role assignment","role":"0d7aedc0-15fd-4a67-a412-efad370c947e","assigneeID":"bc50afa4-7eda-48fc-9493-a81d6f9f5723","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-nsg-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:18-04:00","msg":"successfully created role assignment","role":"0d7aedc0-15fd-4a67-a412-efad370c947e","assigneeID":"bc50afa4-7eda-48fc-9493-a81d6f9f5723","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-vnet-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:20-04:00","msg":"successfully created role assignment","role":"5b7237c5-45e1-49d6-bc18-a1f62f400748","assigneeID":"33daabbd-bf73-4a5b-9207-561587fbe10a","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:28-04:00","msg":"successfully created role assignment","role":"0336e1d3-7a87-462b-b6db-342b63f7802c","assigneeID":"dba0eeaf-2dc7-4e4d-b231-6d272dca29d8","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:34-04:00","msg":"successfully created role assignment","role":"0336e1d3-7a87-462b-b6db-342b63f7802c","assigneeID":"dba0eeaf-2dc7-4e4d-b231-6d272dca29d8","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-vnet-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:35-04:00","msg":"successfully created role assignment","role":"0336e1d3-7a87-462b-b6db-342b63f7802c","assigneeID":"dba0eeaf-2dc7-4e4d-b231-6d272dca29d8","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common"}
+{"level":"info","ts":"2026-06-17T11:36:37-04:00","msg":"successfully created role assignment","role":"be7a6435-15ae-4171-8f30-4a343eff9e8f","assigneeID":"6b05256e-3f01-4239-8bc4-4ed1e1530199","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:39-04:00","msg":"successfully created role assignment","role":"be7a6435-15ae-4171-8f30-4a343eff9e8f","assigneeID":"6b05256e-3f01-4239-8bc4-4ed1e1530199","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-vnet-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:42-04:00","msg":"successfully created role assignment","role":"8b32b316-c2f5-4ddf-b05b-83dacd2d08b5","assigneeID":"45bd80aa-5be3-430b-81cd-a790b4c95147","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:47-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"2402a338-0d06-4e4c-a8a3-5320ea205a79","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:50-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"2402a338-0d06-4e4c-a8a3-5320ea205a79","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-nsg-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:55-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"2402a338-0d06-4e4c-a8a3-5320ea205a79","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-vnet-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:57-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"1095f5ba-97e5-4da5-aff7-a933dbd237e3","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-test-s6"}
+{"level":"info","ts":"2026-06-17T11:36:59-04:00","msg":"successfully created role assignment","role":"b24988ac-6180-42a0-ab88-20f7382dd24c","assigneeID":"1095f5ba-97e5-4da5-aff7-a933dbd237e3","scope":"/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/test-s6-vnet-test-s6"}
+{"level":"info","ts":"2026-06-17T11:37:31-04:00","msg":"Successfully created private DNS zone","name":"test-s6-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com"}
+{"level":"info","ts":"2026-06-17T11:38:02-04:00","msg":"Successfully created private DNS zone link"}
+{"level":"info","ts":"2026-06-17T11:38:03-04:00","msg":"Successfully created public IP address for guest cluster egress load balancer"}
+{"level":"info","ts":"2026-06-17T11:38:04-04:00","msg":"Successfully created guest cluster egress load balancer"}
+{"level":"info","ts":"2026-06-17T11:38:04-04:00","msg":"Successfully created infrastructure"}
 
-Exit code: 1 (Azure auth failure — validation passed successfully)</pre>
+Exit code: 0</pre>
 
   <h4>Verification</h4>
   <table class="table table-striped table-hover">
@@ -149,8 +107,10 @@ Exit code: 1 (Azure auth failure — validation passed successfully)</pre>
     </thead>
     <tbody>
       <tr><td>Command passes validation (no <code>--dns-zone-rg-name is required</code> error)</td><td><span class="badge bg-success">PASS</span> &mdash; No validation error</td></tr>
-      <tr><td>Command proceeds to Azure API calls</td><td><span class="badge bg-success">PASS</span> &mdash; <code>"Using credentials from file"</code> logged</td></tr>
-      <tr><td>Failure is Azure auth, not validation</td><td><span class="badge bg-success">PASS</span> &mdash; <code>Tenant 'faketenantid' not found</code> (expected with test creds)</td></tr>
+      <tr><td>Resource groups created</td><td><span class="badge bg-success">PASS</span> &mdash; <code>test-s6-test-s6</code>, <code>test-s6-nsg-test-s6</code>, <code>test-s6-vnet-test-s6</code></td></tr>
+      <tr><td>Role assignments completed</td><td><span class="badge bg-success">PASS</span> &mdash; 18 role assignments across resource groups including <code>os4-common</code></td></tr>
+      <tr><td>DNS zone and networking created</td><td><span class="badge bg-success">PASS</span> &mdash; Private DNS zone, VNet link, egress LB all created</td></tr>
+      <tr><td>Command exits with zero code</td><td><span class="badge bg-success">PASS</span> &mdash; Exit code: 0, <code>"Successfully created infrastructure"</code></td></tr>
     </tbody>
   </table>
 
