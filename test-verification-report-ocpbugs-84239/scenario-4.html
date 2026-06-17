@@ -52,39 +52,31 @@
 
   <p><strong>Objective:</strong> Verify that <code>create infra azure --assign-identity-roles</code> without <code>--dns-zone-rg-name</code> now returns a clear error instead of silently producing invalid role assignment scopes.</p>
 
-  <div class="alert alert-success">
-    <strong>Result: PASS</strong> &mdash; All 4 checks verified.
-  </div>
+  <div class="alert alert-success"><strong>Result: PASS</strong> &mdash; Command exits non-zero with clear error requiring <code>--dns-zone-rg-name</code>.</div>
 
+  <h4>Command</h4>
+  <pre class="log-output">$ hypershift create infra azure \
+    --name test-s4 \
+    --infra-id test-s4 \
+    --azure-creds creds.yaml \
+    --base-domain example.com \
+    --workload-identities-file wi.json \
+    --assign-identity-roles</pre>
+
+  <h4>Full Output</h4>
+  <pre class="log-output">Error: --dns-zone-rg-name is required when --assign-identity-roles or --assign-custom-hcp-roles is set
+
+Exit code: 1</pre>
+
+  <h4>Verification</h4>
   <table class="table table-striped table-hover">
     <thead class="table-dark">
-      <tr><th style="width:5%">Step</th><th style="width:35%">Check</th><th style="width:10%">Result</th><th>Evidence</th></tr>
+      <tr><th>Check</th><th>Result</th></tr>
     </thead>
     <tbody>
-      <tr>
-        <td>1</td>
-        <td>Command executed with <code>--assign-identity-roles</code> but no <code>--dns-zone-rg-name</code></td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td><code>hypershift create infra azure --assign-identity-roles --base-domain example.com --workload-identities-file wi.json ...</code></td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Command exits with non-zero code</td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td>Exit code: <code>1</code></td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>Error message requires <code>--dns-zone-rg-name</code></td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td><code>--dns-zone-rg-name is required when --assign-identity-roles or --assign-custom-hcp-roles is set</code></td>
-      </tr>
-      <tr>
-        <td>4</td>
-        <td>Error message covers both flags</td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td>Message mentions both <code>--assign-identity-roles</code> and <code>--assign-custom-hcp-roles</code></td>
-      </tr>
+      <tr><td>Command exits with non-zero code</td><td><span class="badge bg-success">PASS</span> &mdash; Exit code: 1</td></tr>
+      <tr><td>Error message requires <code>--dns-zone-rg-name</code></td><td><span class="badge bg-success">PASS</span> &mdash; <code>--dns-zone-rg-name is required when ...</code></td></tr>
+      <tr><td>Error message covers both flags</td><td><span class="badge bg-success">PASS</span> &mdash; Mentions both <code>--assign-identity-roles</code> and <code>--assign-custom-hcp-roles</code></td></tr>
     </tbody>
   </table>
 

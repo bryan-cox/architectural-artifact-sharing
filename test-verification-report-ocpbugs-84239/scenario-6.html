@@ -52,33 +52,48 @@
 
   <p><strong>Objective:</strong> Verify that providing <code>--dns-zone-rg-name</code> with <code>--assign-identity-roles</code> passes validation and proceeds to Azure API calls.</p>
 
-  <div class="alert alert-success">
-    <strong>Result: PASS</strong> &mdash; All 3 checks verified.
-  </div>
+  <div class="alert alert-success"><strong>Result: PASS</strong> &mdash; Validation passed. Failure is Azure auth with test credentials, not validation.</div>
 
+  <h4>Command</h4>
+  <pre class="log-output">$ hypershift create infra azure \
+    --name test-s6 \
+    --infra-id test-s6 \
+    --azure-creds creds.yaml \
+    --base-domain example.com \
+    --workload-identities-file wi.json \
+    --assign-identity-roles \
+    --dns-zone-rg-name my-dns-rg</pre>
+
+  <h4>Full Output</h4>
+  <pre class="log-output">{"level":"info","ts":"2026-06-17T10:30:17-04:00","msg":"Using credentials from file","path":"creds.yaml"}
+{"level":"error","ts":"2026-06-17T10:30:18-04:00","msg":"Failed to create infrastructure",
+  "error":"failed to create a resource group: createResourceGroup: failed to create a resource group:
+  DefaultAzureCredential: failed to acquire a token.\n
+  Attempted credentials:\n
+  \tClientSecretCredential authentication failed.\n
+  \t\tGET https://login.microsoftonline.com/faketenantid/v2.0/.well-known/openid-configuration\n
+  \t\t--------------------------------------------------------------------------------\n
+  \t\tRESPONSE 400: 400 Bad Request\n
+  \t\t{\n
+  \t\t  \"error\": \"invalid_tenant\",\n
+  \t\t  \"error_description\": \"AADSTS90002: Tenant 'faketenantid' not found. ...\"\n
+  \t\t}\n
+  \t\t--------------------------------------------------------------------------------\n
+  ..."}
+Error: failed to create a resource group: ... DefaultAzureCredential: failed to acquire a token.
+  Tenant 'faketenantid' not found.
+
+Exit code: 1 (Azure auth failure — validation passed successfully)</pre>
+
+  <h4>Verification</h4>
   <table class="table table-striped table-hover">
     <thead class="table-dark">
-      <tr><th style="width:5%">Step</th><th style="width:35%">Check</th><th style="width:10%">Result</th><th>Evidence</th></tr>
+      <tr><th>Check</th><th>Result</th></tr>
     </thead>
     <tbody>
-      <tr>
-        <td>1</td>
-        <td>Command executed with both <code>--assign-identity-roles</code> and <code>--dns-zone-rg-name my-dns-rg</code></td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td><code>hypershift create infra azure --assign-identity-roles --dns-zone-rg-name my-dns-rg --base-domain example.com ...</code></td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Command passes validation (no validation error)</td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td>No <code>--dns-zone-rg-name is required</code> error. Command proceeded to Azure API calls.</td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>Failure is Azure auth, not validation</td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td>Error: <code>DefaultAzureCredential: failed to acquire a token</code> (expected with test credentials &mdash; confirms validation passed)</td>
-      </tr>
+      <tr><td>Command passes validation (no <code>--dns-zone-rg-name is required</code> error)</td><td><span class="badge bg-success">PASS</span> &mdash; No validation error</td></tr>
+      <tr><td>Command proceeds to Azure API calls</td><td><span class="badge bg-success">PASS</span> &mdash; <code>"Using credentials from file"</code> logged</td></tr>
+      <tr><td>Failure is Azure auth, not validation</td><td><span class="badge bg-success">PASS</span> &mdash; <code>Tenant 'faketenantid' not found</code> (expected with test creds)</td></tr>
     </tbody>
   </table>
 

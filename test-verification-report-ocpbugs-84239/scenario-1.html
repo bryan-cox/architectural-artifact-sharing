@@ -52,39 +52,35 @@
 
   <p><strong>Objective:</strong> Verify that combining <code>--assign-service-principal-roles</code> with <code>--infra-json</code> on <code>create cluster azure</code> returns a clear error instead of silently skipping role assignment.</p>
 
-  <div class="alert alert-success">
-    <strong>Result: PASS</strong> &mdash; All 4 checks verified.
-  </div>
+  <div class="alert alert-success"><strong>Result: PASS</strong> &mdash; Command exits non-zero with clear error message guiding user to the correct workflow.</div>
 
+  <h4>Command</h4>
+  <pre class="log-output">$ hypershift create cluster azure \
+    --name test-s1 \
+    --azure-creds creds.yaml \
+    --infra-json infra.json \
+    --assign-service-principal-roles \
+    --dns-zone-rg-name my-dns-rg \
+    --pull-secret pull-secret.json \
+    --release-image quay.io/openshift-release-dev/ocp-release:4.18.0-x86_64 \
+    --workload-identities-file wi.json \
+    --render --render-into /dev/null</pre>
+
+  <h4>Full Output</h4>
+  <pre class="log-output">{"level":"error","ts":"2026-06-17T10:30:17-04:00","msg":"Failed to create cluster","error":"role assignment flags cannot be used with --infra-json; use --assign-identity-roles on 'create infra azure' instead","stacktrace":"github.com/openshift/hypershift/cmd/cluster/azure.NewCreateCommand.func1\n\t/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/cmd/cluster/azure/create.go:64\ngithub.com/spf13/cobra.(*Command).execute\n\t...vendor/github.com/spf13/cobra/command.go:1015\n..."}
+Error: role assignment flags cannot be used with --infra-json; use --assign-identity-roles on 'create infra azure' instead
+
+Exit code: 1</pre>
+
+  <h4>Verification</h4>
   <table class="table table-striped table-hover">
     <thead class="table-dark">
-      <tr><th style="width:5%">Step</th><th style="width:35%">Check</th><th style="width:10%">Result</th><th>Evidence</th></tr>
+      <tr><th>Check</th><th>Result</th></tr>
     </thead>
     <tbody>
-      <tr>
-        <td>1</td>
-        <td>Command executed with <code>--assign-service-principal-roles</code> and <code>--infra-json</code></td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td><code>hypershift create cluster azure --infra-json infra.json --assign-service-principal-roles --dns-zone-rg-name my-dns-rg --render ...</code></td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Command exits with non-zero code</td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td>Exit code: <code>1</code></td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>Error message mentions incompatibility</td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td><code>role assignment flags cannot be used with --infra-json; use --assign-identity-roles on 'create infra azure' instead</code></td>
-      </tr>
-      <tr>
-        <td>4</td>
-        <td>Error message guides user to correct workflow</td>
-        <td><span class="badge bg-success">PASS</span></td>
-        <td>Message includes: <code>use --assign-identity-roles on 'create infra azure' instead</code></td>
-      </tr>
+      <tr><td>Command exits with non-zero code</td><td><span class="badge bg-success">PASS</span> &mdash; Exit code: 1</td></tr>
+      <tr><td>Error message mentions incompatibility</td><td><span class="badge bg-success">PASS</span> &mdash; <code>role assignment flags cannot be used with --infra-json</code></td></tr>
+      <tr><td>Error message guides user to correct workflow</td><td><span class="badge bg-success">PASS</span> &mdash; <code>use --assign-identity-roles on 'create infra azure' instead</code></td></tr>
     </tbody>
   </table>
 
