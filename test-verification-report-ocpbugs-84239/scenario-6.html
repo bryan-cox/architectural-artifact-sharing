@@ -66,22 +66,79 @@
 
   <h4>Full Output</h4>
   <pre class="log-output">{"level":"info","ts":"2026-06-17T10:30:17-04:00","msg":"Using credentials from file","path":"creds.yaml"}
-{"level":"error","ts":"2026-06-17T10:30:18-04:00","msg":"Failed to create infrastructure",
-  "error":"failed to create a resource group: createResourceGroup: failed to create a resource group:
-  DefaultAzureCredential: failed to acquire a token.\n
-  Attempted credentials:\n
-  \tClientSecretCredential authentication failed.\n
-  \t\tGET https://login.microsoftonline.com/faketenantid/v2.0/.well-known/openid-configuration\n
-  \t\t--------------------------------------------------------------------------------\n
-  \t\tRESPONSE 400: 400 Bad Request\n
-  \t\t{\n
-  \t\t  \"error\": \"invalid_tenant\",\n
-  \t\t  \"error_description\": \"AADSTS90002: Tenant 'faketenantid' not found. ...\"\n
-  \t\t}\n
-  \t\t--------------------------------------------------------------------------------\n
-  ..."}
-Error: failed to create a resource group: ... DefaultAzureCredential: failed to acquire a token.
-  Tenant 'faketenantid' not found.
+{"level":"error","ts":"2026-06-17T10:30:18-04:00","msg":"Failed to create infrastructure","error":"failed to create a resource group: createResourceGroup: failed to create a resource group: DefaultAzureCredential: failed to acquire a token.
+Attempted credentials:
+	ClientSecretCredential authentication failed.
+		GET https://login.microsoftonline.com/faketenantid/v2.0/.well-known/openid-configuration
+		--------------------------------------------------------------------------------
+		RESPONSE 400: 400 Bad Request
+		--------------------------------------------------------------------------------
+		{
+		  \"error\": \"invalid_tenant\",
+		  \"error_description\": \"AADSTS90002: Tenant 'faketenantid' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: 5dc3bfec-0036-4771-bb0b-bf9a73738400 Correlation ID: f587061a-d0e2-4df5-9953-5a68f7d2fa5e Timestamp: 2026-06-17 14:30:18Z\",
+		  \"error_codes\": [
+		    90002
+		  ],
+		  \"timestamp\": \"2026-06-17 14:30:18Z\",
+		  \"trace_id\": \"5dc3bfec-0036-4771-bb0b-bf9a73738400\",
+		  \"correlation_id\": \"f587061a-d0e2-4df5-9953-5a68f7d2fa5e\",
+		  \"error_uri\": \"https://login.microsoftonline.com/error?code=90002\"
+		}
+		--------------------------------------------------------------------------------
+		To troubleshoot, visit https://aka.ms/azsdk/go/identity/troubleshoot#client-secret","stacktrace":"github.com/openshift/hypershift/cmd/infra/azure.NewCreateCommand.func1
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/cmd/infra/azure/create.go:74
+github.com/spf13/cobra.(*Command).execute
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1015
+github.com/spf13/cobra.(*Command).ExecuteC
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1148
+github.com/spf13/cobra.(*Command).Execute
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1071
+github.com/spf13/cobra.(*Command).ExecuteContext
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1064
+main.main
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/main.go:80
+runtime.main
+	/opt/homebrew/Cellar/go/1.26.0/libexec/src/runtime/proc.go:290"}
+Error: failed to create a resource group: createResourceGroup: failed to create a resource group: DefaultAzureCredential: failed to acquire a token.
+Attempted credentials:
+	ClientSecretCredential authentication failed.
+		GET https://login.microsoftonline.com/faketenantid/v2.0/.well-known/openid-configuration
+		--------------------------------------------------------------------------------
+		RESPONSE 400: 400 Bad Request
+		--------------------------------------------------------------------------------
+		{
+		  "error": "invalid_tenant",
+		  "error_description": "AADSTS90002: Tenant 'faketenantid' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: 5dc3bfec-0036-4771-bb0b-bf9a73738400 Correlation ID: f587061a-d0e2-4df5-9953-5a68f7d2fa5e Timestamp: 2026-06-17 14:30:18Z",
+		  "error_codes": [
+		    90002
+		  ],
+		  "timestamp": "2026-06-17 14:30:18Z",
+		  "trace_id": "5dc3bfec-0036-4771-bb0b-bf9a73738400",
+		  "correlation_id": "f587061a-d0e2-4df5-9953-5a68f7d2fa5e",
+		  "error_uri": "https://login.microsoftonline.com/error?code=90002"
+		}
+		--------------------------------------------------------------------------------
+		To troubleshoot, visit https://aka.ms/azsdk/go/identity/troubleshoot#client-secret
+failed to create a resource group: createResourceGroup: failed to create a resource group: DefaultAzureCredential: failed to acquire a token.
+Attempted credentials:
+	ClientSecretCredential authentication failed.
+		GET https://login.microsoftonline.com/faketenantid/v2.0/.well-known/openid-configuration
+		--------------------------------------------------------------------------------
+		RESPONSE 400: 400 Bad Request
+		--------------------------------------------------------------------------------
+		{
+		  "error": "invalid_tenant",
+		  "error_description": "AADSTS90002: Tenant 'faketenantid' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: 5dc3bfec-0036-4771-bb0b-bf9a73738400 Correlation ID: f587061a-d0e2-4df5-9953-5a68f7d2fa5e Timestamp: 2026-06-17 14:30:18Z",
+		  "error_codes": [
+		    90002
+		  ],
+		  "timestamp": "2026-06-17 14:30:18Z",
+		  "trace_id": "5dc3bfec-0036-4771-bb0b-bf9a73738400",
+		  "correlation_id": "f587061a-d0e2-4df5-9953-5a68f7d2fa5e",
+		  "error_uri": "https://login.microsoftonline.com/error?code=90002"
+		}
+		--------------------------------------------------------------------------------
+		To troubleshoot, visit https://aka.ms/azsdk/go/identity/troubleshoot#client-secret
 
 Exit code: 1 (Azure auth failure — validation passed successfully)</pre>
 

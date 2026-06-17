@@ -66,8 +66,22 @@
     --render --render-into /dev/null</pre>
 
   <h4>Full Output</h4>
-  <pre class="log-output">{"level":"error","ts":"2026-06-17T10:30:18-04:00","msg":"Failed to create cluster","error":"--dns-zone-rg-name is required when --assign-service-principal-roles or --assign-custom-hcp-roles is set","stacktrace":"github.com/openshift/hypershift/cmd/cluster/azure.NewCreateCommand.func1\n\t/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/cmd/cluster/azure/create.go:64\ngithub.com/spf13/cobra.(*Command).execute\n\t...vendor/github.com/spf13/cobra/command.go:1015\n..."}
+  <pre class="log-output">{"level":"error","ts":"2026-06-17T10:30:18-04:00","msg":"Failed to create cluster","error":"--dns-zone-rg-name is required when --assign-service-principal-roles or --assign-custom-hcp-roles is set","stacktrace":"github.com/openshift/hypershift/cmd/cluster/azure.NewCreateCommand.func1
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/cmd/cluster/azure/create.go:64
+github.com/spf13/cobra.(*Command).execute
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1015
+github.com/spf13/cobra.(*Command).ExecuteC
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1148
+github.com/spf13/cobra.(*Command).Execute
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1071
+github.com/spf13/cobra.(*Command).ExecuteContext
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1064
+main.main
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/main.go:80
+runtime.main
+	/opt/homebrew/Cellar/go/1.26.0/libexec/src/runtime/proc.go:290"}
 Error: --dns-zone-rg-name is required when --assign-service-principal-roles or --assign-custom-hcp-roles is set
+--dns-zone-rg-name is required when --assign-service-principal-roles or --assign-custom-hcp-roles is set
 
 Exit code: 1</pre>
 

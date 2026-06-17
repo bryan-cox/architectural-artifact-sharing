@@ -67,8 +67,22 @@
     --render --render-into /dev/null</pre>
 
   <h4>Full Output</h4>
-  <pre class="log-output">{"level":"error","ts":"2026-06-17T10:30:17-04:00","msg":"Failed to create cluster","error":"role assignment flags cannot be used with --infra-json; use --assign-identity-roles on 'create infra azure' instead","stacktrace":"github.com/openshift/hypershift/cmd/cluster/azure.NewCreateCommand.func1\n\t/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/cmd/cluster/azure/create.go:64\ngithub.com/spf13/cobra.(*Command).execute\n\t...vendor/github.com/spf13/cobra/command.go:1015\n..."}
+  <pre class="log-output">{"level":"error","ts":"2026-06-17T10:30:17-04:00","msg":"Failed to create cluster","error":"role assignment flags cannot be used with --infra-json; use --assign-identity-roles on 'create infra azure' instead","stacktrace":"github.com/openshift/hypershift/cmd/cluster/azure.NewCreateCommand.func1
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/cmd/cluster/azure/create.go:64
+github.com/spf13/cobra.(*Command).execute
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1015
+github.com/spf13/cobra.(*Command).ExecuteC
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1148
+github.com/spf13/cobra.(*Command).Execute
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1071
+github.com/spf13/cobra.(*Command).ExecuteContext
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/vendor/github.com/spf13/cobra/command.go:1064
+main.main
+	/Users/brcox/bryan-cox/hypershift_ws/hypershift-worktrees/OCPBUGS-84239/main.go:80
+runtime.main
+	/opt/homebrew/Cellar/go/1.26.0/libexec/src/runtime/proc.go:290"}
 Error: role assignment flags cannot be used with --infra-json; use --assign-identity-roles on 'create infra azure' instead
+role assignment flags cannot be used with --infra-json; use --assign-identity-roles on 'create infra azure' instead
 
 Exit code: 1</pre>
 
