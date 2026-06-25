@@ -113,8 +113,9 @@
       </div>
       <div class="col-md-4">
         <a href="#cost">7. Cost Analysis</a><br>
-        <a href="#recommendation">8. Recommendation</a><br>
-        <a href="#appendix">9. Appendix</a>
+        <a href="#stage2">8. Stage 2: Built-in LLM Analysis</a><br>
+        <a href="#recommendation">9. Recommendation</a><br>
+        <a href="#appendix">10. Appendix</a>
       </div>
     </div>
   </div>
@@ -126,8 +127,8 @@
 <div class="verdict-banner bg-light border mb-4">
   <div class="row">
     <div class="col-md-8">
-      <p class="mb-2"><strong>We evaluated NVIDIA SkillSpector as a potential addition to the <a href="https://github.com/openshift-eng/ai-helpers">openshift-eng/ai-helpers</a> CI pipeline.</strong></p>
-      <p class="mb-0">SkillSpector is a security scanner for AI agent skills. It scans for prompt injection, data exfiltration, malware signatures, and other threats across 17 categories and 68 patterns. It is designed to evaluate <em>third-party skills before installation</em>.</p>
+      <p class="mb-2"><strong>NVIDIA SkillSpector was evaluated as a potential addition to the <a href="https://github.com/openshift-eng/ai-helpers">openshift-eng/ai-helpers</a> CI pipeline.</strong></p>
+      <p class="mb-0">SkillSpector is a security scanner for AI agent skills. It scans for prompt injection, data exfiltration, malware signatures, and other threats across 17 categories and 68 patterns. It is designed to evaluate <em>third-party skills before installation</em>. Both Stage 1 (static analysis) and Stage 2 (built-in LLM analysis with Opus 4.6 via Vertex AI) were tested.</p>
     </div>
     <div class="col-md-4">
       <div class="stat-card">
@@ -166,7 +167,7 @@
 </div>
 
 <div class="alert alert-warning">
-  <strong>Bottom line:</strong> SkillSpector is the wrong tool for scanning a first-party internal skill repo. Its suspicious-by-default posture produces overwhelming noise when applied to skills you wrote yourself. The one real finding (an unpinned dependency) is already covered by Dependabot. Recommendation: <strong>do not add to CI</strong>. It remains useful as a one-off evaluation tool for third-party skills.
+  <strong>Bottom line:</strong> SkillSpector is the wrong tool for scanning a first-party internal skill repo. Static analysis produced 882 findings; enabling the built-in LLM (Opus 4.6 via Vertex AI) reduced that to 685 &mdash; better, but still 0 actionable. The tool's suspicious-by-default posture flags intentional behavior regardless of filtering. The one real finding (an unpinned dependency) is already covered by Dependabot. Recommendation: <strong>do not add to CI</strong>. It remains useful as a one-off evaluation tool for third-party skills.
 </div>
 
 <!-- 2. What Is SkillSpector? -->
@@ -523,8 +524,86 @@ claude --print --model claude-opus-4-6 \
 
 <p class="text-muted">These costs are for the Claude triage step only. SkillSpector's static scan itself is free (no API calls in <code>--no-llm</code> mode).</p>
 
-<!-- 8. Recommendation -->
-<h2 id="recommendation" class="section-header">8. Recommendation</h2>
+<!-- 8. Stage 2: Built-in LLM Analysis -->
+<h2 id="stage2" class="section-header">8. Stage 2: Built-in LLM Analysis</h2>
+
+<div class="alert alert-info">
+  <strong>Phase 2 of this evaluation.</strong> After the initial static-only analysis (sections 4&ndash;7), the scan was re-run with SkillSpector's built-in Stage 2 LLM analysis enabled, using Claude Opus 4.6 via Vertex AI. This tests whether the tool's own tuned prompts reduce noise compared to raw static results.
+</div>
+
+<h5>Command</h5>
+<pre>
+export SKILLSPECTOR_PROVIDER=anthropic_proxy
+export SKILLSPECTOR_MODEL=claude-opus-4-6
+export ANTHROPIC_PROXY_ENDPOINT_URL="https://us-east5-aiplatform.googleapis.com/v1/projects/&lt;GCP_PROJECT_ID&gt;/locations/us-east5/publishers/anthropic/models/claude-opus-4-6:streamRawPredict"
+export ANTHROPIC_PROXY_API_KEY="$(gcloud auth print-access-token)"
+
+skillspector scan ~/bryan-cox/ai-helpers/ --format json --output report.json
+</pre>
+
+<h5>Results: Stage 1 vs Stage 2</h5>
+<div class="row g-3 mb-4">
+  <div class="col-4">
+    <div class="card border-secondary"><div class="card-body stat-card">
+      <div class="stat-number text-secondary">882</div>
+      <div class="stat-label">Stage 1 (static only)</div>
+    </div></div>
+  </div>
+  <div class="col-4">
+    <div class="card border-primary"><div class="card-body stat-card">
+      <div class="stat-number text-primary">685</div>
+      <div class="stat-label">Stage 2 (with LLM)</div>
+    </div></div>
+  </div>
+  <div class="col-4">
+    <div class="card border-success"><div class="card-body stat-card">
+      <div class="stat-number text-success">22%</div>
+      <div class="stat-label">Reduction</div>
+    </div></div>
+  </div>
+</div>
+
+<h5>Filtering by Category</h5>
+<div class="table-responsive">
+<table class="table table-bordered">
+  <thead class="table-dark">
+    <tr><th>Category</th><th>Stage 1</th><th>Stage 2</th><th>Filtered</th><th>Reduction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Agent Snooping</td><td>110</td><td>5</td><td>105</td><td><span class="badge bg-success">95%</span></td></tr>
+    <tr><td>Dangerous Code Execution</td><td>54</td><td>5</td><td>49</td><td><span class="badge bg-success">91%</span></td></tr>
+    <tr><td>Memory Poisoning</td><td>17</td><td>1</td><td>16</td><td><span class="badge bg-success">94%</span></td></tr>
+    <tr><td>Rogue Agent</td><td>15</td><td>0</td><td>15</td><td><span class="badge bg-success">100%</span></td></tr>
+    <tr><td>Excessive Agency</td><td>38</td><td>6</td><td>32</td><td><span class="badge bg-success">84%</span></td></tr>
+    <tr><td>Data Exfiltration</td><td>26</td><td>12</td><td>14</td><td><span class="badge bg-warning text-dark">54%</span></td></tr>
+    <tr><td>Privilege Escalation</td><td>472</td><td>455</td><td>17</td><td><span class="badge bg-danger">4%</span></td></tr>
+    <tr><td>Tool Misuse</td><td>94</td><td>93</td><td>1</td><td><span class="badge bg-danger">1%</span></td></tr>
+    <tr><td>Output Handling</td><td>40</td><td>40</td><td>0</td><td><span class="badge bg-danger">0%</span></td></tr>
+    <tr><td>Prompt Injection</td><td>6</td><td>6</td><td>0</td><td><span class="badge bg-danger">0%</span></td></tr>
+    <tr><td>Supply Chain</td><td>4</td><td>4</td><td>0</td><td><span class="badge bg-danger">0%</span></td></tr>
+    <tr><td>YARA Match</td><td>2</td><td>2</td><td>0</td><td><span class="badge bg-danger">0%</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h5>Analysis</h5>
+<p>The built-in LLM prompts correctly identified and filtered the most obvious false positives: cross-skill references (Agent Snooping), subprocess calls to <code>oc</code>/<code>git</code> (Dangerous Code Execution), and instruction-following patterns (Rogue Agent, Memory Poisoning). These categories saw 84&ndash;100% reduction.</p>
+
+<p>However, the two largest categories were barely touched:</p>
+<ul>
+  <li><strong>Privilege Escalation (455 remaining):</strong> The LLM kept nearly all "kubeconfig" credential-reference findings. These are fundamental to what the plugins do &mdash; OpenShift CLI tooling references kubeconfig by design.</li>
+  <li><strong>Tool Misuse (93 remaining):</strong> External API calls and tool invocations flagged as suspicious. Again, intentional behavior for plugins that interact with Kubernetes clusters.</li>
+</ul>
+
+<div class="alert alert-warning">
+  <strong>685 findings remain, 0 actionable.</strong> The LLM filtering helps &mdash; it is clearly better than static-only. But the fundamental mismatch persists: the tool treats first-party skill behavior as suspicious because its threat model assumes untrusted authorship. No amount of LLM filtering changes the threat model.
+</div>
+
+<h5>Note on rate limiting</h5>
+<p>The scan hit Vertex AI quota limits for Opus 4.6 output tokens per minute. 9 of 209 file batches failed with <code>429 RESOURCE_EXHAUSTED</code>, leaving 135 findings in those files unfiltered. The actual reduction with full LLM coverage would be slightly better than 22%, but not materially different &mdash; the unfiltered files were mostly <code>.work/</code> scratch artifacts and test files.</p>
+
+<!-- 9. Recommendation -->
+<h2 id="recommendation" class="section-header">9. Recommendation</h2>
 
 <div class="verdict-banner bg-light border">
   <h4 class="text-danger mb-3">Do Not Add SkillSpector to ai-helpers CI</h4>
@@ -563,11 +642,11 @@ claude --print --model claude-opus-4-6 \
   <hr>
 
   <h6>Suggested ticket resolution for HPNEX-19</h6>
-  <p class="mb-0">Evaluated SkillSpector v2.3.7 against ai-helpers. Not recommended for CI &mdash; wrong threat model for a first-party repo (882 findings, 0 actionable, only finding was an unpinned dev dependency already covered by Dependabot). Recommend keeping as an optional one-off tool for evaluating external skills before installation. Existing skillsaw + Dependabot coverage is sufficient.</p>
+  <p class="mb-0">Evaluated SkillSpector v2.3.7 against ai-helpers using both static analysis (882 findings) and built-in LLM analysis with Opus 4.6 via Vertex AI (685 findings). 0 actionable in either mode. Not recommended for CI &mdash; wrong threat model for a first-party repo. The only real finding (unpinned dev dependency) is already covered by Dependabot. Recommend keeping as an optional one-off tool for evaluating external skills before installation. Existing skillsaw + Dependabot coverage is sufficient.</p>
 </div>
 
-<!-- 9. Appendix -->
-<h2 id="appendix" class="section-header">9. Appendix</h2>
+<!-- 10. Appendix -->
+<h2 id="appendix" class="section-header">10. Appendix</h2>
 
 <h5>A. Commands Used</h5>
 <pre>
