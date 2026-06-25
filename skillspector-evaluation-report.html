@@ -179,7 +179,7 @@
       <tr><td class="fw-bold">Version tested</td><td>2.3.7</td></tr>
       <tr><td class="fw-bold">Language</td><td>Python (~97%), YARA (~2%)</td></tr>
       <tr><td class="fw-bold">License</td><td>Apache 2.0</td></tr>
-      <tr><td class="fw-bold">GitHub stars</td><td>10,547</td></tr>
+      <tr><td class="fw-bold">GitHub stars</td><td>~10.5k</td></tr>
       <tr><td class="fw-bold">Research basis</td><td>42,447 skills surveyed from major marketplaces</td></tr>
     </table>
   </div>
@@ -188,9 +188,9 @@
     <p>It runs a two-stage analysis pipeline:</p>
     <ol>
       <li><strong>Stage 1 (Static):</strong> Regex matching, Python AST analysis, taint tracking, YARA signatures, dependency CVE lookups via OSV.dev. Fast, no API keys needed.</li>
-      <li><strong>Stage 2 (LLM, optional):</strong> Sends file contents to an LLM to evaluate context and filter false positives. Claims ~87% precision with LLM vs ~50% without.</li>
+      <li><strong>Stage 2 (LLM, optional):</strong> Sends file contents to an LLM to evaluate context and filter false positives. Claims ~87% precision with LLM; Stage 1 alone has "moderate precision (some false positives)."</li>
     </ol>
-    <p>This evaluation tested <strong>Stage 1 only</strong> (<code>--no-llm</code>) and also tested a <strong>Claude-based triage</strong> as an alternative to Stage 2.</p>
+    <p>This evaluation tested <strong>Stage 1 only</strong> (<code>--no-llm</code>) and also tested a <strong>Claude-based triage</strong> as an alternative to Stage 2. Stage 2 was not tested because the core issue &mdash; wrong threat model for a first-party repo &mdash; is independent of false-positive filtering. Even with perfect precision, the tool's suspicious-by-default posture flags intentional behavior (subprocess calls, credential references, cross-skill invocations) as threats.</p>
   </div>
 </div>
 
@@ -437,7 +437,7 @@
     <div class="example-box">
       <strong>File:</strong> <code>requirements-dev.txt</code><br>
       <strong>Issue:</strong> CVE-2025-71176 (tmpdir handling vulnerability)<br>
-      <strong>Fix:</strong> Pin to <code>pytest>=8.0</code><br>
+      <strong>Fix:</strong> Pin to <code>pytest>=9.0.3</code><br>
       <strong>Note:</strong> Low risk, dev-only. Also covered by Dependabot.
     </div>
   </div>
@@ -548,6 +548,17 @@ claude --print --model claude-opus-4-6 \
       </ul>
     </div>
   </div>
+
+  <hr>
+
+  <h6>Revisit triggers</h6>
+  <p>Re-evaluate SkillSpector if any of these conditions change:</p>
+  <ul>
+    <li>ai-helpers begins accepting skill contributions from untrusted external contributors</li>
+    <li>A skill marketplace or intake pipeline is introduced</li>
+    <li>SkillSpector adds a first-party/trusted-repo profile that suppresses intentional-behavior patterns</li>
+    <li>SARIF integration with GitHub Advanced Security becomes a requirement (SkillSpector supports SARIF 2.1.0 output &mdash; unexplored in this evaluation)</li>
+  </ul>
 
   <hr>
 
