@@ -32,6 +32,7 @@
         <li class="nav-item"><a class="nav-link" href="#test-verification">Test Verification</a></li>
         <li class="nav-item"><a class="nav-link" href="#ci">CI</a></li>
         <li class="nav-item"><a class="nav-link" href="#infra">Infrastructure</a></li>
+        <li class="nav-item"><a class="nav-link" href="#evals">Evaluations</a></li>
       </ul>
     </div>
   </div>
@@ -49,7 +50,7 @@
 
   <!-- Quick Stats -->
   <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
       <div class="card text-center border-primary">
         <div class="card-body py-3">
           <div class="fs-2 fw-bold text-primary">3</div>
@@ -57,7 +58,7 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
       <div class="card text-center border-success">
         <div class="card-body py-3">
           <div class="fs-2 fw-bold text-success">5</div>
@@ -65,7 +66,7 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
       <div class="card text-center border-purple" style="border-color: #6f42c1 !important;">
         <div class="card-body py-3">
           <div class="fs-2 fw-bold" style="color: #6f42c1;">1</div>
@@ -73,11 +74,19 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
       <div class="card text-center border-warning">
         <div class="card-body py-3">
           <div class="fs-2 fw-bold text-warning">1</div>
           <div class="text-muted small">Infrastructure</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md">
+      <div class="card text-center border-danger">
+        <div class="card-body py-3">
+          <div class="fs-2 fw-bold text-danger">1</div>
+          <div class="text-muted small">Evaluations</div>
         </div>
       </div>
     </div>
@@ -252,6 +261,32 @@
             <h5 class="card-title">Claude Code WIF Auth Setup</h5>
             <p class="card-text">End-to-end GCP Workload Identity Federation setup for Claude Code in GitHub Actions — keyless auth, ARC runner constraints, and debugging timeline.</p>
             <a href="claude-wif-setup-report.html" class="btn btn-sm btn-outline-warning">View Report</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== EVALUATIONS ========== -->
+  <div id="evals">
+    <div class="section-header" style="border-color: #dc3545;">
+      <h2><i class="bi bi-search"></i> Evaluations</h2>
+      <p class="text-muted mb-0">Tool evaluations, spike findings, and technology assessments.</p>
+    </div>
+
+    <div class="row g-4">
+
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="card-icon"><i class="bi bi-shield-exclamation"></i></div>
+            <h5 class="card-title">NVIDIA SkillSpector <span class="badge bg-warning text-dark badge-count">Not Recommended</span></h5>
+            <p class="card-text">Evaluation of SkillSpector v2.3.7 as a security scanner for ai-helpers CI. 882 findings, 0 actionable. Full noise analysis, Claude triage pipeline test, and cost breakdown.</p>
+            <a href="skillspector-evaluation-report.html" class="btn btn-sm btn-outline-danger">View Report</a>
+          </div>
+          <div class="card-footer text-muted small">
+            JIRA: HPNEX-19 &bull; Spike 2: Eval and Quality Gates
           </div>
         </div>
       </div>

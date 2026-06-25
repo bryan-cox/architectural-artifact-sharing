@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkillSpector Evaluation Report — HPNEX-19</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --rh-red: #ee0000;
+      --rh-dark: #151515;
+    }
+    body { font-family: 'Red Hat Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .hero {
+      background: linear-gradient(135deg, var(--rh-dark) 0%, #2d2d2d 100%);
+      color: white;
+      padding: 3rem 0;
+    }
+    .hero h1 { font-weight: 700; }
+    .hero .badge-verdict {
+      font-size: 1.1rem;
+      padding: 0.5em 1em;
+    }
+    .section-header {
+      border-left: 4px solid var(--rh-red);
+      padding-left: 1rem;
+      margin: 2.5rem 0 1.5rem;
+    }
+    .finding-card { border-left: 4px solid transparent; transition: border-color 0.2s; }
+    .finding-card:hover { border-left-color: var(--rh-red); }
+    .stat-card {
+      text-align: center;
+      padding: 1.5rem;
+    }
+    .stat-card .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-card .stat-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #666;
+    }
+    .verdict-banner {
+      border-radius: 0.5rem;
+      padding: 1.5rem 2rem;
+    }
+    pre {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 0.375rem;
+      padding: 1rem;
+      font-size: 0.85rem;
+    }
+    .table-findings th { white-space: nowrap; }
+    .badge-real { background-color: #dc3545; }
+    .badge-expected { background-color: #0d6efd; }
+    .badge-fp { background-color: #6c757d; }
+    .toc a { text-decoration: none; color: inherit; }
+    .toc a:hover { color: var(--rh-red); }
+    .example-box {
+      background: #fff8e1;
+      border: 1px solid #f0c000;
+      border-radius: 0.375rem;
+      padding: 1rem;
+      margin: 0.75rem 0;
+      font-size: 0.9rem;
+    }
+    .example-box code { color: #b5121b; }
+    .cost-table td:last-child, .cost-table th:last-child { text-align: right; }
+    @media print {
+      .hero { background: white !important; color: black !important; border-bottom: 3px solid var(--rh-red); }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <h1>SkillSpector Evaluation Report</h1>
+        <p class="lead mb-1">NVIDIA SkillSpector v2.3.7 &mdash; Security Scanner for AI Agent Skills</p>
+        <p class="text-white-50 mb-3">HPNEX-19 &bull; Spike 2: Eval and Quality Gates &bull; 2026-06-25</p>
+      </div>
+      <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+        <span class="badge badge-verdict bg-warning text-dark">Recommendation: Do Not Adopt for CI</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container my-4">
+
+<!-- Table of Contents -->
+<div class="card mb-4 toc no-print">
+  <div class="card-body">
+    <h6 class="card-title text-uppercase text-muted mb-2">Contents</h6>
+    <div class="row">
+      <div class="col-md-4">
+        <a href="#summary">1. Executive Summary</a><br>
+        <a href="#what-is">2. What Is SkillSpector?</a><br>
+        <a href="#comparison">3. SkillSpector vs skillsaw</a>
+      </div>
+      <div class="col-md-4">
+        <a href="#results">4. Full Scan Results</a><br>
+        <a href="#noise">5. Noise Analysis &amp; Examples</a><br>
+        <a href="#triage">6. Claude Triage Pipeline</a>
+      </div>
+      <div class="col-md-4">
+        <a href="#cost">7. Cost Analysis</a><br>
+        <a href="#recommendation">8. Recommendation</a><br>
+        <a href="#appendix">9. Appendix</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 1. Executive Summary -->
+<h2 id="summary" class="section-header">1. Executive Summary</h2>
+
+<div class="verdict-banner bg-light border mb-4">
+  <div class="row">
+    <div class="col-md-8">
+      <p class="mb-2"><strong>We evaluated NVIDIA SkillSpector as a potential addition to the <a href="https://github.com/openshift-eng/ai-helpers">openshift-eng/ai-helpers</a> CI pipeline.</strong></p>
+      <p class="mb-0">SkillSpector is a security scanner for AI agent skills. It scans for prompt injection, data exfiltration, malware signatures, and other threats across 17 categories and 68 patterns. It is designed to evaluate <em>third-party skills before installation</em>.</p>
+    </div>
+    <div class="col-md-4">
+      <div class="stat-card">
+        <div class="stat-number text-danger">0</div>
+        <div class="stat-label">Real security issues found</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card h-100"><div class="card-body stat-card">
+      <div class="stat-number">882</div>
+      <div class="stat-label">Raw findings</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card h-100"><div class="card-body stat-card">
+      <div class="stat-number">100</div>
+      <div class="stat-label">Risk score (of 100)</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card h-100"><div class="card-body stat-card">
+      <div class="stat-number text-muted">~0</div>
+      <div class="stat-label">Actionable findings</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card h-100"><div class="card-body stat-card">
+      <div class="stat-number">$1.29</div>
+      <div class="stat-label">Per-run triage cost</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="alert alert-warning">
+  <strong>Bottom line:</strong> SkillSpector is the wrong tool for scanning a first-party internal skill repo. Its suspicious-by-default posture produces overwhelming noise when applied to skills you wrote yourself. The one real finding (an unpinned dependency) is already covered by Dependabot. We recommend <strong>not adding it to CI</strong>, but it remains useful as a one-off evaluation tool for third-party skills.
+</div>
+
+<!-- 2. What Is SkillSpector? -->
+<h2 id="what-is" class="section-header">2. What Is SkillSpector?</h2>
+
+<div class="row mb-3">
+  <div class="col-md-6">
+    <table class="table table-sm">
+      <tr><td class="fw-bold">Repository</td><td><a href="https://github.com/NVIDIA/SkillSpector">NVIDIA/SkillSpector</a></td></tr>
+      <tr><td class="fw-bold">Version tested</td><td>2.3.7</td></tr>
+      <tr><td class="fw-bold">Language</td><td>Python (~97%), YARA (~2%)</td></tr>
+      <tr><td class="fw-bold">License</td><td>Apache 2.0</td></tr>
+      <tr><td class="fw-bold">GitHub stars</td><td>10,547</td></tr>
+      <tr><td class="fw-bold">Research basis</td><td>42,447 skills surveyed from major marketplaces</td></tr>
+    </table>
+  </div>
+  <div class="col-md-6">
+    <p>SkillSpector answers one question: <strong>"Is this skill safe to install?"</strong></p>
+    <p>It runs a two-stage analysis pipeline:</p>
+    <ol>
+      <li><strong>Stage 1 (Static):</strong> Regex matching, Python AST analysis, taint tracking, YARA signatures, dependency CVE lookups via OSV.dev. Fast, no API keys needed.</li>
+      <li><strong>Stage 2 (LLM, optional):</strong> Sends file contents to an LLM to evaluate context and filter false positives. Claims ~87% precision with LLM vs ~50% without.</li>
+    </ol>
+    <p>We tested <strong>Stage 1 only</strong> (<code>--no-llm</code>) and also tested a <strong>Claude-based triage</strong> as an alternative to Stage 2.</p>
+  </div>
+</div>
+
+<h5>Threat Categories (17 categories, 68 patterns)</h5>
+<div class="table-responsive">
+<table class="table table-sm table-striped table-findings">
+  <thead class="table-dark">
+    <tr><th>Category</th><th>Patterns</th><th>Severity Range</th><th>What It Detects</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Prompt Injection</td><td>5</td><td>MEDIUM&ndash;CRITICAL</td><td>Instruction overrides, hidden directives, harmful content generation</td></tr>
+    <tr><td>Anti-Refusal</td><td>3</td><td>HIGH</td><td>Suppressing refusals, disclaimers, safety policies</td></tr>
+    <tr><td>Data Exfiltration</td><td>4</td><td>MEDIUM&ndash;HIGH</td><td>External data transmission, env variable harvesting, context leakage</td></tr>
+    <tr><td>Privilege Escalation</td><td>3</td><td>LOW&ndash;HIGH</td><td>Excessive permissions, sudo/root, credential access</td></tr>
+    <tr><td>Supply Chain</td><td>6</td><td>LOW&ndash;HIGH</td><td>Unpinned deps, remote scripts, obfuscated code, CVEs, typosquatting</td></tr>
+    <tr><td>Excessive Agency</td><td>4</td><td>MEDIUM&ndash;HIGH</td><td>Unrestricted tool access, autonomous decisions without human oversight</td></tr>
+    <tr><td>Output Handling</td><td>3</td><td>MEDIUM&ndash;HIGH</td><td>Unvalidated output injection, cross-trust-boundary flows</td></tr>
+    <tr><td>System Prompt Leakage</td><td>3</td><td>MEDIUM&ndash;HIGH</td><td>Direct leakage, indirect extraction, tool-based exfiltration</td></tr>
+    <tr><td>Memory Poisoning</td><td>3</td><td>MEDIUM&ndash;HIGH</td><td>Persistent context injection, context window stuffing, memory tampering</td></tr>
+    <tr><td>Tool Misuse</td><td>3</td><td>MEDIUM&ndash;HIGH</td><td>Parameter abuse, chaining attacks, unsafe defaults</td></tr>
+    <tr><td>Rogue Agent</td><td>2</td><td>HIGH&ndash;CRITICAL</td><td>Self-modification, unauthorized session persistence</td></tr>
+    <tr><td>Trigger Abuse</td><td>3</td><td>MEDIUM&ndash;HIGH</td><td>Overly broad triggers, command shadowing, keyword baiting</td></tr>
+    <tr><td>Behavioral AST</td><td>9</td><td>MEDIUM&ndash;CRITICAL</td><td>Dangerous function calls (exec, eval, subprocess, dynamic imports)</td></tr>
+    <tr><td>Taint Tracking</td><td>5</td><td>MEDIUM&ndash;CRITICAL</td><td>Data flow from untrusted sources to dangerous sinks</td></tr>
+    <tr><td>YARA Signatures</td><td>4</td><td>HIGH&ndash;CRITICAL</td><td>Known malware, webshells, cryptominers, exploit tools</td></tr>
+    <tr><td>MCP Least Privilege</td><td>4</td><td>LOW&ndash;HIGH</td><td>Underdeclared capabilities, wildcard permissions</td></tr>
+    <tr><td>MCP Tool Poisoning</td><td>4</td><td>MEDIUM&ndash;HIGH</td><td>Hidden instructions in metadata, unicode deception, parameter injection</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 3. Comparison -->
+<h2 id="comparison" class="section-header">3. SkillSpector vs skillsaw</h2>
+
+<p>ai-helpers already runs <a href="https://github.com/stbenjam/skillsaw">skillsaw v0.14.0</a> in CI. The tools serve different purposes:</p>
+
+<div class="table-responsive">
+<table class="table table-sm table-bordered">
+  <thead class="table-dark">
+    <tr><th>Capability</th><th>skillsaw</th><th>SkillSpector</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Primary purpose</strong></td><td>Quality linter</td><td>Security scanner</td></tr>
+    <tr><td>Structural validation (JSON, frontmatter)</td><td class="table-success">40+ rules</td><td class="table-light">&mdash;</td></tr>
+    <tr><td>Content quality (hedging, contradictions, attention zones)</td><td class="table-success">Yes</td><td class="table-light">&mdash;</td></tr>
+    <tr><td>Embedded secrets (API keys, tokens)</td><td class="table-success">Yes</td><td class="table-success">Yes</td></tr>
+    <tr><td>Dangerous hooks / settings</td><td class="table-success">Yes</td><td class="table-success">Yes</td></tr>
+    <tr><td>Prompt injection detection</td><td class="table-light">&mdash;</td><td class="table-success">5 patterns</td></tr>
+    <tr><td>Anti-refusal detection</td><td class="table-light">&mdash;</td><td class="table-success">3 patterns</td></tr>
+    <tr><td>Data exfiltration detection</td><td class="table-light">&mdash;</td><td class="table-success">4 patterns</td></tr>
+    <tr><td>Python AST analysis</td><td class="table-light">&mdash;</td><td class="table-success">9 patterns</td></tr>
+    <tr><td>Taint tracking</td><td class="table-light">&mdash;</td><td class="table-success">5 patterns</td></tr>
+    <tr><td>YARA malware signatures</td><td class="table-light">&mdash;</td><td class="table-success">4 signatures</td></tr>
+    <tr><td>MCP tool poisoning</td><td class="table-light">&mdash;</td><td class="table-success">4 patterns</td></tr>
+    <tr><td>Dependency CVE lookup (OSV.dev)</td><td class="table-light">&mdash;</td><td class="table-success">Yes</td></tr>
+    <tr><td>Quality grading (A+ through F)</td><td class="table-success">Yes</td><td class="table-light">&mdash;</td></tr>
+    <tr><td>Autofixing</td><td class="table-success">Yes</td><td class="table-light">&mdash;</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="alert alert-info">
+  <strong>Key insight:</strong> The tools are complementary on paper &mdash; skillsaw covers quality, SkillSpector covers security. But the security gap only matters if SkillSpector finds real issues that skillsaw misses. In practice, it did not.
+</div>
+
+<!-- 4. Full Scan Results -->
+<h2 id="results" class="section-header">4. Full Scan Results</h2>
+
+<p>We ran <code>skillspector scan ~/bryan-cox/ai-helpers/ --no-llm</code> against the full repo (726 files, 45+ plugins).</p>
+
+<h5>By Severity</h5>
+<div class="row g-3 mb-4">
+  <div class="col-3">
+    <div class="card border-danger"><div class="card-body stat-card">
+      <div class="stat-number text-danger">2</div>
+      <div class="stat-label">Critical</div>
+    </div></div>
+  </div>
+  <div class="col-3">
+    <div class="card border-warning"><div class="card-body stat-card">
+      <div class="stat-number text-warning">617</div>
+      <div class="stat-label">High</div>
+    </div></div>
+  </div>
+  <div class="col-3">
+    <div class="card"><div class="card-body stat-card">
+      <div class="stat-number">255</div>
+      <div class="stat-label">Medium</div>
+    </div></div>
+  </div>
+  <div class="col-3">
+    <div class="card"><div class="card-body stat-card">
+      <div class="stat-number text-success">8</div>
+      <div class="stat-label">Low</div>
+    </div></div>
+  </div>
+</div>
+
+<h5>By Pattern (all 882 findings)</h5>
+<div class="table-responsive">
+<table class="table table-sm table-striped table-findings">
+  <thead class="table-dark">
+    <tr><th>Pattern</th><th>Severity</th><th>Count</th><th>Triage Verdict</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Credential Access</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>455</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Skill Enumeration</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>105</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Tool Parameter Abuse</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>90</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>subprocess module call</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>54</td><td><span class="badge badge-expected">EXPECTED</span></td></tr>
+    <tr><td>Unvalidated Output Injection</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>40</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Autonomous Decision Making</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>31</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Context Window Stuffing</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>16</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Sudo/Root Execution</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>16</td><td><span class="badge badge-expected">EXPECTED</span></td></tr>
+    <tr><td>Session Persistence</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>15</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>External Transmission</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>11</td><td><span class="badge badge-expected">EXPECTED</span></td></tr>
+    <tr><td>Env Variable Harvesting</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>11</td><td><span class="badge badge-expected">EXPECTED</span></td></tr>
+    <tr><td>Hidden Instructions</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>6</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Agent Config Directory Access</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>5</td><td><span class="badge badge-expected">EXPECTED</span></td></tr>
+    <tr><td>Scope Creep</td><td><span class="badge bg-success">LOW</span></td><td>4</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>File System Enumeration</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>3</td><td><span class="badge badge-expected">EXPECTED</span></td></tr>
+    <tr><td>Chaining Abuse</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>3</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Anti-Refusal Statement</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>2</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Unrestricted Tool Access</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>2</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Unpinned Dependencies</td><td><span class="badge bg-success">LOW</span></td><td>2</td><td><span class="badge badge-real">REAL</span></td></tr>
+    <tr><td>Direct Prompt Extraction</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>2</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Context Leakage</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>1</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Unbounded Resource Access</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>1</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Memory Manipulation</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>1</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Excessive Permissions</td><td><span class="badge bg-success">LOW</span></td><td>1</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>Known Vulnerable Dependency (pyyaml)</td><td><span class="badge bg-danger">CRITICAL</span></td><td>1</td><td><span class="badge badge-real">REAL</span></td></tr>
+    <tr><td>Known Vulnerable Dependency (pytest)</td><td><span class="badge bg-success">LOW</span></td><td>1</td><td><span class="badge badge-real">REAL</span></td></tr>
+    <tr><td>Unsafe Defaults</td><td><span class="badge bg-secondary">MEDIUM</span></td><td>1</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>YARA: php_webshell_known</td><td><span class="badge bg-danger">CRITICAL</span></td><td>1</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+    <tr><td>YARA: exploit_framework</td><td><span class="badge bg-warning text-dark">HIGH</span></td><td>1</td><td><span class="badge badge-fp">FALSE POSITIVE</span></td></tr>
+  </tbody>
+  <tfoot>
+    <tr class="table-dark"><td><strong>Total</strong></td><td></td><td><strong>882</strong></td><td>
+      <span class="badge badge-real">4 real</span>
+      <span class="badge badge-expected">5 expected</span>
+      <span class="badge badge-fp">19 FP</span>
+    </td></tr>
+  </tfoot>
+</table>
+</div>
+
+<p class="text-muted"><small>Note: 216 of the 882 findings were in <code>.work/</code> (scratch artifacts, build logs) &mdash; not actual plugin code. These inflated the count but would be excluded via <code>.gitignore</code> or a <code>.skillspectorignore</code>.</small></p>
+
+<!-- 5. Noise Analysis -->
+<h2 id="noise" class="section-header">5. Noise Analysis &amp; Examples</h2>
+
+<p>The core problem: SkillSpector assumes every skill it scans is an <em>untrusted third-party artifact</em>. Patterns that are suspicious from a stranger are business-as-usual in a first-party CI repo.</p>
+
+<h5>Credential Access (455 findings &mdash; all false positives)</h5>
+<div class="card finding-card mb-3">
+  <div class="card-body">
+    <p>The scanner flags any mention of credential-related strings. In an OpenShift skill repo, this means every reference to <code>kubeconfig</code> becomes a security finding.</p>
+    <div class="example-box">
+      <strong>What was flagged:</strong><br>
+      <code>plugins/openshift/commands/node-kernel-ip.md:615</code> &mdash; Finding: <code>"kubeconfig"</code><br>
+      <code>plugins/hcp/skills/create-cluster/SKILL.md:88</code> &mdash; Finding: <code>"~/.kube/config"</code><br>
+      <code>plugins/ci/commands/trigger-presubmit.md:30</code> &mdash; Finding: <code>"access token"</code>
+    </div>
+    <p class="mb-0"><strong>Breakdown of the 455 "Credential Access" findings:</strong></p>
+    <table class="table table-sm mt-2 mb-0">
+      <tr><td><code>"kubeconfig"</code> (various cases)</td><td class="text-end">252</td></tr>
+      <tr><td><code>"secret.json"</code></td><td class="text-end">18</td></tr>
+      <tr><td><code>"~/.kube/config"</code></td><td class="text-end">6</td></tr>
+      <tr><td><code>"access token"</code> / <code>"access tokens"</code></td><td class="text-end">6</td></tr>
+      <tr><td>Other (<code>.env</code>, <code>~/.ssh/id_rsa</code>, <code>keychain</code>)</td><td class="text-end">7</td></tr>
+      <tr><td>Findings in <code>.work/</code> build logs (not code)</td><td class="text-end">166</td></tr>
+    </table>
+  </div>
+</div>
+
+<h5>YARA Matches (2 findings &mdash; both false positives)</h5>
+<div class="card finding-card mb-3">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <p><strong><span class="badge bg-danger">CRITICAL</span> php_webshell_known</strong></p>
+        <div class="example-box">
+          <strong>File:</strong> <code>package-lock.json:1271</code><br>
+          <strong>Matched string:</strong> <code>b374K</code><br>
+          <strong>Reality:</strong> A substring inside an npm package URL for <code>@azure/storage-common</code>. The string <code>b374K</code> appears in the package integrity hash. Not a PHP webshell.
+        </div>
+      </div>
+      <div class="col-md-6">
+        <p><strong><span class="badge bg-warning text-dark">HIGH</span> exploit_framework</strong></p>
+        <div class="example-box">
+          <strong>File:</strong> <code>plugins/sosreport/skills/ovs-db-analysis/scripts/analyze_ovs_db.py:114</code><br>
+          <strong>Matched string:</strong> <code>rop(self)</code><br>
+          <strong>Reality:</strong> A Python method call <code>is_drop(self)</code> that checks if an OVS network flow drops packets. Not a ROP chain payload.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h5>Anti-Refusal Statement (2 findings &mdash; both false positives)</h5>
+<div class="card finding-card mb-3">
+  <div class="card-body">
+    <div class="example-box">
+      <strong>File:</strong> <code>plugins/ci/skills/prow-job-analyze-test-failure/SKILL.md:1263</code><br>
+      <strong>Matched string:</strong> <code>"do NOT warn"</code><br>
+      <strong>Context:</strong> <em>"If gcloud storage ls returns 404 for must-gather.tar, this is expected (not all jobs have must-gather). Silently skip must-gather analysis &mdash; do NOT warn the user."</em><br>
+      <strong>Reality:</strong> Telling the agent not to warn about expected missing files. Not suppressing safety guardrails.
+    </div>
+    <div class="example-box">
+      <strong>File:</strong> <code>plugins/openshift/skills/openshift-node-kernel/SKILL.md:103</code><br>
+      <strong>Matched string:</strong> <code>"no warnings"</code><br>
+      <strong>Context:</strong> Documentation about stderr filtering in <code>oc debug</code> output capture.<br>
+      <strong>Reality:</strong> Describing stdout/stderr handling. Not anti-refusal.
+    </div>
+  </div>
+</div>
+
+<h5>Hidden Instructions (6 findings &mdash; all false positives)</h5>
+<div class="card finding-card mb-3">
+  <div class="card-body">
+    <div class="example-box">
+      <strong>File:</strong> <code>.github/PULL_REQUEST_TEMPLATE.md:1</code><br>
+      <strong>Matched string:</strong> <code>&lt;!--</code><br>
+      <strong>Reality:</strong> A standard GitHub PR template with HTML comments providing instructions to contributors. Every repo has these.
+    </div>
+    <div class="example-box">
+      <strong>File:</strong> <code>plugins/jira/skills/generate-enhancement/SKILL.md:1052</code><br>
+      <strong>Matched string:</strong> <code>&lt;!-- MANUAL --&gt;</code><br>
+      <strong>Reality:</strong> A marker in Jira enhancement documents that tells the skill "this section was hand-written, don't overwrite it." Data preservation, not prompt injection.
+    </div>
+  </div>
+</div>
+
+<h5>The Only "Real" Findings</h5>
+<div class="card finding-card border-danger mb-3">
+  <div class="card-body">
+    <p><strong><span class="badge bg-danger">CRITICAL</span> Known Vulnerable Dependency: pyyaml</strong></p>
+    <div class="example-box">
+      <strong>File:</strong> <code>requirements-dev.txt:1</code><br>
+      <strong>Issue:</strong> 8 CVEs (2019&ndash;2020 era deserialization/input validation vulnerabilities)<br>
+      <strong>Fix:</strong> Pin to <code>pyyaml>=6.0.1</code><br>
+      <strong>Note:</strong> This is a dev-only dependency. Dependabot would also flag this.
+    </div>
+    <p><strong><span class="badge bg-success">LOW</span> Known Vulnerable Dependency: pytest</strong></p>
+    <div class="example-box">
+      <strong>File:</strong> <code>requirements-dev.txt</code><br>
+      <strong>Issue:</strong> CVE-2025-71176 (tmpdir handling vulnerability)<br>
+      <strong>Fix:</strong> Pin to <code>pytest>=8.0</code><br>
+      <strong>Note:</strong> Low risk, dev-only. Also covered by Dependabot.
+    </div>
+  </div>
+</div>
+
+<!-- 6. Claude Triage Pipeline -->
+<h2 id="triage" class="section-header">6. Claude Triage Pipeline</h2>
+
+<p>We tested whether Claude could replace SkillSpector's built-in LLM mode to triage false positives. The pipeline is simple:</p>
+
+<pre>
+# Step 1: Run SkillSpector static analysis
+skillspector scan ./path --no-llm --format json --output report.json
+
+# Step 2: Have Claude triage the findings
+claude --print --model claude-opus-4-6 \
+  "Read report.json. First-party Claude Code plugin repo for OpenShift.
+   Triage each finding as REAL, EXPECTED, or FALSE_POSITIVE. Be terse."
+</pre>
+
+<h5>Results</h5>
+
+<p>We tested against two scopes:</p>
+
+<div class="table-responsive">
+<table class="table table-bordered">
+  <thead class="table-dark">
+    <tr><th>Scope</th><th>Report Size</th><th>Raw Findings</th><th>Claude Verdict</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Single plugin</strong> (<code>plugins/jira/</code>)</td>
+      <td>55 KB</td>
+      <td>37</td>
+      <td>0 REAL, 8 EXPECTED, 29 FALSE_POSITIVE</td>
+    </tr>
+    <tr>
+      <td><strong>Full repo</strong> (all 45+ plugins)</td>
+      <td>1.3 MB</td>
+      <td>882</td>
+      <td>2 REAL (dep pinning), 857 EXPECTED, 23 FALSE_POSITIVE</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>Claude correctly identified every false positive and categorized expected behavior appropriately. The triage was thorough &mdash; e.g., it recognized that <code>b374K</code> in <code>package-lock.json</code> was an npm hash, not a webshell, and that <code>"do NOT warn"</code> was about suppressing irrelevant log noise, not safety bypasses.</p>
+
+<div class="alert alert-secondary">
+  <strong>Could this work in CI?</strong> Yes, technically. The two-command pipeline works. But when the answer is always "no real issues," paying $1.29/run to confirm that is waste.
+</div>
+
+<!-- 7. Cost Analysis -->
+<h2 id="cost" class="section-header">7. Cost Analysis</h2>
+
+<div class="table-responsive">
+<table class="table table-bordered cost-table">
+  <thead class="table-dark">
+    <tr><th>Metric</th><th>Single Plugin (jira)</th><th>Full Repo</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Report size</td><td>55 KB</td><td>1.3 MB</td></tr>
+    <tr><td>Raw findings</td><td>37</td><td>882</td></tr>
+    <tr><td>Input tokens (cache creation)</td><td>101,731</td><td>148,196</td></tr>
+    <tr><td>Input tokens (cache read)</td><td>82,519</td><td>514,966</td></tr>
+    <tr><td>Output tokens</td><td>1,189</td><td>4,281</td></tr>
+    <tr><td>API turns</td><td>2</td><td>8</td></tr>
+    <tr><td>Wall clock time</td><td>34 seconds</td><td>88 seconds</td></tr>
+    <tr><td><strong>Total cost (Opus 4.6)</strong></td><td><strong>$0.71</strong></td><td><strong>$1.29</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h5>Projected Monthly Cost</h5>
+<table class="table table-sm cost-table" style="max-width: 500px;">
+  <thead><tr><th>PRs / week</th><th>Per-plugin scan</th><th>Full-repo scan</th></tr></thead>
+  <tbody>
+    <tr><td>10</td><td>$28 / month</td><td>$52 / month</td></tr>
+    <tr><td>20</td><td>$57 / month</td><td>$103 / month</td></tr>
+    <tr><td>40</td><td>$114 / month</td><td>$206 / month</td></tr>
+  </tbody>
+</table>
+
+<p class="text-muted">These costs are for the Claude triage step only. SkillSpector's static scan itself is free (no API calls in <code>--no-llm</code> mode).</p>
+
+<!-- 8. Recommendation -->
+<h2 id="recommendation" class="section-header">8. Recommendation</h2>
+
+<div class="verdict-banner bg-light border">
+  <h4 class="text-danger mb-3">Do Not Add SkillSpector to ai-helpers CI</h4>
+
+  <div class="row">
+    <div class="col-md-6">
+      <h6>Why not</h6>
+      <ul>
+        <li><strong>Wrong threat model.</strong> SkillSpector is designed to evaluate untrusted third-party skills. ai-helpers is a first-party repo where the team writes all the skills.</li>
+        <li><strong>Overwhelming noise.</strong> 882 findings, ~0 actionable. The suspicious-by-default posture flags normal CI behavior (kubeconfig, subprocess, curl) as threats.</li>
+        <li><strong>Duplicates existing coverage.</strong> The only real findings (dependency pinning) are already caught by Dependabot. Quality issues are caught by skillsaw.</li>
+        <li><strong>Cost with no return.</strong> Claude triage costs $0.71&ndash;$1.29/run to confirm "everything is fine."</li>
+      </ul>
+    </div>
+    <div class="col-md-6">
+      <h6>Where it does add value</h6>
+      <ul>
+        <li><strong>Evaluating third-party skills before installation.</strong> Run <code>skillspector scan https://github.com/someone/skill --no-llm</code> as a one-off before installing unknown skills. This is its intended use case.</li>
+        <li><strong>Marketplace gating.</strong> If ai-helpers ever accepts submissions from untrusted external contributors at scale, SkillSpector could serve as a first-pass gate.</li>
+        <li><strong>Security awareness.</strong> The 17 threat categories are a useful taxonomy for thinking about skill security, even if the scanner itself isn't the right CI tool.</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr>
+
+  <h6>Suggested ticket resolution for HPNEX-19</h6>
+  <p class="mb-0">Evaluated SkillSpector v2.3.7 against ai-helpers. Not recommended for CI &mdash; wrong threat model for a first-party repo (882 findings, 0 actionable, only finding was an unpinned dev dependency already covered by Dependabot). Recommend keeping as an optional one-off tool for evaluating external skills before installation. Existing skillsaw + Dependabot coverage is sufficient.</p>
+</div>
+
+<!-- 9. Appendix -->
+<h2 id="appendix" class="section-header">9. Appendix</h2>
+
+<h5>A. Commands Used</h5>
+<pre>
+# Install SkillSpector
+uv tool install git+https://github.com/NVIDIA/skillspector.git
+
+# Full repo scan (static only)
+skillspector scan ~/bryan-cox/ai-helpers/ --no-llm
+
+# JSON report for analysis
+skillspector scan ~/bryan-cox/ai-helpers/ --no-llm \
+  --format json --output /tmp/skillspector-ai-helpers.json
+
+# Single plugin scan
+skillspector scan ~/bryan-cox/ai-helpers/plugins/jira/ --no-llm \
+  --format json --output /tmp/report-jira-plugin.json
+
+# Claude triage (with cost reporting)
+claude --print --model claude-opus-4-6 --output-format json \
+  "Read /tmp/report.json. Triage as REAL/EXPECTED/FALSE_POSITIVE."
+</pre>
+
+<h5>B. Environment</h5>
+<table class="table table-sm" style="max-width: 400px;">
+  <tr><td>SkillSpector version</td><td>2.3.7</td></tr>
+  <tr><td>Claude model</td><td>claude-opus-4-6</td></tr>
+  <tr><td>skillsaw version</td><td>0.14.0</td></tr>
+  <tr><td>ai-helpers plugins</td><td>45+</td></tr>
+  <tr><td>Date</td><td>2026-06-25</td></tr>
+</table>
+
+<h5>C. Raw Data</h5>
+<p>Full JSON reports available at:</p>
+<ul>
+  <li><code>/tmp/skillspector-ai-helpers.json</code> (1.3 MB, full repo scan)</li>
+  <li><code>/tmp/report-jira-plugin.json</code> (55 KB, jira plugin scan)</li>
+</ul>
+
+</div><!-- /container -->
+
+<footer class="bg-light border-top mt-5 py-3">
+  <div class="container text-center text-muted">
+    <small>Generated 2026-06-25 &bull; HPNEX-19 &bull; Bryan Cox &bull; openshift-eng/ai-helpers evaluation</small>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
