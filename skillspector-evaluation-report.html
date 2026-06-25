@@ -602,6 +602,10 @@ skillspector scan ~/bryan-cox/ai-helpers/ --format json --output report.json
 <h5>Note on rate limiting</h5>
 <p>The scan hit Vertex AI quota limits for Opus 4.6 output tokens per minute. 9 of 209 file batches failed with <code>429 RESOURCE_EXHAUSTED</code>, leaving 135 findings in those files unfiltered. The actual reduction with full LLM coverage would be slightly better than 22%, but not materially different &mdash; the unfiltered files were mostly <code>.work/</code> scratch artifacts and test files.</p>
 
+<div class="alert alert-danger">
+  <strong>No rate limiting controls.</strong> SkillSpector hardcodes LLM concurrency at 10 parallel requests (<code>llm_analyzer_base.py:401</code>) with no retry on <code>429</code> errors. There is no CLI flag or environment variable to adjust this. The only supported <code>SKILLSPECTOR_*</code> env vars are <code>PROVIDER</code>, <code>MODEL</code>, and <code>LOG_LEVEL</code>. For Vertex AI deployments with per-minute token quotas, this means batches are silently dropped rather than retried, and there is no way to throttle the tool without patching the source.
+</div>
+
 <!-- 9. Recommendation -->
 <h2 id="recommendation" class="section-header">9. Recommendation</h2>
 
