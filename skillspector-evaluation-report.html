@@ -166,7 +166,7 @@
 </div>
 
 <div class="alert alert-warning">
-  <strong>Bottom line:</strong> SkillSpector is the wrong tool for scanning a first-party internal skill repo. Its suspicious-by-default posture produces overwhelming noise when applied to skills you wrote yourself. The one real finding (an unpinned dependency) is already covered by Dependabot. We recommend <strong>not adding it to CI</strong>, but it remains useful as a one-off evaluation tool for third-party skills.
+  <strong>Bottom line:</strong> SkillSpector is the wrong tool for scanning a first-party internal skill repo. Its suspicious-by-default posture produces overwhelming noise when applied to skills you wrote yourself. The one real finding (an unpinned dependency) is already covered by Dependabot. Recommendation: <strong>do not add to CI</strong>. It remains useful as a one-off evaluation tool for third-party skills.
 </div>
 
 <!-- 2. What Is SkillSpector? -->
@@ -190,7 +190,7 @@
       <li><strong>Stage 1 (Static):</strong> Regex matching, Python AST analysis, taint tracking, YARA signatures, dependency CVE lookups via OSV.dev. Fast, no API keys needed.</li>
       <li><strong>Stage 2 (LLM, optional):</strong> Sends file contents to an LLM to evaluate context and filter false positives. Claims ~87% precision with LLM vs ~50% without.</li>
     </ol>
-    <p>We tested <strong>Stage 1 only</strong> (<code>--no-llm</code>) and also tested a <strong>Claude-based triage</strong> as an alternative to Stage 2.</p>
+    <p>This evaluation tested <strong>Stage 1 only</strong> (<code>--no-llm</code>) and also tested a <strong>Claude-based triage</strong> as an alternative to Stage 2.</p>
   </div>
 </div>
 
@@ -259,7 +259,7 @@
 <!-- 4. Full Scan Results -->
 <h2 id="results" class="section-header">4. Full Scan Results</h2>
 
-<p>We ran <code>skillspector scan ~/bryan-cox/ai-helpers/ --no-llm</code> against the full repo (726 files, 45+ plugins).</p>
+<p>The scan ran <code>skillspector scan ~/bryan-cox/ai-helpers/ --no-llm</code> against the full repo (726 files, 45+ plugins).</p>
 
 <h5>By Severity</h5>
 <div class="row g-3 mb-4">
@@ -446,7 +446,7 @@
 <!-- 6. Claude Triage Pipeline -->
 <h2 id="triage" class="section-header">6. Claude Triage Pipeline</h2>
 
-<p>We tested whether Claude could replace SkillSpector's built-in LLM mode to triage false positives. The pipeline is simple:</p>
+<p>Can Claude replace SkillSpector's built-in LLM mode to triage false positives? The pipeline is simple:</p>
 
 <pre>
 # Step 1: Run SkillSpector static analysis
@@ -460,7 +460,7 @@ claude --print --model claude-opus-4-6 \
 
 <h5>Results</h5>
 
-<p>We tested against two scopes:</p>
+<p>Tested against two scopes:</p>
 
 <div class="table-responsive">
 <table class="table table-bordered">
