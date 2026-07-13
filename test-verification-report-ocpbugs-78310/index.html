@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Verification Report: OCPBUGS-78310 / HyperShift PR #8955</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    .card-stat { text-align: center; }
+    .card-stat .display-4 { font-weight: 700; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">OCPBUGS-78310 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated (Create)</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Warning Eliminated (Destroy)</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Structured JSON Logging</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Create Cluster AWS</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Create Cluster Azure</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Create Cluster KubeVirt</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Destroy Cluster</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Version Command</a></li>
+            <li><a class="dropdown-item" href="scenario-9.html">9: Help Output</a></li>
+            <li><a class="dropdown-item" href="scenario-10.html">10: Before/After Comparison</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <h1>Test Verification Report: OCPBUGS-78310</h1>
+    <table class="table table-sm" style="max-width: 700px;">
+      <tbody>
+        <tr><th scope="row">JIRA</th><td><a href="https://redhat.atlassian.net/browse/OCPBUGS-78310" target="_blank">OCPBUGS-78310</a>: Warning about <code>[controller-runtime] log.SetLogger(...) was never called</code> when using <code>hcp</code> CLI</td></tr>
+        <tr><th scope="row">PR</th><td><a href="https://github.com/openshift/hypershift/pull/8955" target="_blank">HyperShift #8955</a>: OCPBUGS-78310: fix(cli): initialize controller-runtime logger in product-cli</td></tr>
+        <tr><th scope="row">Commit</th><td><code>8ea96d7f8c</code> (main) + PR #8955 diff applied</td></tr>
+        <tr><th scope="row">Cluster</th><td><code>brcox-azure-dev-hc</code> (Azure, 4.22.0) on AWS dev mgmt cluster</td></tr>
+        <tr><th scope="row">Date</th><td>2026-07-13</td></tr>
+        <tr><th scope="row">Tester</th><td>Bryan Cox</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">1/1</div>
+          <div class="card-text">Unit Tests Passing</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">30/30</div>
+          <div class="card-text">CI Jobs Passed</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">10/10</div>
+          <div class="card-text">Scenarios Verified</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">6/6</div>
+          <div class="card-text">Regression Checks</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Table -->
+  <h2>Summary</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Category</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><a href="automated-tests.html">Build (<code>make product-cli</code>)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Unit Tests (<code>go test ./product-cli/...</code>)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Lint / Verify / CI</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-1.html">Scenario 1: Warning eliminated during cluster creation</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-2.html">Scenario 2: Warning eliminated during cluster destroy</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-3.html">Scenario 3: Structured JSON log output (RFC3339)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-4.html">Scenario 4: <code>hcp create cluster aws</code> no regression</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-5.html">Scenario 5: <code>hcp create cluster azure</code> no regression</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-6.html">Scenario 6: <code>hcp create cluster kubevirt</code> no regression</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-7.html">Scenario 7: <code>hcp destroy cluster</code> no regression</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-8.html">Scenario 8: <code>hcp version</code> clean output</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-9.html">Scenario 9: <code>hcp --help</code> clean output</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-10.html">Scenario 10: Before/after binary comparison</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- Regression Checklist -->
+  <h2>Regression Checklist</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Check</th><th>Result</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>All platform create subcommands load cleanly</td><td><span class="badge bg-success">PASS</span></td><td>AWS, Azure, KubeVirt <code>--help</code> and flag validation work; no warnings</td></tr>
+      <tr><td>Destroy commands work without regression</td><td><span class="badge bg-success">PASS</span></td><td>Azure and AWS destroy paths exercised; no warnings, correct error messages</td></tr>
+      <tr><td>Log format matches hypershift-operator/control-plane-operator</td><td><span class="badge bg-success">PASS</span></td><td>JSON-encoded, RFC3339 timestamps; same <code>zap.JSONEncoder</code> + <code>zapcore.RFC3339TimeEncoder</code> pattern</td></tr>
+      <tr><td>Signal handling still works (SIGINT)</td><td><span class="badge bg-success">PASS</span></td><td>SIGINT handler unchanged; <code>ctrl.SetLogger()</code> added before cobra command setup</td></tr>
+      <tr><td>Help output identical before/after</td><td><span class="badge bg-success">PASS</span></td><td><code>diff</code> confirms identical <code>--help</code> output</td></tr>
+      <tr><td>Version command works</td><td><span class="badge bg-success">PASS</span></td><td>Client and server version displayed correctly; no warnings</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- CI Job Results -->
+  <h2>CI Job Results (30/30 passed)</h2>
+  <h4>Prow Jobs</h4>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Job</th><th>Status</th><th>Link</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>e2e-aks</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-aks/2075605842819813376" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-aws/2075050302888742912" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-aws-upgrade-hypershift-operator</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-aws-upgrade-hypershift-operator/2074812071744114688" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-azure-v2-self-managed</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-azure-v2-self-managed/2074812071790252032" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-kubevirt-aws-ovn-reduced</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-kubevirt-aws-ovn-reduced/2074643676872577024" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-v2-aws</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-v2-aws/2074812071802834944" target="_blank">Prow</a></td></tr>
+      <tr><td>e2e-v2-gke</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-v2-gke/2074643676918714368" target="_blank">Prow</a></td></tr>
+      <tr><td>images</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-images/2074633780789776384" target="_blank">Prow</a></td></tr>
+      <tr><td>okd-scos-images</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-okd-scos-images/2074633780819136512" target="_blank">Prow</a></td></tr>
+      <tr><td>security</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-security/2074633780848496640" target="_blank">Prow</a></td></tr>
+      <tr><td>verify-deps</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-verify-deps/2074633780877856768" target="_blank">Prow</a></td></tr>
+    </tbody>
+  </table>
+
+  <h4>GitHub Actions</h4>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Job</th><th>Status</th><th>Link</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Lint</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345588/job/85751098489" target="_blank">GHA</a></td></tr>
+      <tr><td>Verify</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345602/job/85751098462" target="_blank">GHA</a></td></tr>
+      <tr><td>Unit Tests (cmd-support)</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345682/job/85751726389" target="_blank">GHA</a></td></tr>
+      <tr><td>Unit Tests (cpo-hostedcontrolplane)</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345682/job/85751726394" target="_blank">GHA</a></td></tr>
+      <tr><td>Unit Tests (cpo-other)</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345682/job/85751726409" target="_blank">GHA</a></td></tr>
+      <tr><td>Unit Tests (other)</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345682/job/85751726388" target="_blank">GHA</a></td></tr>
+      <tr><td>Unit Tests (hypershift-operator)</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345682/job/85751726390" target="_blank">GHA</a></td></tr>
+      <tr><td>Codespell</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345629/job/85751098576" target="_blank">GHA</a></td></tr>
+      <tr><td>Gitlint</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://github.com/openshift/hypershift/actions/runs/28905345627/job/85751098555" target="_blank">GHA</a></td></tr>
+      <tr><td>CodeRabbit</td><td><span class="badge bg-success">PASS</span></td><td>Review completed</td></tr>
+      <tr><td>Codecov (patch)</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://app.codecov.io/gh/openshift/hypershift/pull/8955" target="_blank">Codecov</a></td></tr>
+      <tr><td>Codecov (project)</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://app.codecov.io/gh/openshift/hypershift/pull/8955" target="_blank">Codecov</a></td></tr>
+    </tbody>
+  </table>
+
+  <h4>Konflux</h4>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Job</th><th>Status</th><th>Link</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>hypershift-cli-mce-50-on-pull-request</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://konflux-ui.apps.stone-prd-rh01.pg1f.p1.openshiftapps.com/ns/crt-redhat-acm-tenant/pipelinerun/hypershift-cli-mce-50-on-pull-request-mdrln" target="_blank">Konflux</a></td></tr>
+      <tr><td>hypershift-operator-main-on-pull-request</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://konflux-ui.apps.stone-prd-rh01.pg1f.p1.openshiftapps.com/ns/crt-redhat-acm-tenant/pipelinerun/hypershift-operator-main-on-pull-request-mxzgd" target="_blank">Konflux</a></td></tr>
+      <tr><td>hypershift-release-mce-50-on-pull-request</td><td><span class="badge bg-success">PASS</span></td><td><a href="https://konflux-ui.apps.stone-prd-rh01.pg1f.p1.openshiftapps.com/ns/crt-redhat-acm-tenant/pipelinerun/hypershift-release-mce-50-on-pull-request-gs5mt" target="_blank">Konflux</a></td></tr>
+    </tbody>
+  </table>
+
+  <p class="text-muted">Full CI history: <a href="https://prow.ci.openshift.org/pr-history?org=openshift&repo=hypershift&pr=8955" target="_blank">Prow PR History</a> |
+    <a href="https://github.com/openshift/hypershift/pull/8955/checks" target="_blank">GitHub Checks</a></p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

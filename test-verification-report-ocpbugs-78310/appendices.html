@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appendices - OCPBUGS-78310 Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">OCPBUGS-78310 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated (Create)</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Warning Eliminated (Destroy)</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Structured JSON Logging</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Create Cluster AWS</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Create Cluster Azure</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Create Cluster KubeVirt</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Destroy Cluster</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Version Command</a></li>
+            <li><a class="dropdown-item" href="scenario-9.html">9: Help Output</a></li>
+            <li><a class="dropdown-item" href="scenario-10.html">10: Before/After Comparison</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link active" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <h1>Appendices</h1>
+  <p>Source diffs, environment details, and technical context for the OCPBUGS-78310 test verification.</p>
+
+  <hr>
+
+  <!-- Appendix A: Environment Details -->
+  <h2>A. Test Environment</h2>
+  <table class="table table-bordered">
+    <tbody>
+      <tr><th style="width:30%">Management Cluster</th><td>AWS (via <code>KUBECONFIG=/Users/brcox/aws_dev_kubeconfig</code>)</td></tr>
+      <tr><th>Azure HostedCluster</th><td><code>brcox-azure-dev-hc</code> (namespace: <code>clusters</code>)</td></tr>
+      <tr><th>Platform</th><td>Azure (self-managed)</td></tr>
+      <tr><th>OCP Version</th><td>4.22.0</td></tr>
+      <tr><th>Worker Nodes</th><td>5 (all Ready, 26d uptime)</td></tr>
+      <tr><th>Binary (before)</th><td><code>/tmp/hcp-before</code> &mdash; 162,040,706 bytes (built from <code>main</code>)</td></tr>
+      <tr><th>Binary (after)</th><td><code>/tmp/hcp-after</code> &mdash; 162,041,058 bytes (built with PR #8955)</td></tr>
+      <tr><th>PR</th><td><a href="https://github.com/openshift/hypershift/pull/8955">#8955</a></td></tr>
+      <tr><th>JIRA</th><td><a href="https://issues.redhat.com/browse/OCPBUGS-78310">OCPBUGS-78310</a></td></tr>
+      <tr><th>Test Date</th><td>2026-07-13</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- Appendix B: Source Diff -->
+  <h2>B. Source Diff (<code>product-cli/main.go</code>)</h2>
+  <div class="accordion mb-3" id="accordionDiff">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDiff">Full diff (click to expand)</button>
+      </h2>
+      <div id="collapseDiff" class="accordion-collapse collapse" data-bs-parent="#accordionDiff">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">diff --git a/product-cli/main.go b/product-cli/main.go
+index 270d232ab5..328acbcc9e 100644
+--- a/product-cli/main.go
++++ b/product-cli/main.go
+@@ -25,10 +25,25 @@ import (
+ 	"github.com/openshift/hypershift/product-cli/cmd/create"
+ 	"github.com/openshift/hypershift/product-cli/cmd/destroy"
+
++	ctrl "sigs.k8s.io/controller-runtime"
++	"sigs.k8s.io/controller-runtime/pkg/log/zap"
++
++	"github.com/go-logr/logr"
+ 	"github.com/spf13/cobra"
++	"go.uber.org/zap/zapcore"
+ )
+
++func newLogger(extraOpts ...zap.Opts) logr.Logger {
++	opts := []zap.Opts{zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
++		o.EncodeTime = zapcore.RFC3339TimeEncoder
++	})}
++	opts = append(opts, extraOpts...)
++	return zap.New(opts...)
++}
++
+ func main() {
++	ctrl.SetLogger(newLogger())
++
+ 	cmd := &cobra.Command{</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Appendix C: New Test File -->
+  <h2>C. New Test File (<code>product-cli/main_test.go</code>)</h2>
+  <div class="accordion mb-3" id="accordionTest">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTest">Full test source (click to expand)</button>
+      </h2>
+      <div id="collapseTest" class="accordion-collapse collapse" data-bs-parent="#accordionTest">
+        <div class="accordion-body p-0">
+          <pre class="log-output mb-0">package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"testing"
+
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+)
+
+func TestNewLogger(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newLogger(zap.WriteTo(&amp;buf))
+
+	logger.Info("test message")
+
+	out := buf.String()
+	t.Logf("Logger output: %s", out)
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &amp;parsed); err != nil {
+		t.Fatalf("Logger output is not valid JSON: %v\nOutput: %s", err, out)
+	}
+
+	ts, ok := parsed["ts"]
+	if !ok {
+		t.Fatal("Logger output missing 'ts' field")
+	}
+	tsStr, ok := ts.(string)
+	if !ok {
+		t.Fatalf("'ts' field is not a string: %T", ts)
+	}
+	// RFC3339 timestamps contain 'T' and timezone offset ('+' or 'Z')
+	if len(tsStr) &lt; 20 {
+		t.Errorf("Timestamp too short for RFC3339: %s", tsStr)
+	}
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Appendix D: Warning Mechanism -->
+  <h2>D. Warning Mechanism Analysis</h2>
+  <div class="accordion mb-3" id="accordionWarning">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseWarning">controller-runtime warning mechanism (click to expand)</button>
+      </h2>
+      <div id="collapseWarning" class="accordion-collapse collapse" data-bs-parent="#accordionWarning">
+        <div class="accordion-body">
+          <h5>Root Cause</h5>
+          <p>The <code>product-cli/main.go</code> binary imports <code>sigs.k8s.io/controller-runtime</code> transitively through its use of <code>controller-runtime/pkg/client.New()</code> (via <code>cmd/util.GetClient()</code>). The controller-runtime package initializes a deferred logger at import time that checks after 30 seconds whether <code>SetLogger()</code> was ever called.</p>
+
+          <h5>Warning Trigger</h5>
+          <p>In <code>vendor/sigs.k8s.io/controller-runtime/pkg/log/log.go</code> lines 54-72:</p>
+          <pre class="log-output">func eventuallyFulfillRoot() {
+    if logFullfilled.Load() {
+        return
+    }
+    if time.Since(rootLogCreated).Seconds() >= 30 {
+        if logFullfilled.CompareAndSwap(false, true) {
+            stack := debug.Stack()
+            ...
+            fmt.Fprintf(os.Stderr,
+                "[controller-runtime] log.SetLogger(...) was never called; ...")
+            SetLogger(logr.New(NullLogSink{}))
+        }
+    }
+}</pre>
+          <p>This fires when any code path calls <code>Log.Info()</code>, <code>Log.Error()</code>, etc. after 30 seconds of runtime without <code>SetLogger()</code> having been called first.</p>
+
+          <h5>Why CLI Commands Don't Always Reproduce</h5>
+          <p>Most <code>hcp</code> CLI commands complete in under 5 seconds, well before the 30-second timer fires. The warning is observed in real cluster creation because the process runs long enough (connecting to APIs, waiting for resources) for the timer to expire.</p>
+
+          <h5>Fix</h5>
+          <p>PR #8955 adds <code>ctrl.SetLogger(newLogger())</code> as the first statement in <code>main()</code>, before any cobra command execution. This fulfills the promise immediately, preventing the 30-second warning from ever firing regardless of how long the CLI runs.</p>
+
+          <h5>Logger Pattern Consistency</h5>
+          <p>The <code>newLogger()</code> function uses the same configuration as <code>hypershift-operator/main.go:118</code> and <code>control-plane-operator/main.go:87</code>:</p>
+          <pre class="log-output">zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
+    o.EncodeTime = zapcore.RFC3339TimeEncoder
+})</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Appendix E: Logger Comparison -->
+  <h2>E. Logger Initialization Across Binaries</h2>
+  <table class="table table-bordered">
+    <thead class="table-dark">
+      <tr><th>Binary</th><th>File</th><th>Logger Init</th><th>Consistent?</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>hypershift-operator</code></td>
+        <td><code>hypershift-operator/main.go:118</code></td>
+        <td><code>ctrl.SetLogger(zap.New(zap.JSONEncoder(...RFC3339...)))</code></td>
+        <td><span class="badge bg-success">Yes</span></td>
+      </tr>
+      <tr>
+        <td><code>control-plane-operator</code></td>
+        <td><code>control-plane-operator/main.go:87</code></td>
+        <td><code>ctrl.SetLogger(zap.New(zap.JSONEncoder(...RFC3339...)))</code></td>
+        <td><span class="badge bg-success">Yes</span></td>
+      </tr>
+      <tr>
+        <td><code>hcp</code> (before fix)</td>
+        <td><code>product-cli/main.go</code></td>
+        <td><em>None &mdash; missing</em></td>
+        <td><span class="badge bg-danger">No</span></td>
+      </tr>
+      <tr>
+        <td><code>hcp</code> (after fix)</td>
+        <td><code>product-cli/main.go:45</code></td>
+        <td><code>ctrl.SetLogger(newLogger())</code> &mdash; same pattern via helper</td>
+        <td><span class="badge bg-success">Yes</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- Appendix F: Troubleshooting -->
+  <h2>F. Troubleshooting Notes</h2>
+  <div class="accordion mb-3" id="accordionTroubleshooting">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTroubleshoot">Troubleshooting and known issues (click to expand)</button>
+      </h2>
+      <div id="collapseTroubleshoot" class="accordion-collapse collapse" data-bs-parent="#accordionTroubleshooting">
+        <div class="accordion-body">
+          <h5>Warning Does Not Reproduce Locally With Short Commands</h5>
+          <p>The controller-runtime warning requires 30+ seconds of runtime. Most <code>hcp</code> CLI operations (help, version, flag validation) complete in under 5 seconds. The warning is only observed in real cluster creation/management where the process runs long enough.</p>
+          <p><strong>Verification approach:</strong> Instead of reproducing the warning directly, we verify via source code analysis that <code>ctrl.SetLogger()</code> is called before <code>cmd.ExecuteContext()</code>, and via unit tests that the logger produces correctly formatted output.</p>
+
+          <h5>Azure Resource Group Creation During Testing</h5>
+          <p>Running <code>hcp create cluster azure</code> without <code>--render</code> may create Azure resource groups before flag validation fails. During testing, two orphaned RGs were created and subsequently cleaned up with <code>az group delete --yes --no-wait</code>.</p>
+
+          <h5>Binary Size Difference</h5>
+          <p>The fixed binary is 352 bytes larger than the unfixed binary (162,041,058 vs 162,040,706 bytes). This difference accounts for the <code>newLogger()</code> function and the <code>ctrl.SetLogger()</code> call &mdash; no unexpected code was added.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

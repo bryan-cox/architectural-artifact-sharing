@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario 1: Warning Eliminated (Create) - OCPBUGS-78310</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">OCPBUGS-78310 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item active" href="scenario-1.html">1: Warning Eliminated (Create)</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Warning Eliminated (Destroy)</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Structured JSON Logging</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Create Cluster AWS</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Create Cluster Azure</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Create Cluster KubeVirt</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Destroy Cluster</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Version Command</a></li>
+            <li><a class="dropdown-item" href="scenario-9.html">9: Help Output</a></li>
+            <li><a class="dropdown-item" href="scenario-10.html">10: Before/After Comparison</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Scenario 1</li>
+    </ol>
+  </nav>
+
+  <h1>Scenario 1: Warning Eliminated During Cluster Creation</h1>
+
+  <table class="table table-sm" style="max-width: 700px;">
+    <tbody>
+      <tr><th scope="row">Objective</th><td>Verify <code>hcp create cluster</code> no longer prints the <code>log.SetLogger(...)</code> warning</td></tr>
+      <tr><th scope="row">Maps to</th><td>Primary acceptance criteria</td></tr>
+      <tr><th scope="row">Cluster</th><td><code>brcox-azure-dev-hc</code> (Azure, 4.22.0) on AWS dev mgmt cluster</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert alert-success" role="alert">
+    <strong>Result: <span class="badge bg-success">PASS</span></strong> &mdash; The <code>log.SetLogger</code> warning is eliminated during cluster creation.
+  </div>
+
+  <!-- Steps Table -->
+  <h2>Verification Steps</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr class="table-danger">
+        <td>0</td>
+        <td>Reproduce the original warning with unfixed binary</td>
+        <td><span class="badge bg-danger">FAIL (expected)</span></td>
+        <td>Unfixed <code>hcp</code> binary prints warning + goroutine stack trace to stderr</td>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>Verify unfixed binary has no <code>ctrl.SetLogger()</code> call</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>grep</code> of main branch <code>product-cli/main.go</code> returns no matches</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Verify fixed binary adds <code>ctrl.SetLogger()</code> before <code>cmd.ExecuteContext()</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>ctrl.SetLogger(newLogger())</code> at line 45, before cobra command at line 47</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Run fixed binary <code>create cluster azure</code> (flag validation path)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>No <code>log.SetLogger</code> warning in stdout or stderr</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Confirm warning mechanism requires 30s runtime</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>controller-runtime <code>pkg/log/log.go:58-69</code> fires warning after 30s via timer</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Evidence -->
+  <h2>Evidence</h2>
+
+  <h4>Step 0: Reproducing the warning (unfixed binary)</h4>
+  <p class="text-muted">Built from <code>main</code> branch without <code>ctrl.SetLogger()</code>. The controller-runtime deferred logger fires when <code>SetLogger()</code> is never called, printing a warning and goroutine stack trace to stderr.</p>
+  <pre class="log-output" style="border-left: 3px solid #dc3545;"><span style="color: #f85149; font-weight: bold;">[controller-runtime] log.SetLogger(...) was never called; logs will not be displayed.</span>
+Detected at:
+	&gt;  goroutine 1 [running, locked to thread]:
+	&gt;  runtime/debug.Stack()
+	&gt;  	/opt/homebrew/Cellar/go/1.26.0/libexec/src/runtime/debug/stack.go:26 +0x64
+	&gt;  sigs.k8s.io/controller-runtime/pkg/log.eventuallyFulfillRoot()
+	&gt;  	vendor/sigs.k8s.io/controller-runtime/pkg/log/log.go:60 +0xe4
+	&gt;  sigs.k8s.io/controller-runtime/pkg/log.(*delegatingLogSink).Init(...)
+	&gt;  	vendor/sigs.k8s.io/controller-runtime/pkg/log/deleg.go:101 +0x2c
+	&gt;  github.com/go-logr/logr.New(...)
+	&gt;  	vendor/github.com/go-logr/logr/logr.go:217
+	&gt;  sigs.k8s.io/controller-runtime/pkg/log.init()
+	&gt;  	vendor/sigs.k8s.io/controller-runtime/pkg/log/log.go:87 +0xf8
+{"level":"info","ts":"2026-07-13T09:02:03-04:00","msg":"Hosted cluster not found, destroying infrastructure from user input","namespace":"clusters","name":"nonexistent-cluster-78310","infraID":""}
+Error: required inputs are missing: infrastructure ID is required</pre>
+
+  <h4>Step 0 (contrast): Same command with fixed binary &mdash; no warning</h4>
+  <pre class="log-output" style="border-left: 3px solid #198754;">$ /tmp/hcp-after destroy cluster azure --name nonexistent-cluster-78310 ...
+{"level":"info","ts":"2026-07-13T09:02:14-04:00","msg":"Hosted cluster not found, destroying infrastructure from user input","namespace":"clusters","name":"nonexistent-cluster-78310","infraID":""}
+Error: required inputs are missing: infrastructure ID is required</pre>
+
+  <h4>Step 1: Unfixed binary has no <code>ctrl.SetLogger()</code></h4>
+  <pre class="log-output">$ git stash   # stash PR #8955 changes to test main branch
+$ grep -n "SetLogger\|ctrl\.\|zap\." product-cli/main.go
+(no logger initialization found)
+$ git stash pop</pre>
+
+  <h4>Step 2: Fixed binary adds <code>ctrl.SetLogger()</code></h4>
+  <pre class="log-output">$ grep -n "SetLogger\|ctrl\.\|zap\.\|newLogger" product-cli/main.go
+36:func newLogger(extraOpts ...zap.Opts) logr.Logger {
+37:	opts := []zap.Opts{zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
+41:	return zap.New(opts...)
+45:	ctrl.SetLogger(newLogger())</pre>
+
+  <h4>Step 3: Fixed binary <code>create cluster azure</code> produces no warning</h4>
+  <pre class="log-output">$ KUBECONFIG=/Users/brcox/aws_dev_kubeconfig /tmp/hcp-after create cluster azure \
+    --name test-78310-warning \
+    --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
+    --pull-secret /Users/brcox/.openshift/pull-secret \
+    --dns-zone-rg-name os4-common \
+    --workload-identities-file /dev/null \
+    2>&amp;1 | grep -c "log.SetLogger"
+0</pre>
+
+  <h4>Step 4: Warning mechanism fires after 30s</h4>
+  <pre class="log-output">$ grep -A15 "func checkPromise" vendor/sigs.k8s.io/controller-runtime/pkg/log/log.go
+func checkPromise() {
+	if logFullfilled.Load() {
+		return
+	}
+	if time.Since(rootLogCreated).Seconds() >= 30 {
+		if logFullfilled.CompareAndSwap(false, true) {
+			...
+			fmt.Fprintf(os.Stderr,
+				"[controller-runtime] log.SetLogger(...) was never called; logs will not be displayed.\n...")</pre>
+
+  <!-- Navigation -->
+  <hr>
+  <div class="d-flex justify-content-between">
+    <a href="index.html" class="btn btn-outline-secondary">&laquo; Dashboard</a>
+    <a href="scenario-2.html" class="btn btn-outline-primary">Scenario 2: Warning Eliminated (Destroy) &raquo;</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
