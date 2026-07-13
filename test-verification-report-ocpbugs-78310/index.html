@@ -106,7 +106,7 @@
       <tr><td><a href="automated-tests.html">Lint / Verify / CI</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-1.html">Scenario 1: Warning eliminated (create &amp; destroy paths)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-2.html">Scenario 2: Structured JSON log output (RFC3339)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td><a href="scenario-3.html">Scenario 3: Platform create commands &mdash; no regression (AWS, Azure, KubeVirt)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-3.html">Scenario 3: Platform create command &mdash; no regression (real AWS HostedCluster created)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-4.html">Scenario 4: Destroy command &mdash; no regression</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-5.html">Scenario 5: Basic CLI functionality (<code>version</code>, <code>--help</code>)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-6.html">Scenario 6: Before/after binary comparison</a></td><td><span class="badge bg-success">PASS</span></td></tr>
@@ -122,7 +122,7 @@
       <tr><th>Check</th><th>Result</th><th>Notes</th></tr>
     </thead>
     <tbody>
-      <tr><td>All platform create subcommands load cleanly</td><td><span class="badge bg-success">PASS</span></td><td>AWS, Azure, KubeVirt <code>--help</code> and flag validation work; no warnings</td></tr>
+      <tr><td>AWS cluster create works end-to-end</td><td><span class="badge bg-success">PASS</span></td><td>Real AWS HostedCluster created with fixed binary: VPC, subnets, IAM roles, DNS zones, Kubernetes resources &mdash; 52 JSON log lines, zero warnings</td></tr>
       <tr><td>Destroy commands work without regression</td><td><span class="badge bg-success">PASS</span></td><td>Azure and AWS destroy paths exercised; no warnings, correct error messages</td></tr>
       <tr><td>Log format matches hypershift-operator/control-plane-operator</td><td><span class="badge bg-success">PASS</span></td><td>JSON-encoded, RFC3339 timestamps; same <code>zap.JSONEncoder</code> + <code>zapcore.RFC3339TimeEncoder</code> pattern</td></tr>
       <tr><td>Signal handling still works (SIGINT)</td><td><span class="badge bg-success">PASS</span></td><td>SIGINT handler unchanged; <code>ctrl.SetLogger()</code> added before cobra command setup</td></tr>
