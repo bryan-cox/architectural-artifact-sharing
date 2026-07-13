@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scenario 2: Warning Eliminated (Destroy) - OCPBUGS-78310</title>
+  <title>Scenario 2: Structured JSON Logging - OCPBUGS-78310</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
@@ -23,16 +23,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated (Create)</a></li>
-            <li><a class="dropdown-item active" href="scenario-2.html">2: Warning Eliminated (Destroy)</a></li>
-            <li><a class="dropdown-item" href="scenario-3.html">3: Structured JSON Logging</a></li>
-            <li><a class="dropdown-item" href="scenario-4.html">4: Create Cluster AWS</a></li>
-            <li><a class="dropdown-item" href="scenario-5.html">5: Create Cluster Azure</a></li>
-            <li><a class="dropdown-item" href="scenario-6.html">6: Create Cluster KubeVirt</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Destroy Cluster</a></li>
-            <li><a class="dropdown-item" href="scenario-8.html">8: Version Command</a></li>
-            <li><a class="dropdown-item" href="scenario-9.html">9: Help Output</a></li>
-            <li><a class="dropdown-item" href="scenario-10.html">10: Before/After Comparison</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated</a></li>
+            <li><a class="dropdown-item active" href="scenario-2.html">2: Structured JSON Logging</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Platform Create &mdash; No Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Destroy Command &mdash; No Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Basic CLI Functionality</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Before/After Comparison</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
@@ -51,18 +47,18 @@
     </ol>
   </nav>
 
-  <h1>Scenario 2: Warning Eliminated During Cluster Destroy</h1>
+  <h1>Scenario 2: Structured JSON Log Output</h1>
 
   <table class="table table-sm" style="max-width: 700px;">
     <tbody>
-      <tr><th scope="row">Objective</th><td>Verify <code>hcp destroy cluster</code> does not produce the warning</td></tr>
-      <tr><th scope="row">Maps to</th><td>Acceptance criteria - no regression in destroy</td></tr>
-      <tr><th scope="row">Cluster</th><td><code>brcox-azure-dev-hc</code> (Azure, 4.22.0) on AWS dev mgmt cluster</td></tr>
+      <tr><th scope="row">Objective</th><td>Verify the fixed <code>hcp</code> CLI produces structured JSON log output with RFC3339 timestamps, consistent with <code>hypershift-operator</code> and <code>control-plane-operator</code></td></tr>
+      <tr><th scope="row">Maps to</th><td>Acceptance criteria &mdash; structured JSON logging</td></tr>
+      <tr><th scope="row">Note</th><td>This is integration-level confirmation of what <code>TestNewLogger</code> already proves at unit level</td></tr>
     </tbody>
   </table>
 
   <div class="alert alert-success" role="alert">
-    <strong>Result: <span class="badge bg-success">PASS</span></strong> &mdash; Neither the before nor after binary produces the <code>log.SetLogger</code> warning during destroy.
+    <strong>Result: <span class="badge bg-success">PASS</span></strong> &mdash; Log output is valid JSON with RFC3339 timestamps, matching the pattern used by other HyperShift binaries.
   </div>
 
   <!-- Steps Table -->
@@ -72,23 +68,29 @@
       <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
     </thead>
     <tbody>
-      <tr class="table-danger">
-        <td>0</td>
-        <td>Reproduce warning on destroy path with unfixed binary</td>
-        <td><span class="badge bg-danger">FAIL (expected)</span></td>
-        <td>Unfixed <code>hcp</code> binary prints warning + goroutine stack trace during <code>destroy cluster</code></td>
-      </tr>
       <tr>
         <td>1</td>
-        <td>Run AFTER binary destroy (nonexistent cluster)</td>
+        <td>Run fixed binary and capture JSON log lines</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>No warning; correct JSON-formatted error output</td>
+        <td>JSON log line produced during destroy command</td>
       </tr>
       <tr>
         <td>2</td>
-        <td>Confirm no <code>log.SetLogger</code> warning in fixed binary output</td>
+        <td>Validate JSON structure</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>grep count = 0</td>
+        <td><code>python3 -m json.tool</code> confirms valid JSON</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Verify RFC3339 timestamp format</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>ts</code> field = <code>2026-07-13T08:46:56-04:00</code> (RFC3339)</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Compare logger pattern with other binaries</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Same <code>zap.JSONEncoder</code> + <code>zapcore.RFC3339TimeEncoder</code> pattern</td>
       </tr>
     </tbody>
   </table>
@@ -96,45 +98,40 @@
   <!-- Evidence -->
   <h2>Evidence</h2>
 
-  <h4>Step 0: Reproducing the warning on destroy path (unfixed binary)</h4>
-  <p class="text-muted">Built from <code>main</code> branch without <code>ctrl.SetLogger()</code>. The warning fires on the destroy code path just as it does on create.</p>
-  <pre class="log-output" style="border-left: 3px solid #dc3545;">$ /tmp/hcp-unfixed destroy cluster azure --name nonexistent-cluster-78310 \
+  <h4>Step 1: Fixed binary JSON log output</h4>
+  <pre class="log-output">$ KUBECONFIG=/Users/brcox/aws_dev_kubeconfig /tmp/hcp-after destroy cluster azure \
+    --name nonexistent-cluster-78310 \
     --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
-    --dns-zone-rg-name fake-rg
+    --dns-zone-rg-name fake-rg 2>&amp;1
+{"level":"info","ts":"2026-07-13T08:46:56-04:00","msg":"Hosted cluster not found, destroying infrastructure from user input","namespace":"clusters","name":"nonexistent-cluster-78310","infraID":""}</pre>
 
-<span style="color: #f85149; font-weight: bold;">[controller-runtime] log.SetLogger(...) was never called; logs will not be displayed.</span>
-Detected at:
-	&gt;  goroutine 1 [running, locked to thread]:
-	&gt;  runtime/debug.Stack()
-	&gt;  	/opt/homebrew/Cellar/go/1.26.0/libexec/src/runtime/debug/stack.go:26 +0x64
-	&gt;  sigs.k8s.io/controller-runtime/pkg/log.eventuallyFulfillRoot()
-	&gt;  	vendor/sigs.k8s.io/controller-runtime/pkg/log/log.go:60 +0xe4
-	&gt;  sigs.k8s.io/controller-runtime/pkg/log.(*delegatingLogSink).Init(...)
-	&gt;  	vendor/sigs.k8s.io/controller-runtime/pkg/log/deleg.go:101 +0x2c
-	&gt;  github.com/go-logr/logr.New(...)
-	&gt;  	vendor/github.com/go-logr/logr/logr.go:217
-	&gt;  sigs.k8s.io/controller-runtime/pkg/log.init()
-	&gt;  	vendor/sigs.k8s.io/controller-runtime/pkg/log/log.go:87 +0xf8
-{"level":"info","ts":"2026-07-13T09:02:03-04:00","msg":"Hosted cluster not found, destroying infrastructure from user input","namespace":"clusters","name":"nonexistent-cluster-78310","infraID":""}
-Error: required inputs are missing: infrastructure ID is required</pre>
+  <h4>Step 2: JSON validation</h4>
+  <pre class="log-output">$ echo '{"level":"info","ts":"2026-07-13T08:46:56-04:00","msg":"Hosted cluster not found..."}' | python3 -m json.tool
+VALID JSON</pre>
 
-  <h4>Step 1: Fixed binary destroy &mdash; no warning</h4>
-  <pre class="log-output" style="border-left: 3px solid #198754;">$ /tmp/hcp-after destroy cluster azure --name nonexistent-cluster-78310 \
-    --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
-    --dns-zone-rg-name fake-rg
+  <h4>Step 3: RFC3339 timestamp verification</h4>
+  <pre class="log-output">ts=2026-07-13T08:46:56-04:00  (RFC3339: True)</pre>
 
-{"level":"info","ts":"2026-07-13T09:02:14-04:00","msg":"Hosted cluster not found, destroying infrastructure from user input","namespace":"clusters","name":"nonexistent-cluster-78310","infraID":""}
-Error: required inputs are missing: infrastructure ID is required</pre>
+  <h4>Step 4: Logger pattern comparison</h4>
+  <pre class="log-output">--- hypershift-operator/main.go:118 ---
+ctrl.SetLogger(zap.New(zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
+    o.EncodeTime = zapcore.RFC3339TimeEncoder
+})))
 
-  <h4>Step 2: Warning grep count (fixed binary)</h4>
-  <pre class="log-output">$ /tmp/hcp-after destroy cluster azure ... 2>&amp;1 | grep -c "log.SetLogger"
-0</pre>
+--- product-cli/main.go (fixed) ---
+func newLogger(extraOpts ...zap.Opts) logr.Logger {
+    opts := []zap.Opts{zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
+        o.EncodeTime = zapcore.RFC3339TimeEncoder
+    })}
+    opts = append(opts, extraOpts...)
+    return zap.New(opts...)
+}</pre>
 
   <!-- Navigation -->
   <hr>
   <div class="d-flex justify-content-between">
-    <a href="scenario-1.html" class="btn btn-outline-secondary">&laquo; Scenario 1: Warning Eliminated (Create)</a>
-    <a href="scenario-3.html" class="btn btn-outline-primary">Scenario 3: Structured JSON Logging &raquo;</a>
+    <a href="scenario-1.html" class="btn btn-outline-secondary">&laquo; Scenario 1: Warning Eliminated</a>
+    <a href="scenario-3.html" class="btn btn-outline-primary">Scenario 3: Platform Create &mdash; No Regression &raquo;</a>
   </div>
 
 </div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scenario 3: Structured JSON Logging - OCPBUGS-78310</title>
+  <title>Scenario 3: Platform Create Commands - OCPBUGS-78310</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
@@ -23,16 +23,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated (Create)</a></li>
-            <li><a class="dropdown-item" href="scenario-2.html">2: Warning Eliminated (Destroy)</a></li>
-            <li><a class="dropdown-item active" href="scenario-3.html">3: Structured JSON Logging</a></li>
-            <li><a class="dropdown-item" href="scenario-4.html">4: Create Cluster AWS</a></li>
-            <li><a class="dropdown-item" href="scenario-5.html">5: Create Cluster Azure</a></li>
-            <li><a class="dropdown-item" href="scenario-6.html">6: Create Cluster KubeVirt</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Destroy Cluster</a></li>
-            <li><a class="dropdown-item" href="scenario-8.html">8: Version Command</a></li>
-            <li><a class="dropdown-item" href="scenario-9.html">9: Help Output</a></li>
-            <li><a class="dropdown-item" href="scenario-10.html">10: Before/After Comparison</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Structured JSON Logging</a></li>
+            <li><a class="dropdown-item active" href="scenario-3.html">3: Platform Create &mdash; No Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Destroy Command &mdash; No Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Basic CLI Functionality</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Before/After Comparison</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
@@ -51,50 +47,73 @@
     </ol>
   </nav>
 
-  <h1>Scenario 3: Structured JSON Log Output</h1>
+  <h1>Scenario 3: Platform Create Commands &mdash; No Regression</h1>
 
   <table class="table table-sm" style="max-width: 700px;">
     <tbody>
-      <tr><th scope="row">Objective</th><td>Verify the fixed <code>hcp</code> CLI produces structured JSON log output with RFC3339 timestamps, consistent with <code>hypershift-operator</code> and <code>control-plane-operator</code></td></tr>
-      <tr><th scope="row">Maps to</th><td>Acceptance criteria - structured JSON logging</td></tr>
-      <tr><th scope="row">Cluster</th><td><code>brcox-azure-dev-hc</code> (Azure, 4.22.0) on AWS dev mgmt cluster</td></tr>
+      <tr><th scope="row">Objective</th><td>Verify <code>hcp create cluster</code> subcommands for AWS, Azure, and KubeVirt work without regression after adding <code>ctrl.SetLogger()</code></td></tr>
+      <tr><th scope="row">Maps to</th><td>No regression in existing CLI functionality</td></tr>
+      <tr><th scope="row">Evidence Scope</th><td><strong>Local:</strong> CLI flag parsing and help output. <strong>E2E:</strong> CI jobs for full create-verify-destroy lifecycle.</td></tr>
     </tbody>
   </table>
 
   <div class="alert alert-success" role="alert">
-    <strong>Result: <span class="badge bg-success">PASS</span></strong> &mdash; Log output is valid JSON with RFC3339 timestamps, matching the pattern used by other HyperShift binaries.
+    <strong>Result: <span class="badge bg-success">PASS</span></strong> &mdash; All three platform create commands pass local CLI validation. Full end-to-end lifecycle confirmed by CI jobs.
+  </div>
+
+  <!-- Scope Note -->
+  <div class="alert alert-info" role="alert">
+    <strong>Testing Scope:</strong> Local testing only covers CLI flag parsing &mdash; the logger call is in <code>main()</code> before any cobra command runs, so if flag parsing works, the logger didn't break cobra. Full create-verify-destroy paths require real cloud infrastructure and are covered by CI e2e jobs. This is the appropriate level of evidence for a change that adds one line (<code>ctrl.SetLogger(newLogger())</code>) before the cobra command tree executes.
   </div>
 
   <!-- Steps Table -->
   <h2>Verification Steps</h2>
   <table class="table table-striped table-hover">
     <thead class="table-dark">
-      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
+      <tr><th>Step</th><th>Platform</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
     </thead>
     <tbody>
       <tr>
         <td>1</td>
-        <td>Run fixed binary and capture JSON log lines</td>
+        <td>AWS</td>
+        <td>Run <code>hcp create cluster aws --help</code></td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>JSON log line produced during destroy command</td>
+        <td>Clean help output with all AWS flags; no warning</td>
       </tr>
       <tr>
         <td>2</td>
-        <td>Validate JSON structure</td>
+        <td>AWS</td>
+        <td>CI <code>e2e-aws</code> passes (full lifecycle)</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>python3 -m json.tool</code> confirms valid JSON</td>
+        <td>Prow job created and destroyed an AWS HostedCluster</td>
       </tr>
       <tr>
         <td>3</td>
-        <td>Verify RFC3339 timestamp format</td>
+        <td>Azure</td>
+        <td>Run <code>hcp create cluster azure --help</code></td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>ts</code> field = <code>2026-07-13T08:46:56-04:00</code> (RFC3339)</td>
+        <td>Clean help output with all Azure flags; no warning</td>
       </tr>
       <tr>
         <td>4</td>
-        <td>Compare logger pattern with other binaries</td>
+        <td>Azure</td>
+        <td>CI <code>e2e-azure-v2-self-managed</code> passes (full lifecycle)</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Same <code>zap.JSONEncoder</code> + <code>zapcore.RFC3339TimeEncoder</code> pattern</td>
+        <td>Prow job created and destroyed an Azure HostedCluster</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>KubeVirt</td>
+        <td>Run <code>hcp create cluster kubevirt --help</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Clean help output with all KubeVirt flags; no warning</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>KubeVirt</td>
+        <td>CI <code>e2e-kubevirt-aws-ovn-reduced</code> passes (full lifecycle)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Prow job created and destroyed a KubeVirt HostedCluster</td>
       </tr>
     </tbody>
   </table>
@@ -102,40 +121,73 @@
   <!-- Evidence -->
   <h2>Evidence</h2>
 
-  <h4>Step 1: Fixed binary JSON log output</h4>
-  <pre class="log-output">$ KUBECONFIG=/Users/brcox/aws_dev_kubeconfig /tmp/hcp-after destroy cluster azure \
-    --name nonexistent-cluster-78310 \
-    --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
-    --dns-zone-rg-name fake-rg 2>&amp;1
-{"level":"info","ts":"2026-07-13T08:46:56-04:00","msg":"Hosted cluster not found, destroying infrastructure from user input","namespace":"clusters","name":"nonexistent-cluster-78310","infraID":""}</pre>
+  <h3>AWS</h3>
+  <h4>Step 1: <code>hcp create cluster aws --help</code></h4>
+  <pre class="log-output">$ /tmp/hcp-after create cluster aws --help
+Creates basic functional HostedCluster resources on AWS
 
-  <h4>Step 2: JSON validation</h4>
-  <pre class="log-output">$ echo '{"level":"info","ts":"2026-07-13T08:46:56-04:00","msg":"Hosted cluster not found..."}' | python3 -m json.tool
-VALID JSON</pre>
+Usage:
+  hcp create cluster aws [flags]
 
-  <h4>Step 3: RFC3339 timestamp verification</h4>
-  <pre class="log-output">ts=2026-07-13T08:46:56-04:00  (RFC3339: True)</pre>
+Flags:
+      --additional-tags strings                   Additional tags to set on AWS resources
+      --auto-node                                 If true, this flag indicates the Hosted Cluster will support AutoNode feature.
+      --enable-proxy                              If true, a proxy should be set up
+      --endpoint-access string                    Access for control plane endpoints (Public, PublicAndPrivate, Private) (default "Public")
+      --instance-type string                      Instance type for AWS instances.
+      --kms-key-arn string                        The ARN of the KMS key to use for Etcd encryption.
+      --oidc-issuer-url string                    The OIDC provider issuer URL
+      --region string                             Region to use for AWS infrastructure. (default "us-east-1")
+      --role-arn string                           The ARN of the role to assume.
+      --sts-creds string                          Path to an AWS STS credentials file
+      ...</pre>
 
-  <h4>Step 4: Logger pattern comparison</h4>
-  <pre class="log-output">--- hypershift-operator/main.go:118 ---
-ctrl.SetLogger(zap.New(zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
-    o.EncodeTime = zapcore.RFC3339TimeEncoder
-})))
+  <h4>Step 2: CI e2e-aws job (full end-to-end)</h4>
+  <pre class="log-output">CI Job: pull-ci-openshift-hypershift-main-e2e-aws (PASS)
+Link: <a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-aws/2075050302888742912" target="_blank">https://prow.ci.openshift.org/.../e2e-aws/2075050302888742912</a>
 
---- product-cli/main.go (fixed) ---
-func newLogger(extraOpts ...zap.Opts) logr.Logger {
-    opts := []zap.Opts{zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
-        o.EncodeTime = zapcore.RFC3339TimeEncoder
-    })}
-    opts = append(opts, extraOpts...)
-    return zap.New(opts...)
-}</pre>
+This job builds the hcp binary from PR #8955, then performs a full
+cluster lifecycle (create, verify, destroy) on AWS.</pre>
+
+  <h3>Azure</h3>
+  <h4>Step 3: <code>hcp create cluster azure --help</code></h4>
+  <pre class="log-output">$ /tmp/hcp-after create cluster azure --help
+Creates basic functional HostedCluster resources on Azure
+
+Usage:
+  hcp create cluster azure [flags]
+
+  (clean output, all flags listed, no warning)</pre>
+
+  <h4>Step 4: CI e2e-azure-v2-self-managed job (full end-to-end)</h4>
+  <pre class="log-output">CI Job: pull-ci-openshift-hypershift-main-e2e-azure-v2-self-managed (PASS)
+Link: <a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-azure-v2-self-managed/2074812071790252032" target="_blank">https://prow.ci.openshift.org/.../e2e-azure-v2-self-managed/2074812071790252032</a>
+
+This job builds the hcp binary from PR #8955, then performs a full
+cluster lifecycle (create, verify, destroy) on Azure.</pre>
+
+  <h3>KubeVirt</h3>
+  <h4>Step 5: <code>hcp create cluster kubevirt --help</code></h4>
+  <pre class="log-output">$ /tmp/hcp-after create cluster kubevirt --help
+Creates basic functional HostedCluster resources on KubeVirt platform
+
+Usage:
+  hcp create cluster kubevirt [flags]
+
+  (clean output, all flags listed, no warning)</pre>
+
+  <h4>Step 6: CI e2e-kubevirt-aws-ovn-reduced job (full end-to-end)</h4>
+  <pre class="log-output">CI Job: pull-ci-openshift-hypershift-main-e2e-kubevirt-aws-ovn-reduced (PASS)
+Link: <a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-kubevirt-aws-ovn-reduced/2074643676872577024" target="_blank">https://prow.ci.openshift.org/.../e2e-kubevirt-aws-ovn-reduced/2074643676872577024</a>
+
+This job builds the hcp binary from PR #8955, then performs a full
+cluster lifecycle (create, verify, destroy) on KubeVirt.</pre>
 
   <!-- Navigation -->
   <hr>
   <div class="d-flex justify-content-between">
-    <a href="scenario-2.html" class="btn btn-outline-secondary">&laquo; Scenario 2: Warning Eliminated (Destroy)</a>
-    <a href="scenario-4.html" class="btn btn-outline-primary">Scenario 4: Create Cluster AWS &raquo;</a>
+    <a href="scenario-2.html" class="btn btn-outline-secondary">&laquo; Scenario 2: Structured JSON Logging</a>
+    <a href="scenario-4.html" class="btn btn-outline-primary">Scenario 4: Destroy Command &raquo;</a>
   </div>
 
 </div>

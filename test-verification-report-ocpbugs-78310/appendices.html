@@ -23,16 +23,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated (Create)</a></li>
-            <li><a class="dropdown-item" href="scenario-2.html">2: Warning Eliminated (Destroy)</a></li>
-            <li><a class="dropdown-item" href="scenario-3.html">3: Structured JSON Logging</a></li>
-            <li><a class="dropdown-item" href="scenario-4.html">4: Create Cluster AWS</a></li>
-            <li><a class="dropdown-item" href="scenario-5.html">5: Create Cluster Azure</a></li>
-            <li><a class="dropdown-item" href="scenario-6.html">6: Create Cluster KubeVirt</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Destroy Cluster</a></li>
-            <li><a class="dropdown-item" href="scenario-8.html">8: Version Command</a></li>
-            <li><a class="dropdown-item" href="scenario-9.html">9: Help Output</a></li>
-            <li><a class="dropdown-item" href="scenario-10.html">10: Before/After Comparison</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Structured JSON Logging</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Platform Create &mdash; No Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Destroy Command &mdash; No Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Basic CLI Functionality</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Before/After Comparison</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link active" href="appendices.html">Appendices</a></li>
@@ -257,9 +253,8 @@ func TestNewLogger(t *testing.T) {
       </h2>
       <div id="collapseTroubleshoot" class="accordion-collapse collapse" data-bs-parent="#accordionTroubleshooting">
         <div class="accordion-body">
-          <h5>Warning Does Not Reproduce Locally With Short Commands</h5>
-          <p>The controller-runtime warning requires 30+ seconds of runtime. Most <code>hcp</code> CLI operations (help, version, flag validation) complete in under 5 seconds. The warning is only observed in real cluster creation/management where the process runs long enough.</p>
-          <p><strong>Verification approach:</strong> Instead of reproducing the warning directly, we verify via source code analysis that <code>ctrl.SetLogger()</code> is called before <code>cmd.ExecuteContext()</code>, and via unit tests that the logger produces correctly formatted output.</p>
+          <h5>Warning Reproduction Requires Timer Hack</h5>
+          <p>The controller-runtime warning requires 30+ seconds of runtime. Most <code>hcp</code> CLI operations (help, version, flag validation, even destroy with a nonexistent cluster) complete in under 5 seconds. To reproduce the warning deterministically, we temporarily set the controller-runtime timer to 0 seconds (from 30) in <code>vendor/sigs.k8s.io/controller-runtime/pkg/log/log.go:58</code> when building the unfixed binary. This forces the warning on the very first log call. The timer was restored after building. See <a href="scenario-1.html">Scenario 1</a> for the full reproduction evidence.</p>
 
           <h5>Azure Resource Group Creation During Testing</h5>
           <p>Running <code>hcp create cluster azure</code> without <code>--render</code> may create Azure resource groups before flag validation fails. During testing, two orphaned RGs were created and subsequently cleaned up with <code>az group delete --yes --no-wait</code>.</p>

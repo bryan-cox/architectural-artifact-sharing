@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scenario 5: Create Cluster Azure - OCPBUGS-78310</title>
+  <title>Scenario 5: Basic CLI Functionality - OCPBUGS-78310</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
@@ -23,16 +23,12 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated (Create)</a></li>
-            <li><a class="dropdown-item" href="scenario-2.html">2: Warning Eliminated (Destroy)</a></li>
-            <li><a class="dropdown-item" href="scenario-3.html">3: Structured JSON Logging</a></li>
-            <li><a class="dropdown-item" href="scenario-4.html">4: Create Cluster AWS</a></li>
-            <li><a class="dropdown-item active" href="scenario-5.html">5: Create Cluster Azure</a></li>
-            <li><a class="dropdown-item" href="scenario-6.html">6: Create Cluster KubeVirt</a></li>
-            <li><a class="dropdown-item" href="scenario-7.html">7: Destroy Cluster</a></li>
-            <li><a class="dropdown-item" href="scenario-8.html">8: Version Command</a></li>
-            <li><a class="dropdown-item" href="scenario-9.html">9: Help Output</a></li>
-            <li><a class="dropdown-item" href="scenario-10.html">10: Before/After Comparison</a></li>
+            <li><a class="dropdown-item" href="scenario-1.html">1: Warning Eliminated</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: Structured JSON Logging</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: Platform Create &mdash; No Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Destroy Command &mdash; No Regression</a></li>
+            <li><a class="dropdown-item active" href="scenario-5.html">5: Basic CLI Functionality</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: Before/After Comparison</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
@@ -51,18 +47,18 @@
     </ol>
   </nav>
 
-  <h1>Scenario 5: Create Cluster Azure - No Regression</h1>
+  <h1>Scenario 5: Basic CLI Functionality</h1>
 
   <table class="table table-sm" style="max-width: 700px;">
     <tbody>
-      <tr><th scope="row">Objective</th><td>Verify <code>hcp create cluster azure</code> works without regression, using existing Azure dev HC as evidence</td></tr>
+      <tr><th scope="row">Objective</th><td>Verify <code>hcp version</code> and <code>hcp --help</code> work cleanly &mdash; confirming the binary wasn't broken by the new imports</td></tr>
       <tr><th scope="row">Maps to</th><td>No regression in existing CLI functionality</td></tr>
-      <tr><th scope="row">Cluster</th><td><code>brcox-azure-dev-hc</code> (Azure, 4.22.0) on AWS dev mgmt cluster</td></tr>
+      <tr><th scope="row">Note</th><td>These commands don't use controller-runtime at all. They prove the binary runs correctly &mdash; not that the logger works.</td></tr>
     </tbody>
   </table>
 
   <div class="alert alert-success" role="alert">
-    <strong>Result: <span class="badge bg-success">PASS</span></strong> &mdash; Azure cluster creation and management path works correctly; existing HC is healthy.
+    <strong>Result: <span class="badge bg-success">PASS</span></strong> &mdash; Both <code>version</code> and <code>--help</code> work cleanly with no warnings or regressions.
   </div>
 
   <!-- Steps Table -->
@@ -74,27 +70,27 @@
     <tbody>
       <tr>
         <td>1</td>
-        <td>Verify existing Azure HC is healthy</td>
+        <td>Run <code>hcp version</code></td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>brcox-azure-dev-hc</code> Available=True, Progressing=False, version 4.22.0</td>
+        <td>Client and server version displayed correctly</td>
       </tr>
       <tr>
         <td>2</td>
-        <td>Verify guest cluster nodes are Ready</td>
+        <td>Run <code>hcp --help</code></td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>5 worker nodes Ready, 26d uptime</td>
+        <td>Clean output with all subcommands listed</td>
       </tr>
       <tr>
         <td>3</td>
-        <td>Run fixed binary <code>destroy cluster azure --help</code></td>
+        <td>Verify expected subcommands present</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Clean help output, no warnings</td>
+        <td>create, destroy, version, completion, help all found</td>
       </tr>
       <tr>
         <td>4</td>
-        <td>CI e2e-azure-v2-self-managed passes on PR #8955</td>
+        <td>Verify no <code>log.SetLogger</code> warning in either</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Prow job succeeded</td>
+        <td>No warning in stdout or stderr</td>
       </tr>
     </tbody>
   </table>
@@ -102,30 +98,43 @@
   <!-- Evidence -->
   <h2>Evidence</h2>
 
-  <h4>Step 1: Existing Azure HC status</h4>
-  <pre class="log-output">$ KUBECONFIG=/Users/brcox/aws_dev_kubeconfig oc get hostedcluster brcox-azure-dev-hc -n clusters \
-    -o custom-columns='NAME:.metadata.name,PLATFORM:.spec.platform.type,VERSION:.status.version.history[0].version,AVAILABLE:...'
-NAME                 PLATFORM   VERSION   AVAILABLE   PROGRESSING
-brcox-azure-dev-hc   Azure      4.22.0    True        False</pre>
+  <h4>Step 1: <code>hcp version</code></h4>
+  <pre class="log-output">$ KUBECONFIG=/Users/brcox/aws_dev_kubeconfig /tmp/hcp-after version
+Client Version: openshift/hypershift: 8ea96d7f8cfa3eb4e7dc93be96a04341fc5a2240. Latest supported OCP: 5.0.0
+Server Version: 1eddaf8e5e593b440723b6166c88d6220850173c
+Server Supports OCP Versions: 5.0, 4.23, 4.22, 4.21, 4.20, 4.19, 4.18, 4.17, 4.16, 4.15, 4.14</pre>
 
-  <h4>Step 2: Guest cluster nodes</h4>
-  <pre class="log-output">$ KUBECONFIG=/Users/brcox/azure_dev_mgmt_kubeconfig oc get nodes
-NAME                             STATUS   ROLES    AGE   VERSION
-brcox-azure-dev-hc-zsgtz-k2rg8   Ready    worker   26d   v1.35.5
-brcox-azure-dev-hc-zsgtz-l8xrb   Ready    worker   26d   v1.35.5
-brcox-azure-dev-hc-zsgtz-w54z4   Ready    worker   26d   v1.35.5
-brcox-azure-dev-hc-zsgtz-xjws7   Ready    worker   26d   v1.35.5
-brcox-azure-dev-hc-zsgtz-z4wpk   Ready    worker   26d   v1.35.5</pre>
+  <h4>Step 2: <code>hcp --help</code></h4>
+  <pre class="log-output">$ /tmp/hcp-after --help
+Usage:
+  hcp [flags]
+  hcp [command]
 
-  <h4>Step 4: CI e2e-azure-v2-self-managed job result</h4>
-  <pre class="log-output">CI Job: pull-ci-openshift-hypershift-main-e2e-azure-v2-self-managed (PASS)
-Link: https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/8955/pull-ci-openshift-hypershift-main-e2e-azure-v2-self-managed/2074812071790252032</pre>
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  create      Commands for creating HostedClusters
+  destroy     Commands for destroying HostedClusters and NodePools
+  help        Help about any command
+  version     Prints HyperShift CLI version
+
+Flags:
+  -h, --help   help for hcp
+
+Use "hcp [command] --help" for more information about a command.</pre>
+
+  <h4>Step 3: Expected Subcommands Verification</h4>
+  <pre class="log-output">Expected subcommands present:
+  create: FOUND
+  destroy: FOUND
+  version: FOUND
+  completion: FOUND
+  help: FOUND</pre>
 
   <!-- Navigation -->
   <hr>
   <div class="d-flex justify-content-between">
-    <a href="scenario-4.html" class="btn btn-outline-secondary">&laquo; Scenario 4: Create Cluster AWS</a>
-    <a href="scenario-6.html" class="btn btn-outline-primary">Scenario 6: Create Cluster KubeVirt &raquo;</a>
+    <a href="scenario-4.html" class="btn btn-outline-secondary">&laquo; Scenario 4: Destroy Command</a>
+    <a href="scenario-6.html" class="btn btn-outline-primary">Scenario 6: Before/After Comparison &raquo;</a>
   </div>
 
 </div>
