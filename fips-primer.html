@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIPS in HyperShift — Architectural Primer</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style>
+  body { padding-top: 0; padding-bottom: 4rem; font-size: .95rem; }
+  .hero { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 60%, #1a3a2a 100%); color: #fff; padding: 3.5rem 0 3rem; margin-bottom: 2rem; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; top: -50%; right: -20%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(13,110,253,.12) 0%, transparent 70%); }
+  .hero h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: .75rem; }
+  .hero .lead { color: #a8b8c8; font-size: 1.1rem; }
+  .hero .badge { font-size: .8rem; }
+  .hero-emoji { font-size: 2.5rem; margin-right: .75rem; }
+  .tldr-box { background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 100%); border: 1px solid #b6d4fe; border-radius: .75rem; padding: 1.5rem; margin-bottom: 2rem; }
+  .tldr-box h5 { color: #0a58ca; margin-bottom: .75rem; }
+  .kpi-card { text-align: center; padding: 1.25rem .75rem; border-radius: .75rem; transition: transform .15s; }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-card .num { font-size: 2rem; font-weight: 700; }
+  .kpi-card .label { font-size: .78rem; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; margin-top: .25rem; }
+  h2 { font-size: 1.4rem; font-weight: 700; margin-top: 2.5rem; padding-bottom: .5rem; border-bottom: 2px solid #0d6efd; }
+  h2 .section-emoji { margin-right: .5rem; }
+  h3 { font-size: 1.15rem; font-weight: 600; margin-top: 1.5rem; color: #495057; }
+  h4 { font-size: 1rem; font-weight: 600; margin-top: 1.25rem; }
+  pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: .5rem; padding: 1rem; overflow-x: auto; font-size: .85rem; }
+  code { font-size: .87em; }
+  pre code { background: none; padding: 0; }
+  blockquote { border-left: 4px solid #0d6efd; padding: .75rem 1rem; background: #f0f6ff; border-radius: 0 .375rem .375rem 0; margin: 1rem 0; }
+  blockquote p:last-child { margin-bottom: 0; }
+  .callout { padding: 1rem 1.25rem; border-radius: .5rem; margin: 1.25rem 0; display: flex; align-items: flex-start; gap: .75rem; }
+  .callout-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: .1rem; }
+  .callout-warning { background: #fff8e1; border: 1px solid #ffe082; }
+  .callout-info { background: #e3f2fd; border: 1px solid #90caf9; }
+  .callout-success { background: #e8f5e9; border: 1px solid #a5d6a7; }
+  .callout-danger { background: #fce4ec; border: 1px solid #ef9a9a; }
+  .sidebar { position: sticky; top: 1rem; }
+  .sidebar .nav-link { padding: .3rem .5rem; font-size: .85rem; color: #6c757d; border-left: 2px solid transparent; }
+  .sidebar .nav-link:hover { color: #0d6efd; border-left-color: #cfe2ff; }
+  .sidebar .nav-link.active { color: #0d6efd; font-weight: 600; border-left-color: #0d6efd; }
+  .sidebar .section-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #adb5bd; margin-top: .75rem; padding-left: .5rem; }
+  .table thead th { background: #f8f9fa; font-size: .85rem; }
+  .hop-card { border-left: 4px solid; border-radius: .5rem; transition: box-shadow .15s; }
+  .hop-card:hover { box-shadow: 0 .25rem .75rem rgba(0,0,0,.08); }
+  .hop-1 { border-left-color: #0d6efd; }
+  .hop-2 { border-left-color: #6f42c1; }
+  .hop-3 { border-left-color: #198754; }
+  .hop-number { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: .85rem; font-weight: 700; color: #fff; }
+  .hop-1 .hop-number { background: #0d6efd; }
+  .hop-2 .hop-number { background: #6f42c1; }
+  .hop-3 .hop-number { background: #198754; }
+  .file-ref { font-size: .82rem; color: #6c757d; font-family: 'Courier New', monospace; }
+  .file-ref i { font-size: .7rem; margin-right: .25rem; }
+  .mermaid { background: #fff; border: 1px solid #dee2e6; border-radius: .75rem; padding: 1.5rem; margin: 1.5rem 0; overflow-x: auto; }
+  .badge-gap { font-size: .75rem; }
+  .test-card { transition: transform .15s; }
+  .test-card:hover { transform: translateY(-2px); }
+  .comparison-better { color: #198754; font-weight: 600; }
+  .accordion-button:not(.collapsed) { background-color: #f0f6ff; color: #0a58ca; }
+  @media (max-width: 991px) { .sidebar-col { display: none; } }
+  @media print { .hero { background: #333 !important; } .sidebar-col { display: none; } .mermaid { border: 1px solid #ccc; } }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+<div class="container-fluid" style="padding: 0 10%;">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <span class="badge bg-info"><i class="bi bi-book"></i> Architectural Primer</span>
+  </div>
+  <div class="d-flex align-items-center">
+    <span class="hero-emoji">&#x1F512;</span>
+    <div>
+      <h1>FIPS in HyperShift</h1>
+      <p class="lead mb-0">How FIPS 140-2/140-3 is configured, propagated, and enforced across the HyperShift system &mdash; from API field to kernel boot parameter.</p>
+    </div>
+  </div>
+  <p class="mt-3 mb-0" style="font-size:.85rem; color:#78909c;"><i class="bi bi-person-circle"></i> Bryan Cox &middot; <i class="bi bi-calendar3"></i> 2026-07-20</p>
+</div>
+</div>
+
+<div class="container-fluid" style="padding: 0 10%;">
+
+<!-- TL;DR Box -->
+<div class="tldr-box">
+  <h5>&#x26A1; TL;DR</h5>
+  <p class="mb-2">FIPS in HyperShift is a <strong>day-1 immutable boolean</strong> that propagates through <strong>3 hops</strong>: HostedCluster &rarr; HostedControlPlane &rarr; Ignition MachineConfig &rarr; Worker Nodes. The setting is <strong>platform-agnostic</strong> (no AWS/Azure/KubeVirt-specific code), and ultimately results in nodes booting with the <code>fips=1</code> kernel parameter.</p>
+  <div class="row g-2">
+    <div class="col-auto"><span class="badge bg-primary"><i class="bi bi-lock-fill"></i> Immutable after creation</span></div>
+    <div class="col-auto"><span class="badge bg-success"><i class="bi bi-globe"></i> Platform-agnostic</span></div>
+    <div class="col-auto"><span class="badge bg-info"><i class="bi bi-cpu"></i> Kernel-level enforcement</span></div>
+    <div class="col-auto"><span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Data plane only</span></div>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card kpi-card border-primary">
+      <div class="num text-primary">3</div>
+      <div class="label">Propagation Hops</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card kpi-card border-success">
+      <div class="num text-success">0</div>
+      <div class="label">Platform-Specific Lines</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card kpi-card border-warning">
+      <div class="num text-warning">1</div>
+      <div class="label">CP Component Affected</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card kpi-card" style="border-color: #6f42c1;">
+      <div class="num" style="color: #6f42c1;">17</div>
+      <div class="label">Source Files Involved</div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+
+<!-- Sidebar Nav -->
+<div class="col-lg-2 sidebar-col">
+<div class="sidebar">
+  <nav class="nav flex-column">
+    <div class="section-label">Overview</div>
+    <a class="nav-link" href="#what-is-fips">What Is FIPS</a>
+    <a class="nav-link" href="#api-layer">API Layer</a>
+    <div class="section-label mt-2">Data Flow</div>
+    <a class="nav-link" href="#hop1">&#x1F535; Hop 1: HC &rarr; HCP</a>
+    <a class="nav-link" href="#hop2">&#x1F7E3; Hop 2: HCP &rarr; Ignition</a>
+    <a class="nav-link" href="#hop3">&#x1F7E2; Hop 3: Ignition &rarr; Node</a>
+    <a class="nav-link" href="#flow-diagram">Flow Diagram</a>
+    <div class="section-label mt-2">Impact</div>
+    <a class="nav-link" href="#cp-impact">Control Plane</a>
+    <a class="nav-link" href="#platform">Platform Agnosticism</a>
+    <a class="nav-link" href="#crypto">Build &amp; Crypto</a>
+    <div class="section-label mt-2">Quality</div>
+    <a class="nav-link" href="#testing">Testing</a>
+    <a class="nav-link" href="#file-ref">File Reference</a>
+  </nav>
+</div>
+</div>
+
+<!-- Main Content -->
+<div class="col-lg-10">
+
+<!-- ================================================================ -->
+<h2 id="what-is-fips"><span class="section-emoji">&#x1F3DB;</span> What FIPS Means in Context</h2>
+
+<p>FIPS 140-2 (and its successor FIPS 140-3) is a US government standard for cryptographic modules. When a cluster runs in &ldquo;FIPS mode,&rdquo; the underlying operating system kernel and userspace cryptographic libraries restrict themselves to FIPS-validated algorithms and implementations.</p>
+
+<p>In RHCOS (Red Hat Enterprise Linux CoreOS), enabling FIPS mode triggers:</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6 col-lg-3">
+    <div class="card h-100 text-center border-0 shadow-sm">
+      <div class="card-body">
+        <div style="font-size: 2rem;">&#x2699;&#xFE0F;</div>
+        <p class="small mb-0 mt-2">Kernel boots with <code>fips=1</code> on the command line</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="card h-100 text-center border-0 shadow-sm">
+      <div class="card-body">
+        <div style="font-size: 2rem;">&#x1F6E1;&#xFE0F;</div>
+        <p class="small mb-0 mt-2"><code>dracut-fips</code> forces kernel crypto into FIPS mode</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="card h-100 text-center border-0 shadow-sm">
+      <div class="card-body">
+        <div style="font-size: 2rem;">&#x1F510;</div>
+        <p class="small mb-0 mt-2">OpenSSL, GnuTLS, NSS operate in FIPS-validated mode</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="card h-100 text-center border-0 shadow-sm">
+      <div class="card-body">
+        <div style="font-size: 2rem;">&#x1F6AB;</div>
+        <p class="small mb-0 mt-2">Non-FIPS algorithms disabled at the library level</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="callout callout-warning">
+  <span class="callout-icon">&#x26A0;&#xFE0F;</span>
+  <div>
+    <strong>Immutable Day-1 Decision:</strong> In HyperShift, FIPS configuration is a cluster-wide, immutable, day-1 decision. It <strong>cannot be toggled</strong> after cluster creation. This is enforced by a CEL validation rule at the CRD level.
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="api-layer"><span class="section-emoji">&#x1F4CB;</span> API Layer: How FIPS Is Configured</h2>
+
+<h3><i class="bi bi-diagram-3"></i> HostedCluster Spec</h3>
+
+<p>The primary entry point is <code>spec.fips</code> on the HostedCluster resource.</p>
+
+<p class="file-ref"><i class="bi bi-file-earmark-code"></i> api/hypershift/v1beta1/hostedcluster_types.go:782-788</p>
+<pre><code class="language-go">// fips indicates whether this cluster's nodes will be running in FIPS mode.
+// If set to true, the control plane's ignition server will be configured to
+// expect that nodes joining the cluster will be FIPS-enabled.
+// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="fips is immutable"
+// +optional
+// +immutable
+FIPS bool `json:"fips"`</code></pre>
+
+<div class="row g-3 mt-2 mb-3">
+  <div class="col-md-4">
+    <div class="card border-primary h-100">
+      <div class="card-body py-2">
+        <h6 class="card-title mb-1 text-primary"><i class="bi bi-braces"></i> Type: <code>bool</code></h6>
+        <p class="card-text small mb-0">Non-pointer boolean. Zero value (<code>false</code>) = FIPS off. No ambiguity between &ldquo;not set&rdquo; and &ldquo;set to false.&rdquo;</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-warning h-100">
+      <div class="card-body py-2">
+        <h6 class="card-title mb-1 text-warning"><i class="bi bi-lock-fill"></i> Immutable via CEL</h6>
+        <p class="card-text small mb-0"><code>self == oldSelf</code> enforced at CRD schema level. Cannot be changed post-creation.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-info h-100">
+      <div class="card-body py-2">
+        <h6 class="card-title mb-1 text-info"><i class="bi bi-eye"></i> No <code>omitempty</code></h6>
+        <p class="card-text small mb-0">Always serializes &mdash; every HC YAML shows <code>fips: false</code> or <code>fips: true</code> explicitly.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3><i class="bi bi-diagram-2"></i> HostedControlPlane Spec</h3>
+
+<p>The same field exists on the HostedControlPlane, the internal resource the hypershift-operator creates for the control-plane-operator (CPO).</p>
+
+<p class="file-ref"><i class="bi bi-file-earmark-code"></i> api/hypershift/v1beta1/hosted_controlplane.go:139-141</p>
+<pre><code class="language-go">// fips specifies if the nodes for the cluster will be running in FIPS mode
+// +optional
+FIPS bool `json:"fips"`</code></pre>
+
+<div class="callout callout-info">
+  <span class="callout-icon"><i class="bi bi-info-circle-fill"></i></span>
+  <div>The HCP&rsquo;s <code>fips</code> field does <strong>not</strong> have its own immutability CEL rule &mdash; it doesn&rsquo;t need one because HCP resources are internal and their lifecycle is managed by the hypershift-operator controller, not directly by users.</div>
+</div>
+
+<h3><i class="bi bi-terminal"></i> CLI Flag</h3>
+
+<p>When creating clusters via the <code>hypershift</code> CLI, the <code>--fips</code> flag is available and platform-agnostic.</p>
+
+<p class="file-ref"><i class="bi bi-file-earmark-code"></i> cmd/cluster/core/create.go:90</p>
+<pre><code class="language-go">flags.BoolVar(&amp;opts.FIPS, "fips", opts.FIPS, "Enables FIPS mode for nodes in the cluster")</code></pre>
+
+<!-- ================================================================ -->
+<h2 id="propagation"><span class="section-emoji">&#x1F500;</span> Propagation: The 3-Hop Data Flow</h2>
+
+<p>The FIPS setting follows a clear data flow through three main hops. Each hop is a different controller acting in a different context.</p>
+
+<!-- Mermaid: High-level flow -->
+<div class="mermaid">
+<pre class="mermaid-diagram">
+graph LR
+    A["&#128100; User<br/>hypershift create<br/>--fips"] -->|"spec.fips: true"| B["&#x1F4E6; HostedCluster"]
+    B -->|"Hop 1"| C["&#x2699;&#xFE0F; HostedControlPlane"]
+    C -->|"Hop 2"| D["&#x1F4C4; MachineConfig<br/>30-fips"]
+    D -->|"Hop 3"| E["&#x1F5A5;&#xFE0F; Worker Node<br/>fips=1"]
+
+    style A fill:#e3f2fd,stroke:#1565c0
+    style B fill:#e8eaf6,stroke:#3949ab
+    style C fill:#f3e5f5,stroke:#7b1fa2
+    style D fill:#e8f5e9,stroke:#2e7d32
+    style E fill:#fff3e0,stroke:#ef6c00
+</pre>
+</div>
+
+<!-- Hop 1 -->
+<div class="card hop-card hop-1 mb-4 mt-3" id="hop1">
+  <div class="card-body">
+    <h3 class="mt-0"><span class="hop-number">1</span> HostedCluster &rarr; HostedControlPlane</h3>
+    <p>The hypershift-operator&rsquo;s HostedCluster controller copies <code>spec.fips</code> from the HostedCluster to the HostedControlPlane.</p>
+    <p class="file-ref"><i class="bi bi-file-earmark-code"></i> hypershift-operator/controllers/hostedcluster/hostedcluster_controller.go:2749</p>
+    <pre><code class="language-go">hcp.Spec.FIPS = hcluster.Spec.FIPS</code></pre>
+    <div class="callout callout-info py-2 my-2">
+      <span class="callout-icon"><i class="bi bi-arrow-right-circle"></i></span>
+      <div class="small">Simple direct copy &mdash; no transformation, no conditional logic. Happens alongside other spec fields like networking, pull secrets, and SSH keys.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Hop 2 -->
+<div class="card hop-card hop-2 mb-4" id="hop2">
+  <div class="card-body">
+    <h3 class="mt-0"><span class="hop-number">2</span> HostedControlPlane &rarr; Ignition Config (MachineConfig)</h3>
+    <p>The CPO reads <code>hcp.Spec.FIPS</code> and produces a MachineConfig resource wrapped in a ConfigMap.</p>
+
+    <div class="accordion" id="hop2-accordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#hop2a">
+            <i class="bi bi-gear me-2"></i> Step 2a: Build ignition parameters
+          </button>
+        </h2>
+        <div id="hop2a" class="accordion-collapse collapse show" data-bs-parent="#hop2-accordion">
+          <div class="accordion-body">
+            <p class="file-ref"><i class="bi bi-file-earmark-code"></i> control-plane-operator/controllers/hostedcontrolplane/ignition/params.go</p>
+            <pre><code class="language-go">type IgnitionConfigParams struct {
+    FIPSEnabled bool
+    // ...
+}
+func NewIgnitionConfigParams(hcp *hyperv1.HostedControlPlane, ...) *IgnitionConfigParams {
+    params := &amp;IgnitionConfigParams{
+        FIPSEnabled: hcp.Spec.FIPS,
+    }
+    return params
+}</code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hop2b">
+            <i class="bi bi-file-earmark-plus me-2"></i> Step 2b: Create the <code>30-fips</code> MachineConfig
+          </button>
+        </h2>
+        <div id="hop2b" class="accordion-collapse collapse" data-bs-parent="#hop2-accordion">
+          <div class="accordion-body">
+            <p class="file-ref"><i class="bi bi-file-earmark-code"></i> control-plane-operator/controllers/hostedcontrolplane/manifests/ignition.go:10-16</p>
+            <pre><code class="language-go">func MachineConfigFIPS() *mcfgv1.MachineConfig {
+    return &amp;mcfgv1.MachineConfig{
+        ObjectMeta: metav1.ObjectMeta{
+            Name: "30-fips",
+        },
+    }
+}</code></pre>
+            <p class="small text-muted">The name <code>30-fips</code> follows MCO naming conventions. The numeric prefix determines merge order.</p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hop2c">
+            <i class="bi bi-arrow-repeat me-2"></i> Step 2c: Reconcile MachineConfig into ConfigMap
+          </button>
+        </h2>
+        <div id="hop2c" class="accordion-collapse collapse" data-bs-parent="#hop2-accordion">
+          <div class="accordion-body">
+            <p class="file-ref"><i class="bi bi-file-earmark-code"></i> control-plane-operator/controllers/hostedcontrolplane/ignition/reconcile.go:40-45</p>
+            <pre><code class="language-go">func ReconcileFIPSIgnitionConfig(cm *corev1.ConfigMap, ownerRef config.OwnerRef, fipsEnabled bool) error {
+    machineConfig := manifests.MachineConfigFIPS()
+    SetMachineConfigLabels(machineConfig)
+    machineConfig.Spec.FIPS = fipsEnabled
+    return reconcileMachineConfigIgnitionConfigMap(cm, machineConfig, ownerRef)
+}</code></pre>
+            <div class="callout callout-success py-2 my-2">
+              <span class="callout-icon">&#x1F3F7;&#xFE0F;</span>
+              <div class="small">Result: ConfigMap <code>ignition-config-fips</code> in the HCP namespace, labeled <code>hypershift.openshift.io/core-ignition-config: true</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hop2d">
+            <i class="bi bi-diagram-3 me-2"></i> Step 2d: CPO orchestrates reconciliation
+          </button>
+        </h2>
+        <div id="hop2d" class="accordion-collapse collapse" data-bs-parent="#hop2-accordion">
+          <div class="accordion-body">
+            <p class="file-ref"><i class="bi bi-file-earmark-code"></i> control-plane-operator/controllers/hostedcontrolplane/hostedcontrolplane_controller.go:2203-2208</p>
+            <pre><code class="language-go">fipsConfig := manifests.IgnitionFIPSConfig(hcp.Namespace)
+if _, err := createOrUpdate(ctx, r, fipsConfig, func() error {
+    return ignition.ReconcileFIPSIgnitionConfig(fipsConfig, p.OwnerRef, p.FIPSEnabled)
+}); err != nil {
+    return fmt.Errorf("failed to reconcile fips ignition config: %w", err)
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hop 3 -->
+<div class="card hop-card hop-3 mb-4" id="hop3">
+  <div class="card-body">
+    <h3 class="mt-0"><span class="hop-number">3</span> Ignition ConfigMap &rarr; Worker Nodes</h3>
+    <p>The FIPS MachineConfig reaches actual machines through the NodePool controller and ignition server.</p>
+
+    <!-- Mermaid: Hop 3 detail -->
+    <div class="mermaid">
+<pre class="mermaid-diagram">
+graph TD
+    A["&#x1F4C4; ConfigMaps<br/><small>core-ignition-config label</small>"] -->|"getCoreConfigs()"| B["&#x1F4E6; ConfigGenerator<br/><small>config.go</small>"]
+    B -->|"concatenate YAML"| C["&#x1F5DC;&#xFE0F; Compress &amp; Store<br/><small>token.go</small>"]
+    C -->|"tokenSecret.Data"| D["&#x1F511; Token Secret"]
+    D -->|"watch trigger"| E["&#x1F525; Ignition Server"]
+    E -->|"MCO binary"| F["&#x1F4BE; Ignition Payload<br/><small>fips=1 kernel arg</small>"]
+    F -->|"node boot"| G["&#x1F5A5;&#xFE0F; FIPS-Enabled Worker"]
+
+    style A fill:#e8f5e9,stroke:#2e7d32
+    style D fill:#fff3e0,stroke:#ef6c00
+    style G fill:#e8eaf6,stroke:#3949ab
+</pre>
+    </div>
+
+    <div class="accordion" id="hop3-accordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#hop3a">
+            <i class="bi bi-collection me-2"></i> 3a: NodePool controller gathers core configs
+          </button>
+        </h2>
+        <div id="hop3a" class="accordion-collapse collapse show" data-bs-parent="#hop3-accordion">
+          <div class="accordion-body">
+            <p class="file-ref"><i class="bi bi-file-earmark-code"></i> hypershift-operator/controllers/nodepool/config.go:238-267</p>
+            <p>The <code>ConfigGenerator.getCoreConfigs()</code> method lists all ConfigMaps labeled <code>hypershift.openshift.io/core-ignition-config: true</code>. It expects 2 or 3 core ConfigMaps:</p>
+            <table class="table table-sm table-bordered">
+              <thead><tr><th>Config</th><th>Always Present?</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr><td><code>ignition-config-fips</code></td><td>&#x2705; Yes</td><td>FIPS MachineConfig</td></tr>
+                <tr><td><code>ignition-config-worker-ssh</code></td><td>&#x2705; Yes</td><td>SSH key config</td></tr>
+                <tr><td><code>ignition-config-haproxy</code></td><td>&#x2753; Conditional</td><td>KAS load balancing (when CPO doesn&rsquo;t embed HAProxy directly)</td></tr>
+              </tbody>
+            </table>
+            <p class="small text-muted mb-0">Optionally, an <code>ImageContentSources</code> config is also included when image mirror policies are configured.</p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hop3b">
+            <i class="bi bi-file-zip me-2"></i> 3b: Core configs feed into the token secret
+          </button>
+        </h2>
+        <div id="hop3b" class="accordion-collapse collapse" data-bs-parent="#hop3-accordion">
+          <div class="accordion-body">
+            <p>The <code>ConfigGenerator</code> in config.go concatenates all MachineConfig YAML from the core ConfigMaps into a single config string. The token secret&rsquo;s <code>Reconcile</code> method in token.go then compresses the config via <code>CompressedAndEncoded()</code> (line 332) and stores it in <code>tokenSecret.Data[TokenSecretConfigKey]</code> (line 351).</p>
+            <p class="file-ref mb-0"><i class="bi bi-file-earmark-code"></i> config.go:278-304 (parse) &middot; token.go:332-351 (compress &amp; store)</p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hop3c">
+            <i class="bi bi-rocket-takeoff me-2"></i> 3c: Ignition server renders the payload
+          </button>
+        </h2>
+        <div id="hop3c" class="accordion-collapse collapse" data-bs-parent="#hop3-accordion">
+          <div class="accordion-body">
+            <p class="file-ref"><i class="bi bi-file-earmark-code"></i> ignition-server/controllers/tokensecret_controller.go:257-282</p>
+            <ol>
+              <li>Reads compressed config from the token Secret</li>
+              <li>Passes it to <code>LocalIgnitionProvider.GetPayload()</code></li>
+              <li>Runs the MCO&rsquo;s <code>machine-config-server</code> binary against the release image</li>
+              <li>MCO renders all MachineConfigs (including <code>30-fips</code>) into a single ignition config</li>
+              <li>When <code>30-fips</code> has <code>spec.fips: true</code>, the MCO includes kernel argument <code>fips=1</code></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hop3d">
+            <i class="bi bi-pc-display me-2"></i> 3d: The node boots with FIPS
+          </button>
+        </h2>
+        <div id="hop3d" class="accordion-collapse collapse" data-bs-parent="#hop3-accordion">
+          <div class="accordion-body">
+            <p class="mb-2">RHCOS boots with <code>fips=1</code>:</p>
+            <div class="row g-2">
+              <div class="col-md-6"><div class="card border-0 bg-light"><div class="card-body py-2 small"><strong>&#x2699;&#xFE0F; Kernel</strong> &mdash; FIPS module performs self-tests</div></div></div>
+              <div class="col-md-6"><div class="card border-0 bg-light"><div class="card-body py-2 small"><strong>&#x1F6E1;&#xFE0F; dracut-fips</strong> &mdash; validates crypto modules</div></div></div>
+              <div class="col-md-6"><div class="card border-0 bg-light"><div class="card-body py-2 small"><strong>&#x1F510; OpenSSL</strong> &mdash; enters FIPS mode</div></div></div>
+              <div class="col-md-6"><div class="card border-0 bg-light"><div class="card-body py-2 small"><strong>&#x1F4BB; Workloads</strong> &mdash; all crypto uses FIPS-validated implementations</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h4 class="mt-3"><i class="bi bi-eye"></i> Watch Trigger Chain</h4>
+    <p>Changes to any <code>core-ignition-config</code> ConfigMap trigger re-reconciliation of all NodePools in the namespace:</p>
+    <p class="file-ref"><i class="bi bi-file-earmark-code"></i> hypershift-operator/controllers/nodepool/nodepool_controller.go:900-908</p>
+    <pre><code class="language-go">if _, ok := obj.GetLabels()[nodePoolCoreIgnitionConfigLabel]; ok {
+    for key := range nodePoolList.Items {
+        result = append(result,
+            reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&amp;nodePoolList.Items[key])},
+        )
+    }
+    return result
+}</code></pre>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="flow-diagram"><span class="section-emoji">&#x1F5FA;&#xFE0F;</span> End-to-End Flow Diagram</h2>
+
+<div class="mermaid">
+<pre class="mermaid-diagram">
+flowchart TB
+    subgraph user ["&#128100; User"]
+        CLI["hypershift create --fips"]
+    end
+
+    subgraph mgmt ["&#x2601;&#xFE0F; Management Cluster"]
+        HC["&#x1F4E6; HostedCluster<br/><i>spec.fips: true</i>"]
+        HO["hypershift-operator<br/><small>HostedCluster controller</small>"]
+        HCP["&#x2699;&#xFE0F; HostedControlPlane<br/><i>spec.fips: true</i>"]
+
+        subgraph hcpns ["HCP Namespace"]
+            CPO["control-plane-operator"]
+            MC["&#x1F4C4; MachineConfig<br/><code>30-fips</code><br/><i>spec.fips: true</i>"]
+            CM["&#x1F3F7;&#xFE0F; ConfigMap<br/><code>ignition-config-fips</code><br/><small>label: core-ignition-config</small>"]
+            NPC["NodePool controller"]
+            TS["&#x1F511; Token Secret<br/><small>compressed config</small>"]
+            IGN["&#x1F525; Ignition Server<br/><small>MCO binary</small>"]
+            IO["&#x1F310; Ingress Operator<br/><code>FIPS_ENABLED=true</code>"]
+        end
+    end
+
+    subgraph data ["&#x1F5A5;&#xFE0F; Data Plane"]
+        NODE["&#x2705; Worker Node<br/><code>fips=1</code> kernel arg<br/><small>FIPS-validated crypto</small>"]
+    end
+
+    CLI --> HC
+    HC -->|"Hop 1"| HO
+    HO --> HCP
+    HCP --> CPO
+    CPO -->|"Hop 2"| MC
+    MC --> CM
+    CPO --> IO
+    CM --> NPC
+    NPC -->|"Hop 3"| TS
+    TS --> IGN
+    IGN --> NODE
+
+    style HC fill:#e8eaf6,stroke:#3949ab
+    style HCP fill:#f3e5f5,stroke:#7b1fa2
+    style CM fill:#e8f5e9,stroke:#2e7d32
+    style NODE fill:#fff3e0,stroke:#ef6c00
+    style IO fill:#fce4ec,stroke:#c62828
+</pre>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="cp-impact"><span class="section-emoji">&#x1F3AF;</span> Control Plane Component Impact</h2>
+
+<h3><i class="bi bi-globe2"></i> Ingress Operator &mdash; The Only Explicit FIPS Consumer</h3>
+
+<p class="file-ref"><i class="bi bi-file-earmark-code"></i> control-plane-operator/controllers/hostedcontrolplane/v2/ingressoperator/deployment.go:25-29</p>
+<pre><code class="language-go">if cpContext.HCP.Spec.FIPS {
+    podspec.UpsertEnvVar(c, corev1.EnvVar{
+        Name: "FIPS_ENABLED", Value: "true",
+    })
+}</code></pre>
+
+<p>When FIPS is enabled, the ingress operator deployment receives the <code>FIPS_ENABLED=true</code> environment variable. This tells the ingress operator to configure HAProxy routers with FIPS-compatible cipher suites and TLS settings.</p>
+
+<h3><i class="bi bi-question-circle"></i> What About KAS, etcd, and Other Components?</h3>
+
+<p>The codebase does <strong>not</strong> have explicit FIPS-specific configuration for kube-apiserver, etcd, openshift-apiserver, oauth-server, or other control plane pods. Here&rsquo;s why:</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body py-3 text-center">
+        <div style="font-size: 1.8rem;">&#x1F3E2;</div>
+        <h6 class="card-title text-muted mt-2">Management Cluster Isolation</h6>
+        <p class="card-text small mb-0">Control plane pods run on the <strong>management cluster</strong>, not on FIPS-enabled worker nodes. The management cluster&rsquo;s FIPS posture is its own concern.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body py-3 text-center">
+        <div style="font-size: 1.8rem;">&#x1F4BB;</div>
+        <h6 class="card-title text-muted mt-2">Data Plane Focus</h6>
+        <p class="card-text small mb-0">The hosted cluster&rsquo;s FIPS setting is about the <strong>data plane</strong> (worker nodes) and the crypto expectations for nodes joining the cluster.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body py-3 text-center">
+        <div style="font-size: 1.8rem;">&#x1F50D;</div>
+        <h6 class="card-title text-muted mt-2">Runtime Detection</h6>
+        <p class="card-text small mb-0">OCP Go binaries detect FIPS mode at runtime via the OS kernel. When running on a FIPS-enabled kernel, they automatically use FIPS-validated crypto.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="platform"><span class="section-emoji">&#x1F30D;</span> Platform-Specific Considerations</h2>
+
+<div class="callout callout-success">
+  <span class="callout-icon">&#x2705;</span>
+  <div>
+    <strong>Key Insight:</strong> FIPS is entirely platform-agnostic in HyperShift. There is <strong>zero</strong> platform-specific FIPS code in the codebase. The <code>--fips</code> flag works identically across AWS, Azure, KubeVirt, OpenStack, Agent, and other platforms.
+  </div>
+</div>
+
+<h3><i class="bi bi-arrow-left-right"></i> How This Differs from Standalone OpenShift</h3>
+
+<table class="table table-bordered table-sm">
+  <thead>
+    <tr><th style="width:22%;">Concern</th><th>Standalone OpenShift</th><th>HyperShift</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><i class="bi bi-image me-1"></i> Image Selection</td>
+      <td>May use FIPS-specific AMIs</td>
+      <td class="comparison-better">Same RHCOS image; FIPS activated at boot via MachineConfig</td>
+    </tr>
+    <tr>
+      <td><i class="bi bi-hdd me-1"></i> Disk Encryption</td>
+      <td>FIPS may require specific algorithms</td>
+      <td>Configured separately from FIPS through NodePool spec</td>
+    </tr>
+    <tr>
+      <td><i class="bi bi-box-arrow-in-down me-1"></i> Installer Behavior</td>
+      <td>Sets <code>OPENSHIFT_INSTALL_FIPS</code></td>
+      <td class="comparison-better">Ignition server replaces the installer&rsquo;s MCS role</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <span class="callout-icon"><i class="bi bi-cloud me-1"></i></span>
+  <div><strong>Azure AKS Management Cluster:</strong> Azure docs mention FIPS in the context of the AKS management cluster itself &mdash; that&rsquo;s a <strong>separate concern</strong> from the hosted cluster&rsquo;s FIPS setting. The AKS FIPS setting ensures the management cluster nodes run FIPS-compliant crypto.</div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="crypto"><span class="section-emoji">&#x1F511;</span> Build and Image Pipeline: FIPS-Compatible Crypto</h2>
+
+<h3><i class="bi bi-code-square"></i> Go BoringCrypto / Go FIPS Module</h3>
+
+<p>OpenShift&rsquo;s Go binaries are built with FIPS-validated cryptographic backends:</p>
+
+<!-- Mermaid: Crypto detection flow -->
+<div class="mermaid">
+<pre class="mermaid-diagram">
+flowchart LR
+    A["&#x1F4E6; Go Binary<br/><small>built with BoringCrypto<br/>or crypto/internal/fips140</small>"] -->|"runtime check"| B{"/proc/sys/crypto/<br/>fips_enabled == 1?"}
+    B -->|"Yes"| C["&#x1F512; FIPS Mode<br/><small>Only validated algorithms</small>"]
+    B -->|"No"| D["&#x1F513; Standard Mode<br/><small>All algorithms available</small>"]
+
+    style C fill:#e8f5e9,stroke:#2e7d32
+    style D fill:#f5f5f5,stroke:#9e9e9e
+</pre>
+</div>
+
+<table class="table table-bordered table-sm">
+  <thead>
+    <tr><th>Go Version</th><th>FIPS Backend</th><th>Mechanism</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>&le; 1.19</code></td>
+      <td>&#x1F310; BoringCrypto</td>
+      <td>Google-maintained FIPS-validated module via build tags</td>
+    </tr>
+    <tr>
+      <td><code>1.21+</code></td>
+      <td>&#x1F512; <code>crypto/internal/fips140</code></td>
+      <td>Go&rsquo;s native FIPS 140-3 compliance mechanism</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>When these binaries run on a kernel with <code>fips=1</code>, they detect FIPS mode (typically by reading <code>/proc/sys/crypto/fips_enabled</code>) and automatically restrict themselves to FIPS-validated algorithms. This is transparent to application code.</p>
+
+<h3><i class="bi bi-cpu"></i> RHCOS FIPS Boot Sequence</h3>
+
+<p>When a node boots with the <code>30-fips</code> MachineConfig setting <code>spec.fips: true</code>:</p>
+
+<!-- Mermaid: Boot sequence -->
+<div class="mermaid">
+<pre class="mermaid-diagram">
+sequenceDiagram
+    participant MCO as MCO Render
+    participant K as Kernel
+    participant D as dracut-fips
+    participant O as OpenSSL
+    participant W as Workloads
+
+    MCO->>K: Add fips=1 to kernel cmdline
+    K->>K: &#x1F512; FIPS module self-test
+    K->>D: Trigger dracut-fips
+    D->>D: &#x1F6E1;&#xFE0F; Validate crypto modules
+    D->>O: Initialize OpenSSL
+    O->>O: &#x1F510; Enter FIPS mode
+    O->>W: &#x2705; All crypto ops use<br/>FIPS-validated implementations
+</pre>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="testing"><span class="section-emoji">&#x1F9EA;</span> Testing</h2>
+
+<h3><i class="bi bi-check-circle"></i> Existing Test Coverage</h3>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card test-card border-success h-100">
+      <div class="card-body py-2">
+        <h6 class="card-title"><span class="badge bg-success">&#x2705; Tested</span> Ingress Operator</h6>
+        <p class="card-text small mb-0">Table-driven unit test verifies <code>FIPS_ENABLED=true</code> env var presence/absence based on <code>hcp.Spec.FIPS</code>.</p>
+        <p class="file-ref mt-1 mb-0"><i class="bi bi-file-earmark-code"></i> v2/ingressoperator/deployment_test.go</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card test-card border-success h-100">
+      <div class="card-body py-2">
+        <h6 class="card-title"><span class="badge bg-success">&#x2705; Tested</span> NodePool Config Fixtures</h6>
+        <p class="card-text small mb-0">Multiple test fixtures include <code>fips: false</code> in MachineConfig YAML, validating correct serialization.</p>
+        <p class="file-ref mt-1 mb-0"><i class="bi bi-file-earmark-code"></i> nodepool/config_test.go</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card test-card border-success h-100">
+      <div class="card-body py-2">
+        <h6 class="card-title"><span class="badge bg-success">&#x2705; Tested</span> CLI Fixtures</h6>
+        <p class="card-text small mb-0">Every platform&rsquo;s golden fixture includes <code>fips: false</code>, confirming CLI renders the field correctly.</p>
+        <p class="file-ref mt-1 mb-0"><i class="bi bi-file-earmark-code"></i> cmd/cluster/*/testdata/</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3><i class="bi bi-cloud-check"></i> External CI Coverage</h3>
+
+<table class="table table-bordered table-sm">
+  <thead>
+    <tr><th>Platform</th><th>Releases Covered</th><th>Type</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><i class="bi bi-cloud me-1"></i> Azure AKS (OVN)</td>
+      <td><span class="badge bg-primary">4.22</span> <span class="badge bg-primary">4.23</span> <span class="badge bg-primary">5.0</span></td>
+      <td>Periodic</td>
+    </tr>
+    <tr>
+      <td><i class="bi bi-cloud me-1"></i> AWS (OVN)</td>
+      <td><span class="badge bg-primary">4.22</span> <span class="badge bg-primary">4.23</span> <span class="badge bg-primary">5.0</span></td>
+      <td>Periodic</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ================================================================ -->
+<h2 id="file-ref"><span class="section-emoji">&#x1F4C1;</span> Key Files Reference</h2>
+
+<table class="table table-bordered table-sm table-striped">
+  <thead>
+    <tr><th style="width:30%;">Purpose</th><th>File</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><i class="bi bi-diagram-3 me-1"></i> HostedCluster FIPS field</td><td><code>api/hypershift/v1beta1/hostedcluster_types.go:782-788</code></td></tr>
+    <tr><td><i class="bi bi-diagram-2 me-1"></i> HostedControlPlane FIPS field</td><td><code>api/hypershift/v1beta1/hosted_controlplane.go:139-141</code></td></tr>
+    <tr><td><i class="bi bi-arrow-right me-1"></i> HC &rarr; HCP propagation</td><td><code>hypershift-operator/controllers/hostedcluster/hostedcluster_controller.go:2749</code></td></tr>
+    <tr><td><i class="bi bi-gear me-1"></i> Ignition params</td><td><code>control-plane-operator/controllers/hostedcontrolplane/ignition/params.go</code></td></tr>
+    <tr><td><i class="bi bi-arrow-repeat me-1"></i> FIPS MachineConfig reconciliation</td><td><code>control-plane-operator/controllers/hostedcontrolplane/ignition/reconcile.go:40-45</code></td></tr>
+    <tr><td><i class="bi bi-file-earmark me-1"></i> MachineConfig manifest skeleton</td><td><code>control-plane-operator/controllers/hostedcontrolplane/manifests/ignition.go:10-16, 35-42</code></td></tr>
+    <tr><td><i class="bi bi-diagram-3 me-1"></i> CPO orchestrator</td><td><code>control-plane-operator/controllers/hostedcontrolplane/hostedcontrolplane_controller.go:2203-2208</code></td></tr>
+    <tr><td><i class="bi bi-globe2 me-1"></i> Ingress operator FIPS env</td><td><code>control-plane-operator/controllers/hostedcontrolplane/v2/ingressoperator/deployment.go:25-29</code></td></tr>
+    <tr><td><i class="bi bi-check2-circle me-1"></i> Ingress operator FIPS test</td><td><code>control-plane-operator/controllers/hostedcontrolplane/v2/ingressoperator/deployment_test.go</code></td></tr>
+    <tr><td><i class="bi bi-collection me-1"></i> NodePool core config collection</td><td><code>hypershift-operator/controllers/nodepool/config.go:238-267</code></td></tr>
+    <tr><td><i class="bi bi-eye me-1"></i> NodePool core config watch</td><td><code>hypershift-operator/controllers/nodepool/nodepool_controller.go:83, 900-908</code></td></tr>
+    <tr><td><i class="bi bi-file-zip me-1"></i> Token secret config assembly</td><td><code>hypershift-operator/controllers/nodepool/token.go:44, 332-351</code></td></tr>
+    <tr><td><i class="bi bi-rocket-takeoff me-1"></i> Ignition server payload</td><td><code>ignition-server/controllers/tokensecret_controller.go:257-282</code></td></tr>
+    <tr><td><i class="bi bi-fire me-1"></i> Local ignition provider</td><td><code>ignition-server/controllers/local_ignitionprovider.go</code></td></tr>
+    <tr><td><i class="bi bi-terminal me-1"></i> CLI --fips flag</td><td><code>cmd/cluster/core/create.go:90, 140, 319</code></td></tr>
+    <tr><td><i class="bi bi-cpu me-1"></i> MachineConfigSpec.FIPS (MCO type)</td><td><code>vendor/github.com/openshift/api/machineconfiguration/v1/types.go:339-341</code></td></tr>
+    <tr><td><i class="bi bi-filetype-yml me-1"></i> CRD schema with CEL rule</td><td><code>cmd/install/assets/crds/.../hostedclusters-Hypershift-CustomNoUpgrade.crd.yaml</code></td></tr>
+  </tbody>
+</table>
+
+</div><!-- col -->
+</div><!-- row -->
+</div><!-- container -->
+
+<footer class="bg-dark text-light py-3 mt-5">
+  <div class="container text-center small">
+    <a href="index.html" class="text-light text-decoration-none"><i class="bi bi-arrow-left"></i> Back to Architectural Artifacts</a>
+    <span class="text-muted ms-3">bryan-cox / architectural-artifact-sharing</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+<script>hljs.highlightAll();</script>
+
+<!-- Mermaid -->
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: false, theme: 'default', flowchart: { useMaxWidth: true, htmlLabels: true }, sequence: { useMaxWidth: true } });
+  document.querySelectorAll('.mermaid-diagram').forEach(async (el) => {
+    const code = el.textContent.trim();
+    const container = el.closest('.mermaid');
+    const { svg } = await mermaid.render('mermaid-' + Math.random().toString(36).substr(2, 9), code);
+    container.innerHTML = svg;
+  });
+</script>
+
+<!-- Scrollspy for sidebar -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const links = document.querySelectorAll('.sidebar .nav-link');
+  const sections = [];
+  links.forEach(function(link) {
+    const id = link.getAttribute('href');
+    if (id && id.startsWith('#')) {
+      const el = document.querySelector(id);
+      if (el) sections.push({ el: el, link: link });
+    }
+  });
+  window.addEventListener('scroll', function() {
+    let current = sections[0];
+    for (let i = 0; i < sections.length; i++) {
+      if (sections[i].el.getBoundingClientRect().top <= 120) current = sections[i];
+    }
+    links.forEach(function(l) { l.classList.remove('active'); });
+    if (current) current.link.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
