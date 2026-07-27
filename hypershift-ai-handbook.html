@@ -96,7 +96,7 @@ html[data-theme="dark"]{--bg:#080d16;--panel:#101827;--panel2:#151f30;--text:#ed
 <article class="card"><h3>Incoming PR flow</h3><div class="sequence"><span class="seq-node">Checkout branch</span><span class="seq-arrow">→</span><span class="seq-node">Matt code-review</span><span class="seq-arrow">→</span><span class="seq-node">ai-helpers PR review</span><span class="seq-arrow">→</span><span class="seq-node">Submit review</span></div></article>
 </div>
 <h3 style="margin:0 0 14px">Custom prompts</h3>
-<div class="grid cards-2"><article class="card"><h3>Implementation planning</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Investigate this change without modifying code.
+<div class="grid cards-2"><article class="card"><h3>Implementation planning</h3><p><b>State:</b> Plan</p><p><b>Purpose:</b> The "think before you code" step. Produces an <code>implementation-plan.md</code> that you hand to Cursor — so Cursor implements a clear design instead of exploring and guessing.</p><p><b>When to use:</b> After investigation, before writing any code. Every Jira ticket, every bug fix, every feature. Maps to principle #3: plans are cheaper than rework.</p><div class="code-wrap"><button class="copy">Copy</button><div class="code">Investigate this change without modifying code.
 
 Produce an implementation-plan.md containing:
 - expected and current behavior
@@ -107,7 +107,7 @@ Produce an implementation-plan.md containing:
 - targeted test plan
 - unresolved questions
 
-Use repository guidance before broad exploration. Stop if a material design decision remains ambiguous.</div></div></article><article class="card"><h3>Flaky E2E investigation</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Analyze the supplied failure evidence and update investigation.md.
+Use repository guidance before broad exploration. Stop if a material design decision remains ambiguous.</div></div></article><article class="card"><h3>Flaky E2E investigation</h3><p><b>State:</b> Investigate</p><p><b>Purpose:</b> Structured hypothesis-driven debugging for intermittent test failures. Forces separation of test flakiness, infrastructure issues, and actual product bugs before proposing a fix.</p><p><b>When to use:</b> When an E2E test fails intermittently and you need to determine whether it's the test, the infra, or the product. Use Opus when the failure spans controllers or timing.</p><div class="code-wrap"><button class="copy">Copy</button><div class="code">Analyze the supplied failure evidence and update investigation.md.
 
 Maintain:
 - symptom and failing phase
@@ -119,7 +119,7 @@ Maintain:
 - current confidence
 - the smallest next experiment that distinguishes the top hypotheses
 
-Do not propose a product fix until the evidence separates test flakiness, infrastructure failure, and product behavior.</div></div></article><article class="card"><h3>CI evidence distillation</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Distill these CI logs without diagnosing yet.
+Do not propose a product fix until the evidence separates test flakiness, infrastructure failure, and product behavior.</div></div></article><article class="card"><h3>CI evidence distillation</h3><p><b>State:</b> Investigate</p><p><b>Purpose:</b> Extracts signal from noisy CI logs without jumping to diagnosis. Produces a clean evidence summary you can then reason about — either yourself or with a follow-up prompt.</p><p><b>When to use:</b> As the first step when CI fails. Run this before the flaky E2E or implementation planning prompt. Works well with Sonnet — no need for Opus here.</p><div class="code-wrap"><button class="copy">Copy</button><div class="code">Distill these CI logs without diagnosing yet.
 
 Extract only:
 - failing jobs and tests
@@ -130,15 +130,15 @@ Extract only:
 - stack traces
 - differences from a supplied passing run
 
-Preserve exact identifiers and error text. Remove unrelated log noise.</div></div></article><article class="card"><h3>Repository memory update</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Review this completed work for durable HyperShift knowledge.
+Preserve exact identifiers and error text. Remove unrelated log noise.</div></div></article><article class="card"><h3>Repository memory update</h3><p><b>State:</b> Verify (post-completion)</p><p><b>Purpose:</b> After finishing a piece of work, captures durable architectural knowledge so future sessions don't rediscover it. Keeps CLAUDE.md, ARCHITECTURE.md, TESTING.md, and CONTRIBUTING.md current.</p><p><b>When to use:</b> After completing a significant change — especially one that revealed something about HyperShift's architecture, reconciliation, or testing that wasn't previously documented.</p><div class="code-wrap"><button class="copy">Copy</button><div class="code">Review this completed work for durable HyperShift knowledge.
 
-Suggest only stable additions or corrections to CLAUDE.md, architecture.md, testing.md, or contributing.md. Exclude ticket-specific status, temporary hypotheses, code excerpts, and details already documented elsewhere.
+Suggest only stable additions or corrections to CLAUDE.md, ARCHITECTURE.md, TESTING.md, or CONTRIBUTING.md. Exclude ticket-specific status, temporary hypotheses, code excerpts, and details already documented elsewhere.
 
 For each proposed memory change, include:
 - target file
 - concise addition or correction
 - why it will reduce future rediscovery
-- evidence from the completed work</div></div></article><article class="card"><h3>API compatibility assessment</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Assess this change for API compatibility and upgrade safety.
+- evidence from the completed work</div></div></article><article class="card"><h3>API compatibility assessment</h3><p><b>State:</b> Plan / Review</p><p><b>Purpose:</b> Evaluates whether a change is safe across upgrade boundaries — mixed-version operators, existing CRs, webhook behavior, and rollback scenarios. Catches breaking changes before they ship.</p><p><b>When to use:</b> Before implementing any change that touches API types, CRDs, validation, defaulting, or feature gates. Also useful as a review-time check on incoming PRs that modify <code>api/</code>. Use Opus.</p><div class="code-wrap"><button class="copy">Copy</button><div class="code">Assess this change for API compatibility and upgrade safety.
 
 Evaluate:
 - backward compatibility with existing HostedCluster and NodePool objects
@@ -149,7 +149,7 @@ Evaluate:
 - feature gate or annotation requirements for safe rollout
 - downgrade behavior if the change must be reverted
 
-Flag any breaking change that requires a migration path or documentation update.</div></div></article><article class="card"><h3>Controller reconciliation debugging</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Investigate why this controller is not converging.
+Flag any breaking change that requires a migration path or documentation update.</div></div></article><article class="card"><h3>Controller reconciliation debugging</h3><p><b>State:</b> Investigate</p><p><b>Purpose:</b> Diagnoses why a controller isn't converging or is oscillating. Different from flaky E2E — this focuses on reconcile loops, watch predicates, requeue rates, and status condition transitions.</p><p><b>When to use:</b> When a HostedCluster or NodePool is stuck in a non-terminal state, when a controller is requeueing endlessly, or when status conditions are flapping. Use Opus for cross-controller issues.</p><div class="code-wrap"><button class="copy">Copy</button><div class="code">Investigate why this controller is not converging.
 
 Analyze:
 - reconcile loop entry and exit conditions
@@ -161,7 +161,7 @@ Analyze:
 - error paths that silently swallow failures
 - conditions where the controller oscillates between two states
 
-Produce a timeline of what the controller observes vs. what it expects, and identify the specific divergence point.</div></div></article><article class="card"><h3>Test gap analysis</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Given this planned change, identify test coverage gaps.
+Produce a timeline of what the controller observes vs. what it expects, and identify the specific divergence point.</div></div></article><article class="card"><h3>Test gap analysis</h3><p><b>State:</b> Plan / Review</p><p><b>Purpose:</b> Given a planned change, identifies what's already tested, what's missing, and what new tests to write. Recommends test type (unit, envtest, E2E) and file location following existing patterns.</p><p><b>When to use:</b> After creating an implementation plan and before writing code, to ensure the test strategy is complete. Also useful during review to verify a PR has adequate coverage.</p><div class="code-wrap"><button class="copy">Copy</button><div class="code">Given this planned change, identify test coverage gaps.
 
 Analyze:
 - which existing unit tests exercise the affected code paths
