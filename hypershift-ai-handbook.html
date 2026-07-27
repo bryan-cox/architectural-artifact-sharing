@@ -138,7 +138,41 @@ For each proposed memory change, include:
 - target file
 - concise addition or correction
 - why it will reduce future rediscovery
-- evidence from the completed work</div></div></article></div></section>
+- evidence from the completed work</div></div></article><article class="card"><h3>API compatibility assessment</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Assess this change for API compatibility and upgrade safety.
+
+Evaluate:
+- backward compatibility with existing HostedCluster and NodePool objects
+- behavior during rolling upgrades when old and new operators coexist
+- mixed-version scenarios (management cluster vs. hosted control plane)
+- defaulting, validation, and conversion webhook implications
+- whether existing CRs will pass new validation after upgrade
+- feature gate or annotation requirements for safe rollout
+- downgrade behavior if the change must be reverted
+
+Flag any breaking change that requires a migration path or documentation update.</div></div></article><article class="card"><h3>Controller reconciliation debugging</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Investigate why this controller is not converging.
+
+Analyze:
+- reconcile loop entry and exit conditions
+- status conditions and their transitions
+- requeue rates and intervals
+- watch predicates and event filters
+- dependencies on other controllers or external state
+- ordering assumptions between reconciled resources
+- error paths that silently swallow failures
+- conditions where the controller oscillates between two states
+
+Produce a timeline of what the controller observes vs. what it expects, and identify the specific divergence point.</div></div></article><article class="card"><h3>Test gap analysis</h3><div class="code-wrap"><button class="copy">Copy</button><div class="code">Given this planned change, identify test coverage gaps.
+
+Analyze:
+- which existing unit tests exercise the affected code paths
+- which E2E or envtest scenarios cover this behavior
+- edge cases not covered by existing tests
+- error paths and failure modes that need verification
+- platform-specific variations (AWS, Azure, KubeVirt) that need separate coverage
+- upgrade and rollback scenarios that should be tested
+- negative tests (invalid input, missing prerequisites, partial failures)
+
+For each gap, recommend the test type (unit, envtest, E2E), the file location following existing patterns, and a one-line description of what to assert.</div></div></article></div></section>
 
 <section class="section searchable" id="day"><div class="eyebrow">10 · Day in the life</div><h2>What this looks like in practice</h2><div class="grid cards-3"><article class="card"><h3>Normal Jira day</h3><div class="sequence"><span class="seq-node">9:00 Investigate</span><span class="seq-arrow">→</span><span class="seq-node">Plan</span><span class="seq-arrow">→</span><span class="seq-node">Cursor</span><span class="seq-arrow">→</span><span class="seq-node">Matt review</span><span class="seq-arrow">→</span><span class="seq-node">ai-helpers</span><span class="seq-arrow">→</span><span class="seq-node">PR</span></div></article><article class="card"><h3>Interrupted day</h3><div class="sequence"><span class="seq-node">Investigate</span><span class="seq-arrow">→</span><span class="seq-node">Implement</span><span class="seq-arrow">→</span><span class="seq-node">Matt handover</span><span class="seq-arrow">→</span><span class="seq-node">Meeting</span><span class="seq-arrow">→</span><span class="seq-node">Fresh session</span></div></article><article class="card"><h3>Flaky CI day</h3><div class="sequence"><span class="seq-node">Distill evidence</span><span class="seq-arrow">→</span><span class="seq-node">Opus hypotheses</span><span class="seq-arrow">→</span><span class="seq-node">Cursor experiment</span><span class="seq-arrow">→</span><span class="seq-node">Update investigation</span><span class="seq-arrow">→</span><span class="seq-node">Fix + repeat</span></div></article></div></section>
 
