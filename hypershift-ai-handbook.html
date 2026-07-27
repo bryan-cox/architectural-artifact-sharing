@@ -43,13 +43,36 @@ html[data-theme="dark"]{--bg:#080d16;--panel:#101827;--panel2:#151f30;--text:#ed
 
 <section class="section searchable" id="decisions"><div class="eyebrow">05 · Decision trees</div><h2>Fast decisions during the workday</h2><div class="grid cards-2"><div class="decision"><h3>Should I use Opus?</h3><div class="decision-row"><span>Architecture, API compatibility, or cross-controller design?</span><span class="yes">Yes</span><span>Use Opus.</span></div><div class="decision-row"><span>Distributed timing or reconciliation bug with multiple plausible causes?</span><span class="yes">Yes</span><span>Use Opus for investigation.</span></div><div class="decision-row"><span>Routine implementation or mechanical refactor?</span><span class="no">No</span><span>Use Cursor or Sonnet.</span></div><div class="decision-row"><span>Reviewing high-risk upgrade or rollout logic?</span><span class="yes">Yes</span><span>Use Matt review with Opus.</span></div></div><div class="decision"><h3>Should I use grill-with-docs?</h3><div class="decision-row"><span>Acceptance criteria disputed or incomplete?</span><span class="yes">Yes</span><span>Use it.</span></div><div class="decision-row"><span>Terminology or ownership boundaries unclear?</span><span class="yes">Yes</span><span>Use it.</span></div><div class="decision-row"><span>Obvious bug with a narrow fix?</span><span class="no">No</span><span>Skip it.</span></div><div class="decision-row"><span>Simple test update or typo?</span><span class="no">No</span><span>Skip it.</span></div></div><div class="decision"><h3>When do I hand over?</h3><div class="decision-row"><span>Switching Claude Code ↔ Cursor?</span><span class="yes">Yes</span><span>Run Matt’s handover.</span></div><div class="decision-row"><span>Stopping for a meeting, lunch, or tomorrow?</span><span class="yes">Yes</span><span>Run Matt’s handover.</span></div><div class="decision-row"><span>Context has become noisy or huge?</span><span class="yes">Yes</span><span>Handover, then start fresh.</span></div><div class="decision-row"><span>Continuing a small task in the same clean session?</span><span class="no">No</span><span>Keep going.</span></div></div><div class="decision"><h3>Which review path?</h3><div class="decision-row"><span>Your own implementation before commit?</span><span class="yes">Yes</span><span>Matt code-review + ai-helpers pre-commit review.</span></div><div class="decision-row"><span>Incoming PR?</span><span class="yes">Yes</span><span>Matt code-review + ai-helpers PR review.</span></div><div class="decision-row"><span>High-risk API, rollout, or concurrency logic?</span><span class="yes">Yes</span><span>Use Opus for the Matt review pass.</span></div><div class="decision-row"><span>Style-only concern?</span><span class="no">No</span><span>Do not spend premium reasoning.</span></div></div></div></section>
 
-<section class="section searchable" id="memory"><div class="eyebrow">06 · Repository memory</div><h2>Stop paying models to rediscover HyperShift</h2><p class="section-intro">Use standard root-level files that every AI tool already knows how to find. No custom directory structure needed—Claude Code, Cursor, and Copilot all read these conventions out of the box.</p><div class="grid cards-2"><div class="folder">repo-root/
+<section class="section searchable" id="memory"><div class="eyebrow">06 · Repository memory</div><h2>Stop paying models to rediscover HyperShift</h2><p class="section-intro">Standard root-level files and <code>.claude/</code> directories that every AI tool already knows how to find. No custom directory structure needed.</p><div class="grid cards-2"><div class="folder">hypershift/
 ├── CLAUDE.md
 ├── AGENTS.md
-├── architecture.md
-├── testing.md
-├── contributing.md
-└── ...</div><div class="card"><h3>File roles</h3><p><code>CLAUDE.md</code> — Claude Code session instructions, project conventions, and behavioral rules.</p><p><code>AGENTS.md</code> — Agent-specific instructions for multi-agent workflows and subagent behavior.</p><p><code>architecture.md</code> — Stable architectural knowledge: controllers, reconciliation, ownership boundaries, upgrade invariants.</p><p><code>testing.md</code> — Test entry points, strategies, E2E patterns, and verification expectations.</p><p><code>contributing.md</code> — Contribution workflow, review expectations, and CI requirements.</p></div></div>
+├── GEMINI.md
+├── ARCHITECTURE.md
+├── TESTING.md
+├── CONTRIBUTING.md
+├── DEVELOPMENT.md
+├── HACKING.md
+└── .claude/
+    ├── SKILLS.md
+    ├── agents/
+    │   ├── api-sme.md
+    │   ├── cloud-provider-sme.md
+    │   ├── control-plane-sme.md
+    │   ├── data-plane-sme.md
+    │   └── hcp-architect-sme.md
+    ├── rules/
+    │   └── webhook-validation.md
+    ├── skills/
+    │   ├── create-cpo-override
+    │   ├── debug-cluster
+    │   ├── dev
+    │   ├── effective-go
+    │   ├── git-commit-format
+    │   ├── konflux-ec-violations
+    │   ├── triage-leaked-infra
+    │   └── validate-pr-override-images
+    └── commands/</div><div class="card"><h3>Root-level guidance</h3><p><code>CLAUDE.md</code> — Claude Code session instructions, project conventions, and behavioral rules.</p><p><code>AGENTS.md</code> — Agent-specific instructions for multi-agent workflows and subagent behavior.</p><p><code>GEMINI.md</code> — Gemini-specific project instructions.</p><p><code>ARCHITECTURE.md</code> — Stable architectural knowledge: controllers, reconciliation, ownership boundaries, upgrade invariants.</p><p><code>TESTING.md</code> — Test entry points, strategies, E2E patterns, and verification expectations.</p><p><code>CONTRIBUTING.md</code> / <code>DEVELOPMENT.md</code> / <code>HACKING.md</code> — Contribution workflow, dev setup, and review expectations.</p>
+<h3 style="margin-top:16px">.claude/ directory</h3><p><b>agents/</b> — SME agents for API, cloud providers, control plane, data plane, and HCP architecture.</p><p><b>rules/</b> — Behavioral rules (e.g., webhook validation).</p><p><b>skills/</b> — Project-specific skills: CPO overrides, cluster debugging, dev workflow, effective Go, leaked infra triage, and more.</p></div></div>
 <div class="grid cards-2" style="margin-top:16px"><div class="card"><h3>What belongs in these files</h3><p>Stable concepts, important invariants, ownership boundaries, common failure modes, upgrade assumptions, and hard-won debugging knowledge that prevents models from rediscovering the architecture from scratch.</p></div><div class="card"><h3>What does not</h3><p>Ticket-specific status, temporary hypotheses, copied code, stale implementation details, or content already well documented in code comments or upstream docs.</p></div></div>
 <div class="callout" style="margin-top:18px"><b>Rule:</b> Repository memory should point models toward the right three files—not replace reading the code. Keep files concise and update them when understanding changes.</div></section>
 
