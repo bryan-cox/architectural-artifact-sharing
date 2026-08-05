@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appendices - PR #9171</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #9171 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Private Cluster Without External DNS</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: KAS Route Defaulting</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: CPO External Route Behavior</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Private DNS Zone Naming</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Guest dns.cluster Config</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: PublicAndPrivate Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Infra Destroy Both Formats</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Unit Test Verification</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link active" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active">Appendices</li>
+    </ol>
+  </nav>
+
+  <h1>Appendices</h1>
+
+  <!-- Appendix A: Create Script -->
+  <h2 id="appendix-a">Appendix A: Cluster Creation Script</h2>
+  <p>The cluster was created using the following script, which intentionally omits <code>--external-dns-domain</code> to reproduce OCPBUGS-100054.</p>
+  <pre class="log-output">#!/bin/bash
+set -x
+
+PREFIX="brcox-100054"
+CLUSTER_NAME="${PREFIX}-hc"
+RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:5.0.0-ec.5-multi
+CPO_IMAGE="quay.io/rh_ee_brcox/hypershift:OCPBUGS-100054-2026-08-05-1"
+
+# NOTE: No --external-dns-domain flag — this is intentional to reproduce OCPBUGS-100054.
+# The bug only manifests when external-dns is NOT configured.
+
+hypershift create cluster azure \
+  --name "$CLUSTER_NAME" \
+  --namespace "clusters" \
+  --azure-creds $AZURE_CREDS \
+  --location eastus \
+  --node-pool-replicas 2 \
+  --base-domain hcp-sm-azure.azure.devcluster.openshift.com \
+  --pull-secret $PULL_SECRET \
+  --generate-ssh \
+  --resource-group-name "${MANAGED_RG_NAME}" \
+  --vnet-id "${VNET_ID}" \
+  --subnet-id "${SUBNET_ID}" \
+  --network-security-group-id "${NSG_ID}" \
+  --sa-token-issuer-private-key-path "${SA_TOKEN_ISSUER_PRIVATE_KEY_PATH}" \
+  --oidc-issuer-url "https://brcoxsma.blob.core.windows.net/brcoxsma" \
+  --dns-zone-rg-name os4-common \
+  --assign-service-principal-roles \
+  --workload-identities-file ${WORKLOAD_IDENTITIES_FILE} \
+  --diagnostics-storage-account-type Managed \
+  --release-image ${RELEASE_IMAGE} \
+  --endpoint-access Private \
+  --endpoint-access-private-nat-subnet-id "${NAT_SUBNET_ID}" \
+  --control-plane-operator-image "${CPO_IMAGE}" \
+  --instance-type Standard_D4s_v4</pre>
+
+  <hr>
+
+  <!-- Appendix B: HC DNS Spec -->
+  <h2 id="appendix-b">Appendix B: HostedCluster DNS Spec</h2>
+  <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.spec.dns}' | jq .
+{
+  "baseDomain": "hcp-sm-azure.azure.devcluster.openshift.com",
+  "privateZoneID": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-100054-hc-brcox-100054/providers/Microsoft.Network/privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com",
+  "publicZoneID": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com"
+}</pre>
+
+  <hr>
+
+  <!-- Appendix C: Guest ClusterOperators -->
+  <h2 id="appendix-c">Appendix C: Guest ClusterOperators</h2>
+  <pre class="log-output">$ kubectl get co (via port-forward to guest KAS)
+NAME                                       VERSION      AVAILABLE   PROGRESSING   DEGRADED   SINCE   MESSAGE
+console                                    5.0.0-ec.5   True        False         False      75m
+csi-snapshot-controller                    5.0.0-ec.5   True        False         False      82m
+dns                                        5.0.0-ec.5   True        False         False      75m
+image-registry                             5.0.0-ec.5   True        False         False      75m
+ingress                                    5.0.0-ec.5   True        False         False      75m
+insights                                   5.0.0-ec.5   True        False         False      76m
+kube-apiserver                             5.0.0-ec.5   True        False         False      82m
+kube-controller-manager                    5.0.0-ec.5   True        False         False      82m
+kube-scheduler                             5.0.0-ec.5   True        False         False      82m
+kube-storage-version-migrator              5.0.0-ec.5   True        False         False      76m
+monitoring                                 5.0.0-ec.5   True        False         False      75m
+network                                    5.0.0-ec.5   True        False         False      81m
+node-tuning                                5.0.0-ec.5   True        False         False      76m
+openshift-apiserver                        5.0.0-ec.5   True        False         False      82m
+openshift-controller-manager               5.0.0-ec.5   True        False         False      82m
+openshift-samples                          5.0.0-ec.5   True        False         False      75m
+operator-lifecycle-manager                 5.0.0-ec.5   True        False         False      82m
+operator-lifecycle-manager-catalog         5.0.0-ec.5   True        False         False      82m
+operator-lifecycle-manager-packageserver   5.0.0-ec.5   True        False         False      82m
+service-ca                                 5.0.0-ec.5   True        False         False      76m
+storage                                    5.0.0-ec.5   True        False         False      76m</pre>
+
+  <hr>
+
+  <!-- Appendix D: HC Conditions -->
+  <h2 id="appendix-d">Appendix D: HostedCluster Conditions</h2>
+  <pre class="log-output">AutoNodeEnabled: False
+Available: True
+AzureInternalLoadBalancerAvailable: True
+AzurePLSCreated: True
+AzurePrivateDNSAvailable: True
+AzurePrivateEndpointAvailable: True
+AzurePrivateLinkServiceAvailable: True
+ClusterVersionAvailable: True
+ClusterVersionProgressing: False
+ClusterVersionReleaseAccepted: True
+ClusterVersionRetrievedUpdates: False
+ClusterVersionSucceeding: True
+ClusterVersionUpgradeable: True
+ConfigOperatorReconciliationSucceeded: True
+ControlPlaneConnectionAvailable: True
+DataPlaneConnectionAvailable: True
+Degraded: False
+EtcdAvailable: True
+EtcdDataEncryptionUpToDate: True
+IgnitionEndpointAvailable: True
+InfrastructureReady: True
+KubeAPIServerAvailable: True
+PlatformCredentialsFound: True
+Progressing: False
+ReconciliationActive: True
+ReconciliationSucceeded: True
+SupportedHostedCluster: True
+ValidConfiguration: True
+ValidHostedControlPlaneConfiguration: True
+ValidIDPConfiguration: True
+ValidProxyConfiguration: True
+ValidReleaseImage: True
+ValidReleaseInfo: True</pre>
+
+  <hr>
+
+  <!-- Appendix E: Services Spec -->
+  <h2 id="appendix-e">Appendix E: HostedCluster Services Spec</h2>
+  <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.spec.services}' | jq .
+[
+  {
+    "service": "APIServer",
+    "servicePublishingStrategy": {
+      "type": "Route"
+    }
+  },
+  {
+    "service": "Ignition",
+    "servicePublishingStrategy": {
+      "type": "Route"
+    }
+  },
+  {
+    "service": "Konnectivity",
+    "servicePublishingStrategy": {
+      "type": "Route"
+    }
+  },
+  {
+    "service": "OAuthServer",
+    "servicePublishingStrategy": {
+      "type": "Route"
+    }
+  }
+]</pre>
+
+  <hr>
+
+  <!-- Appendix F: Version History -->
+  <h2 id="appendix-f">Appendix F: ClusterVersion History</h2>
+  <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.status.version}' | jq .
+{
+  "availableUpdates": null,
+  "desired": {
+    "image": "quay.io/openshift-release-dev/ocp-release@sha256:d1c0459e0a513c95a3946ae16d9c88b7fc85c5a53960ead6ac56646ec5c593cb",
+    "version": "5.0.0-ec.5"
+  },
+  "history": [
+    {
+      "completionTime": "2026-08-05T12:54:35Z",
+      "image": "quay.io/openshift-release-dev/ocp-release@sha256:d1c0459e0a513c95a3946ae16d9c88b7fc85c5a53960ead6ac56646ec5c593cb",
+      "startedTime": "2026-08-05T12:46:20Z",
+      "state": "Completed",
+      "verified": false,
+      "version": "5.0.0-ec.5"
+    }
+  ],
+  "observedGeneration": 1
+}</pre>
+
+  <hr>
+
+  <!-- Appendix G: Azure Private DNS Zones -->
+  <h2 id="appendix-g">Appendix G: Azure Private DNS Zones</h2>
+  <pre class="log-output">$ az network private-dns zone list --resource-group brcox-100054-hc-brcox-100054 --query '[].name' -o tsv
+
+brcox-100054-hc-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com   # old naming (created by CAPZ)
+brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com               # new naming (created by hypershift CLI)
+brcox-100054-hc.hypershift.local                                           # internal hypershift zone
+hcp-sm-azure.azure.devcluster.openshift.com                               # parent zone link</pre>
+
+  <hr>
+
+  <!-- Appendix H: Machines -->
+  <h2 id="appendix-h">Appendix H: Machine Status</h2>
+  <pre class="log-output">$ oc get machines -n clusters-brcox-100054-hc
+NAME                          CLUSTER                 NODE NAME                     READY   AVAILABLE   UP-TO-DATE   PHASE     VERSION
+brcox-100054-hc-lq4rl-jn9pg   brcox-100054-hc-7prcj   brcox-100054-hc-lq4rl-jn9pg   True    True        True         Running   5.0.0-ec.5
+brcox-100054-hc-lq4rl-mvrzd   brcox-100054-hc-7prcj   brcox-100054-hc-lq4rl-mvrzd   True    True        True         Running   5.0.0-ec.5</pre>
+
+  <hr>
+
+  <!-- Appendix I: KAS Routes -->
+  <h2 id="appendix-i">Appendix I: KAS Routes</h2>
+  <pre class="log-output">$ oc get routes -n clusters-brcox-100054-hc | grep kube-apiserver
+NAME                      HOST/PORT                                    SERVICES          PORT    TERMINATION        WILDCARD
+kube-apiserver-internal   api.brcox-100054-hc.hypershift.local         kube-apiserver    &lt;all&gt;   passthrough/None   None
+
+$ oc get route kube-apiserver-external-public -n clusters-brcox-100054-hc
+Error from server (NotFound): routes.route.openshift.io "kube-apiserver-external-public" not found
+
+$ oc get route kube-apiserver-external-private -n clusters-brcox-100054-hc
+Error from server (NotFound): routes.route.openshift.io "kube-apiserver-external-private" not found</pre>
+
+  <hr>
+
+  <!-- Appendix J: Guest dns.cluster -->
+  <h2 id="appendix-j">Appendix J: Guest dns.cluster Resource</h2>
+  <pre class="log-output">$ kubectl get dns cluster -o json | jq .spec
+{
+  "baseDomain": "brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com",
+  "platform": {
+    "type": ""
+  },
+  "privateZone": {
+    "id": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-100054-hc-brcox-100054/providers/Microsoft.Network/privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com"
+  },
+  "publicZone": {
+    "id": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com"
+  }
+}</pre>
+
+  <hr>
+
+  <!-- Appendix K: Ingress CO Detail -->
+  <h2 id="appendix-k">Appendix K: Ingress ClusterOperator Detail</h2>
+  <pre class="log-output">$ kubectl get co ingress -o json | jq '.status.conditions[]'
+
+Available: True    "The \"default\" ingress controller reports Available=True."
+Progressing: False "desired and current number of IngressControllers are equal"
+Degraded: False    "The \"default\" ingress controller reports Degraded=False."
+Upgradeable: True
+EvaluationConditionsDetected: False</pre>
+
+  <hr>
+
+  <!-- Appendix L: Control Plane Pods -->
+  <h2 id="appendix-l">Appendix L: Control Plane Pods</h2>
+  <pre class="log-output">$ kubectl get pods -n clusters-brcox-100054-hc --no-headers
+NAME                                                       READY   STATUS
+azure-cloud-controller-manager-b497c4c46-fkxng             2/2     Running
+azure-disk-csi-driver-controller-7bbb754c84-krk4q          12/12   Running
+azure-disk-csi-driver-operator-6dd778dc9d-cz8j2            1/1     Running
+azure-file-csi-driver-controller-64548d4bb4-9t2wg          12/12   Running
+azure-file-csi-driver-operator-845f555fc9-66lvq            1/1     Running
+capi-provider-7fb97f8c5d-hnmxn                             2/2     Running
+catalog-operator-5457f6cdb-s9g9p                           2/2     Running
+certified-operators-catalog-8657cd6fd7-7wzkw               1/1     Running
+cloud-network-config-controller-98bd9748-6vjz6             3/3     Running
+cluster-api-7bcfc85445-t94rh                               1/1     Running
+cluster-image-registry-operator-7f9987cd7c-swxxf           3/3     Running
+cluster-network-operator-76bc647fcd-g5fl9                  3/3     Running
+cluster-node-tuning-operator-7bf764b8d-k6lsv               1/1     Running
+cluster-policy-controller-84fb6b9f7b-mg627                 1/1     Running
+cluster-storage-operator-6c446f8948-p6x56                  1/1     Running
+cluster-version-operator-55784b9bf8-4lpzf                  1/1     Running
+community-operators-catalog-65d75df459-qmxpf               1/1     Running
+control-plane-operator-76598b5f85-4qgxd                    2/2     Running
+control-plane-pki-operator-cf7f9d8cf-p67jc                 1/1     Running
+csi-snapshot-controller-7f5fdd5cff-lfzpd                   1/1     Running
+csi-snapshot-controller-operator-b868f54c4-9vtcj           1/1     Running
+dns-operator-844777559-7cwck                               1/1     Running
+etcd-0                                                     3/3     Running
+featuregate-generator-sr6zk                                0/1     Completed
+hosted-cluster-config-operator-698fddf9f5-9lknm            1/1     Running
+ignition-server-857984cd6c-89qgb                           1/1     Running
+ignition-server-proxy-78956b8d57-sgd94                     1/1     Running
+ingress-operator-7dfc5dd95-9f9k5                           3/3     Running
+konnectivity-agent-8967b6b74-wdjtz                         1/1     Running
+kube-apiserver-85c8f94bc8-c79k9                            5/5     Running
+kube-controller-manager-75fdf865c6-m48wm                   1/1     Running
+kube-scheduler-5fd5c9d988-7q5qz                            1/1     Running
+kube-storage-version-migrator-68698f68b5-bj2fm             1/1     Running
+machine-approver-6b875cfd8b-jdl7k                         1/1     Running
+multus-admission-controller-6b6c86bf59-7twqv               2/2     Running
+network-node-identity-7f78878bcb-gg54r                     3/3     Running
+oauth-openshift-dbd86bbcd-hs62r                            4/4     Running
+olm-operator-6fcd9f7ff7-2kf48                              2/2     Running
+openshift-apiserver-7df9f84895-29nfb                       4/4     Running
+openshift-controller-manager-6b75cffc9-nkrp2               1/1     Running
+openshift-oauth-apiserver-566f54f7f8-lmftt                 4/4     Running
+openshift-route-controller-manager-674ccfdb46-ph86l        1/1     Running
+ovnkube-control-plane-7969bf6f46-4msjp                     3/3     Running
+packageserver-7c65d4949b-pcmgg                             3/3     Running
+redhat-marketplace-catalog-8556cc96d6-2xwbb                1/1     Running
+redhat-operators-catalog-79ddfd75cc-9k2d2                  1/1     Running
+router-74fdf46755-qns5q                                    1/1     Running
+
+Total: 47 pods (46 Running, 1 Completed)</pre>
+
+  <hr>
+
+  <!-- Appendix M: NodePool Status -->
+  <h2 id="appendix-m">Appendix M: NodePool Status</h2>
+  <pre class="log-output">$ oc get nodepool -n clusters -o wide | grep brcox-100054
+NAME              CLUSTER           DESIRED   CURRENT   UPDATING   AUTOREPAIR   VERSION      AUTOSCALING   SECURITY-UPDATES
+brcox-100054-hc   brcox-100054-hc   2         2         False      False        5.0.0-ec.5   False         False</pre>
+
+  <div class="d-flex justify-content-between mt-4">
+    <a href="scenario-5.html" class="btn btn-outline-secondary">&larr; Scenario 5</a>
+    <a href="index.html" class="btn btn-outline-primary">Dashboard &rarr;</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Verification Report: PR #9171</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    .card-stat { text-align: center; }
+    .card-stat .display-4 { font-weight: 700; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #9171 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Private Cluster Without External DNS</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: KAS Route Defaulting</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: CPO External Route Behavior</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Private DNS Zone Naming</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Guest dns.cluster Config</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: PublicAndPrivate Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Infra Destroy Both Formats</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Unit Test Verification</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <h1>Test Verification Report: PR #9171</h1>
+    <table class="table table-sm" style="max-width: 700px;">
+      <tbody>
+        <tr><th scope="row">PR</th><td>OCPBUGS-100054: Azure Private clusters without external DNS fail to complete</td></tr>
+        <tr><th scope="row">URL</th><td><a href="https://github.com/openshift/hypershift/pull/9171" target="_blank">github.com/openshift/hypershift/pull/9171</a></td></tr>
+        <tr><th scope="row">Branch</th><td><code>fix-OCPBUGS-100054</code></td></tr>
+        <tr><th scope="row">Date</th><td>2026-08-05</td></tr>
+        <tr><th scope="row">Tester</th><td>Bryan Cox</td></tr>
+        <tr><th scope="row">Platform</th><td>Azure self-managed (Private topology)</td></tr>
+        <tr><th scope="row">Release</th><td><code>5.0.0-ec.5</code></td></tr>
+        <tr><th scope="row">CPO Image</th><td><code>quay.io/rh_ee_brcox/hypershift:OCPBUGS-100054-2026-08-05-1</code></td></tr>
+        <tr><th scope="row">Cluster</th><td><code>brcox-100054-hc</code> (2 nodes, eastus)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">30/30</div>
+          <div class="card-text">Unit Tests Passing</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">6/8</div>
+          <div class="card-text">Scenarios Verified</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">21/21</div>
+          <div class="card-text">Guest COs Healthy</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success card-stat">
+        <div class="card-body">
+          <div class="display-4">47/47</div>
+          <div class="card-text">Control Plane Pods</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Table -->
+  <h2>Summary</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Category</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><a href="automated-tests.html">Unit Tests: DNS Config (4 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Unit Tests: Service Publishing Strategy (9 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Unit Tests: CPO Infra Reconciliation (17 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="automated-tests.html">Unit Tests: Azure CLI Fixtures (12 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr><td><a href="scenario-1.html">Scenario 1: Private Cluster Without External DNS</a></td><td><span class="badge bg-success">PASS</span> (11/11 checks)</td></tr>
+      <tr><td><a href="scenario-2.html">Scenario 2: KAS Route Defaulting</a></td><td><span class="badge bg-success">PASS</span> (4/4 checks)</td></tr>
+      <tr><td><a href="scenario-3.html">Scenario 3: CPO External Route Behavior</a></td><td><span class="badge bg-success">PASS</span> (3/3 checks)</td></tr>
+      <tr><td><a href="scenario-4.html">Scenario 4: Private DNS Zone Naming</a></td><td><span class="badge bg-success">PASS</span> (2/2 checks)</td></tr>
+      <tr><td><a href="scenario-5.html">Scenario 5: Guest dns.cluster Config</a></td><td><span class="badge bg-success">PASS</span> (3/3 checks)</td></tr>
+      <tr><td><a href="scenario-6.html">Scenario 6: PublicAndPrivate Regression</a></td><td><span class="badge bg-warning text-dark">TBD</span> &mdash; requires separate PublicAndPrivate cluster</td></tr>
+      <tr><td><a href="scenario-7.html">Scenario 7: Infra Destroy Both Formats</a></td><td><span class="badge bg-warning text-dark">TBD</span> &mdash; requires cluster teardown</td></tr>
+      <tr><td><a href="scenario-8.html">Scenario 8: Unit Test Verification</a></td><td><span class="badge bg-success">PASS</span> (30/30 tests)</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Unit tests passing:</strong> 30/30 across 4 test suites (globalconfig, core, infra, azure CLI)<br>
+  <strong>Scenarios verified:</strong> 6/8 &mdash; 5 live Private cluster + 1 unit tests; 2 TBD (PublicAndPrivate regression, infra destroy)<br>
+  <strong>Cluster version:</strong> 5.0.0-ec.5 (Completed at 2026-08-05T12:54:35Z)<br>
+  <strong>Machines:</strong> 2/2 Running, RHCOS 9.8, version 5.0.0-ec.5</p>
+
+  <hr>
+
+  <!-- Regression Checklist -->
+  <h2>Regression Checklist</h2>
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Check</th><th>Result</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Azure Private without external DNS provisions</td><td><span class="badge bg-success">PASS</span></td><td>Scenario 1 &mdash; cluster <code>Available=True</code>, all 21 COs healthy</td></tr>
+      <tr><td>KAS defaults to Route for Private topology</td><td><span class="badge bg-success">PASS</span></td><td>Scenario 2 &mdash; all 4 services use Route strategy</td></tr>
+      <tr><td>CPO skips external routes when no hostname</td><td><span class="badge bg-success">PASS</span></td><td>Scenario 3 &mdash; only internal route exists</td></tr>
+      <tr><td>Private DNS zone uses correct naming</td><td><span class="badge bg-success">PASS</span></td><td>Scenario 4 &mdash; <code>{name}.{baseDomain}</code> (no <code>-azurecluster</code> suffix)</td></tr>
+      <tr><td>Guest <code>dns.cluster</code> has both zones</td><td><span class="badge bg-success">PASS</span></td><td>Scenario 5 &mdash; <code>publicZone</code> and <code>privateZone</code> both present</td></tr>
+      <tr><td>PublicAndPrivate topology unaffected (unit tests)</td><td><span class="badge bg-success">PASS</span></td><td>CLI fixture tests pass for all topologies</td></tr>
+      <tr><td>IBMCloud BaseDomain handling preserved</td><td><span class="badge bg-success">PASS</span></td><td>DNS config test: <code>hcp.Spec.DNS.BaseDomain</code> used directly for IBM</td></tr>
+      <tr><td>AWS SharedVPC <code>PrivateZoneIAMRole</code> preserved</td><td><span class="badge bg-success">PASS</span></td><td>DNS config test: SharedVPC sets <code>PrivateZoneIAMRole</code></td></tr>
+      <tr><td>Non-Private callers pass <code>isPrivate=false</code></td><td><span class="badge bg-success">PASS</span></td><td>Unit tests confirm non-Private uses LoadBalancer for KAS</td></tr>
+      <tr><td>Ingress ClusterOperator healthy</td><td><span class="badge bg-success">PASS</span></td><td>Available=True, Degraded=False, no issues with public zone</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- HC Conditions -->
+  <h2>HostedCluster Conditions</h2>
+  <table class="table table-striped table-hover table-sm">
+    <thead class="table-dark">
+      <tr><th>Condition</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Available</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>Progressing</td><td><span class="badge bg-success">False</span></td></tr>
+      <tr><td>Degraded</td><td><span class="badge bg-success">False</span></td></tr>
+      <tr><td>AzureInternalLoadBalancerAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>AzurePLSCreated</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>AzurePrivateDNSAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>AzurePrivateEndpointAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>AzurePrivateLinkServiceAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>ClusterVersionAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>ClusterVersionSucceeding</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>ControlPlaneConnectionAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>DataPlaneConnectionAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>EtcdAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>IgnitionEndpointAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>InfrastructureReady</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>KubeAPIServerAvailable</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>PlatformCredentialsFound</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>ReconciliationActive</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>ReconciliationSucceeded</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>SupportedHostedCluster</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>ValidConfiguration</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>ValidHostedControlPlaneConfiguration</td><td><span class="badge bg-success">True</span></td></tr>
+      <tr><td>ValidReleaseImage</td><td><span class="badge bg-success">True</span></td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

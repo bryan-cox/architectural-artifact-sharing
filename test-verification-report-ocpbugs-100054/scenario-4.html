@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario 4: Private DNS Zone Naming - PR #9171</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #9171 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Private Cluster Without External DNS</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: KAS Route Defaulting</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: CPO External Route Behavior</a></li>
+            <li><a class="dropdown-item active" href="scenario-4.html">4: Private DNS Zone Naming</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Guest dns.cluster Config</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: PublicAndPrivate Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Infra Destroy Both Formats</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Unit Test Verification</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active">Scenario 4</li>
+    </ol>
+  </nav>
+
+  <h1>Scenario 4: Private DNS Zone Naming</h1>
+  <p><strong>Objective:</strong> Verify the private DNS zone uses the correct naming format <code>{name}.{baseDomain}</code> instead of the old <code>{name}-azurecluster.{baseDomain}</code>.</p>
+
+  <div class="alert alert-success"><strong>Overall Scenario 4:</strong> PASS &mdash; Both checks verified.</div>
+
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>New naming format zone exists: <code>{name}.{baseDomain}</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Zone <code>brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code> confirmed via <code>az network private-dns zone list</code>. See <a href="appendices.html#appendix-g">Appendix G</a> and raw evidence below.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>HostedCluster <code>privateZoneID</code> uses new naming</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Full resource ID: <code>/subscriptions/237432b9-.../privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code>. See <a href="appendices.html#appendix-b">Appendix B</a> and raw evidence below.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>DNS Zones in Managed Resource Group</h3>
+  <pre class="log-output">$ az network private-dns zone list --resource-group brcox-100054-hc-brcox-100054 --query '[].name' -o tsv
+
+brcox-100054-hc-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com   # old naming (created by CAPZ)
+brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com               # new naming (created by hypershift infra)
+brcox-100054-hc.hypershift.local                                           # internal zone
+hcp-sm-azure.azure.devcluster.openshift.com                               # parent zone link</pre>
+
+  <h3>HostedCluster DNS Spec (<a href="appendices.html#appendix-b">Appendix B</a>)</h3>
+  <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.spec.dns}' | jq .
+{
+  "baseDomain": "hcp-sm-azure.azure.devcluster.openshift.com",
+  "privateZoneID": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-100054-hc-brcox-100054/providers/Microsoft.Network/privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com",
+  "publicZoneID": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com"
+}</pre>
+
+  <div class="alert alert-info">
+    <strong>Note:</strong> The old <code>-azurecluster</code> zone still exists because it is created by CAPZ (Cluster API for Azure), which uses a different naming convention. The HyperShift infra command now creates the correct <code>{name}.{baseDomain}</code> zone, and the <code>hypershift destroy infra azure</code> command handles cleanup of both naming formats.
+  </div>
+
+  <div class="d-flex justify-content-between mt-4">
+    <a href="scenario-3.html" class="btn btn-outline-secondary">&larr; Scenario 3</a>
+    <a href="scenario-5.html" class="btn btn-outline-primary">Scenario 5 &rarr;</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

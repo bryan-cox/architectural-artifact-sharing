@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario 5: Guest dns.cluster Config - PR #9171</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #9171 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Private Cluster Without External DNS</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: KAS Route Defaulting</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: CPO External Route Behavior</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Private DNS Zone Naming</a></li>
+            <li><a class="dropdown-item active" href="scenario-5.html">5: Guest dns.cluster Config</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: PublicAndPrivate Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Infra Destroy Both Formats</a></li>
+            <li><a class="dropdown-item" href="scenario-8.html">8: Unit Test Verification</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active">Scenario 5</li>
+    </ol>
+  </nav>
+
+  <h1>Scenario 5: Guest dns.cluster Config Includes Both Zones</h1>
+  <p><strong>Objective:</strong> Verify that the guest cluster's <code>dns.cluster</code> resource includes both public and private zones, even for Private topology. This confirms that <code>publicZoneID</code> is correctly propagated from the HostedCluster through the CPO to the guest's DNS configuration.</p>
+
+  <div class="alert alert-success"><strong>Overall Scenario 5:</strong> PASS &mdash; All 3 checks verified.</div>
+
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>spec.publicZone</code> is present with correct zone ID</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Full ID: <code>/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com</code>. See <a href="appendices.html#appendix-j">Appendix J</a> and raw evidence below.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>spec.privateZone</code> is present with correct zone ID</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Full ID: <code>/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-100054-hc-brcox-100054/providers/Microsoft.Network/privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code>. See <a href="appendices.html#appendix-j">Appendix J</a> and raw evidence below.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>spec.baseDomain</code> is correctly formed</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code> matches <code>{name}.{baseDomain}</code> pattern. See <a href="appendices.html#appendix-j">Appendix J</a> and raw evidence below.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Architectural Significance</h3>
+  <p>This scenario validates the key architectural decision reviewed by Cesar Wong: <strong>"Private" controls KAS endpoint visibility, not ingress DNS.</strong> A Private cluster keeps both public and private DNS zones because:</p>
+  <ul>
+    <li>The ingress operator needs the public zone to manage <code>*.apps</code> DNS records</li>
+    <li>AWS never strips <code>publicZoneID</code> for Private clusters &mdash; this PR aligns Azure behavior</li>
+    <li>The <code>IngressRoleDefinitionID</code> already includes permissions for both public (<code>Microsoft.Network/dnsZones</code>) and private (<code>Microsoft.Network/privateDnsZones</code>) zones</li>
+  </ul>
+
+  <h3>Raw Evidence</h3>
+  <pre class="log-output">$ kubectl get dns cluster -o json | jq .spec
+{
+  "baseDomain": "brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com",
+  "platform": {
+    "type": ""
+  },
+  "privateZone": {
+    "id": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-100054-hc-brcox-100054/providers/Microsoft.Network/privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com"
+  },
+  "publicZone": {
+    "id": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com"
+  }
+}</pre>
+
+  <div class="d-flex justify-content-between mt-4">
+    <a href="scenario-4.html" class="btn btn-outline-secondary">&larr; Scenario 4</a>
+    <a href="scenario-6.html" class="btn btn-outline-primary">Scenario 6 &rarr;</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

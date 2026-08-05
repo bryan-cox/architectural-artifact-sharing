@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario 8: Unit Test Verification - PR #9171</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">PR #9171 Report</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="automated-tests.html">Automated Tests</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Scenarios</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="scenario-1.html">1: Private Cluster Without External DNS</a></li>
+            <li><a class="dropdown-item" href="scenario-2.html">2: KAS Route Defaulting</a></li>
+            <li><a class="dropdown-item" href="scenario-3.html">3: CPO External Route Behavior</a></li>
+            <li><a class="dropdown-item" href="scenario-4.html">4: Private DNS Zone Naming</a></li>
+            <li><a class="dropdown-item" href="scenario-5.html">5: Guest dns.cluster Config</a></li>
+            <li><a class="dropdown-item" href="scenario-6.html">6: PublicAndPrivate Regression</a></li>
+            <li><a class="dropdown-item" href="scenario-7.html">7: Infra Destroy Both Formats</a></li>
+            <li><a class="dropdown-item active" href="scenario-8.html">8: Unit Test Verification</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="appendices.html">Appendices</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+      <li class="breadcrumb-item active">Scenario 8</li>
+    </ol>
+  </nav>
+
+  <h1>Scenario 8: Unit Test Verification</h1>
+  <p><strong>Objective:</strong> Verify all unit tests pass across the four affected test suites.</p>
+
+  <div class="alert alert-success"><strong>Overall Scenario 8:</strong> PASS &mdash; 30/30 tests passing across 4 suites.</div>
+
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr><th>Step</th><th>Check</th><th>Result</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>DNS config tests (<code>support/globalconfig/</code>)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>4/4 tests, 1.065s. Covers: DNS parameters copied, IBM Cloud base domain, BaseDomainPrefix, empty prefix</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>CLI fixture tests (<code>cmd/cluster/azure/</code>)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>12/12 tests, 0.868s. Includes: Private endpoint access fixture with <code>publicZoneID</code> set</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Service publishing strategy tests (<code>cmd/cluster/core/</code>)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>9/9 tests, 0.941s. Covers: <code>isPrivate</code> parameter &mdash; non-Private uses LoadBalancer, external DNS uses Route</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>CPO infra reconciliation tests (<code>control-plane-operator/.../infra/</code>)</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>17/17 tests, 1.291s. Covers: Route strategy Private without hostname (internal route only), public&harr;private transitions, error cases</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Key Test Cases for This PR</h3>
+  <table class="table table-striped table-hover table-sm">
+    <thead class="table-dark">
+      <tr><th>Suite</th><th>Test Name</th><th>What It Validates</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>core</td>
+        <td>When called without external DNS, it should use LoadBalancer for APIServer</td>
+        <td>Non-Private topology defaults KAS to LoadBalancer (no regression)</td>
+      </tr>
+      <tr>
+        <td>core</td>
+        <td>When called with external DNS, it should use Route for APIServer</td>
+        <td>External DNS triggers Route strategy for KAS</td>
+      </tr>
+      <tr>
+        <td>azure</td>
+        <td>When endpoint-access is Private it should render HostedCluster with Private endpoint access</td>
+        <td>Private fixture includes <code>publicZoneID</code> (aligned with AWS behavior)</td>
+      </tr>
+      <tr>
+        <td>infra</td>
+        <td>Route strategy, Private without hostname &mdash; internal route only</td>
+        <td>CPO creates only internal KAS route when no hostname configured</td>
+      </tr>
+      <tr>
+        <td>infra</td>
+        <td>Transitioning from public to private should clean up public resources</td>
+        <td>Obsolete external routes deleted during topology transition</td>
+      </tr>
+      <tr>
+        <td>globalconfig</td>
+        <td>when DNS parameters specified then they are copied to the DNS object</td>
+        <td>Both <code>publicZone</code> and <code>privateZone</code> propagated to guest <code>dns.cluster</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Raw Output</h3>
+  <pre class="log-output">$ go test ./support/globalconfig/ -run TestReconcileDNSConfig -v
+--- PASS: TestReconcileDNSConfig (0.00s)
+    --- PASS: TestReconcileDNSConfig/when_DNS_parameters_specified_on_the_HostedControlPlane_then_they_are_copied_to_the_DNS_object (0.00s)
+    --- PASS: TestReconcileDNSConfig/when_IBM_Cloud_platform_is_used_then_the_base_domain_is_set_to_the_value_on_the_HostedControlPlane (0.00s)
+    --- PASS: TestReconcileDNSConfig/when_DNS_BaseDomainPrefix_is_specified_...then_it_will_be_used (0.00s)
+    --- PASS: TestReconcileDNSConfig/when_DNS_BaseDomainPrefix_is_set_to_empty_string_...will_not_be_prepended (0.00s)
+PASS
+ok  	github.com/openshift/hypershift/support/globalconfig	1.065s
+
+$ go test ./cmd/cluster/core/ -run TestGetServicePublishingStrategyMapping -v
+--- PASS: TestGetServicePublishingStrategyMapping (0.00s)
+    --- PASS: .../When_called_with_OVNKubernetes...not_include_deprecated_service_types (0.00s)
+    --- PASS: .../When_called_with_Other_network_type...not_include_deprecated_service_types (0.00s)
+    --- PASS: .../When_ByAPIServerAddress_called_with_OVNKubernetes...not_include_deprecated (0.00s)
+    --- PASS: .../When_ByAPIServerAddress_called_with_Other_network_type...not_include_deprecated (0.00s)
+    --- PASS: .../When_called_it_should_include_all_required_service_types (0.00s)
+    --- PASS: .../When_ByAPIServerAddress_called_it_should_include_all_required_service_types (0.00s)
+    --- PASS: .../When_ByAPIServerAddress_called_it_should_use_NodePort_strategy (0.00s)
+    --- PASS: .../When_called_without_external_DNS_it_should_use_LoadBalancer_for_APIServer (0.00s)
+    --- PASS: .../When_called_with_external_DNS_it_should_use_Route_for_APIServer (0.00s)
+PASS
+ok  	github.com/openshift/hypershift/cmd/cluster/core	0.941s
+
+$ go test ./cmd/cluster/azure/ -run TestCreateCluster -v
+--- PASS: TestCreateCluster (0.02s)
+    --- PASS: .../minimal_flags_necessary_to_render (0.00s)
+    --- PASS: .../complicated_invocation_from_bryan (0.00s)
+    --- PASS: .../create_with_azure_marketplace_image (0.00s)
+    --- PASS: .../with_availability_zones (0.00s)
+    --- PASS: .../with_disabled_capabilities (0.00s)
+    --- PASS: .../with_KubeAPIServerDNSName (0.00s)
+    --- PASS: .../with_image_generation_Gen1 (0.00s)
+    --- PASS: .../with_image_generation_Gen2 (0.00s)
+    --- PASS: .../with_marketplace_flags_and_image_generation_Gen1 (0.00s)
+    --- PASS: .../with_availability_zones_and_image_generation_Gen1 (0.00s)
+    --- PASS: .../When_endpoint-access_is_Private...render_with_Private_endpoint_access (0.00s)
+    --- PASS: .../When_oauth-publishing-strategy_is_LoadBalancer...render_with_OAuth_LoadBalancer (0.00s)
+PASS
+ok  	github.com/openshift/hypershift/cmd/cluster/azure	0.868s
+
+$ go test ./control-plane-operator/controllers/hostedcontrolplane/infra/ -v
+--- PASS: TestReconcileInfrastructure (0.08s)
+--- PASS: TestReconcileInfrastructure_ErrorCases (0.02s)
+--- PASS: TestReconcileAPIServerService (0.06s)
+--- PASS: TestReconcileOAuthService (0.04s)
+--- PASS: TestReconcileOAuthService_AzureLoadBalancer (0.01s)
+--- PASS: TestReconcileInfrastructure_WhenTransitioningFromPublicToPrivate... (0.06s)
+--- PASS: TestReconcileInfrastructure_WhenTransitioningFromPrivateToPublic... (0.06s)
+PASS
+ok  	github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/infra	1.291s</pre>
+
+  <p>Full test details: <a href="automated-tests.html">Automated Tests</a></p>
+
+  <div class="d-flex justify-content-between mt-4">
+    <a href="scenario-7.html" class="btn btn-outline-secondary">&larr; Scenario 7</a>
+    <a href="index.html" class="btn btn-outline-primary">Dashboard &rarr;</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
