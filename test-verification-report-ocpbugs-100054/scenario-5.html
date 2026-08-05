@@ -64,32 +64,26 @@
         <td>1</td>
         <td><code>spec.publicZone</code> is present with correct zone ID</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Full ID: <code>/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com</code>. See <a href="appendices.html#appendix-j">Appendix J</a> and raw evidence below.</td>
+        <td>Points to <code>os4-common</code> public DNS zone</td>
       </tr>
       <tr>
         <td>2</td>
         <td><code>spec.privateZone</code> is present with correct zone ID</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Full ID: <code>/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-100054-hc-brcox-100054/providers/Microsoft.Network/privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code>. See <a href="appendices.html#appendix-j">Appendix J</a> and raw evidence below.</td>
+        <td>Points to <code>brcox-100054-hc.hcp-sm-azure...</code> private DNS zone</td>
       </tr>
       <tr>
         <td>3</td>
         <td><code>spec.baseDomain</code> is correctly formed</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code> matches <code>{name}.{baseDomain}</code> pattern. See <a href="appendices.html#appendix-j">Appendix J</a> and raw evidence below.</td>
+        <td><code>brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code></td>
       </tr>
     </tbody>
   </table>
 
-  <h3>Architectural Significance</h3>
-  <p>This scenario validates the key architectural decision reviewed by Cesar Wong: <strong>"Private" controls KAS endpoint visibility, not ingress DNS.</strong> A Private cluster keeps both public and private DNS zones because:</p>
-  <ul>
-    <li>The ingress operator needs the public zone to manage <code>*.apps</code> DNS records</li>
-    <li>AWS never strips <code>publicZoneID</code> for Private clusters &mdash; this PR aligns Azure behavior</li>
-    <li>The <code>IngressRoleDefinitionID</code> already includes permissions for both public (<code>Microsoft.Network/dnsZones</code>) and private (<code>Microsoft.Network/privateDnsZones</code>) zones</li>
-  </ul>
+  <h2 class="mt-4">Commands &amp; Outputs</h2>
 
-  <h3>Raw Evidence</h3>
+  <h4>Steps 1-3: Guest dns.cluster resource (via port-forward to KAS)</h4>
   <pre class="log-output">$ kubectl get dns cluster -o json | jq .spec
 {
   "baseDomain": "brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com",

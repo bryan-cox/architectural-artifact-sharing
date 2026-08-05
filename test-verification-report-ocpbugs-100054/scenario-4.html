@@ -64,26 +64,28 @@
         <td>1</td>
         <td>New naming format zone exists: <code>{name}.{baseDomain}</code></td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Zone <code>brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code> confirmed via <code>az network private-dns zone list</code>. See <a href="appendices.html#appendix-g">Appendix G</a> and raw evidence below.</td>
+        <td>Zone <code>brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code> confirmed in RG</td>
       </tr>
       <tr>
         <td>2</td>
         <td>HostedCluster <code>privateZoneID</code> uses new naming</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Full resource ID: <code>/subscriptions/237432b9-.../privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code>. See <a href="appendices.html#appendix-b">Appendix B</a> and raw evidence below.</td>
+        <td><code>{name}.{baseDomain}</code> format, not <code>{name}-azurecluster.{baseDomain}</code></td>
       </tr>
     </tbody>
   </table>
 
-  <h3>DNS Zones in Managed Resource Group</h3>
+  <h2 class="mt-4">Commands &amp; Outputs</h2>
+
+  <h4>Step 1: List private DNS zones in infra RG</h4>
   <pre class="log-output">$ az network private-dns zone list --resource-group brcox-100054-hc-brcox-100054 --query '[].name' -o tsv
 
 brcox-100054-hc-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com   # old naming (created by CAPZ)
-brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com               # new naming (created by hypershift infra)
-brcox-100054-hc.hypershift.local                                           # internal zone
+brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com               # new naming (created by hypershift CLI)
+brcox-100054-hc.hypershift.local                                           # internal hypershift zone
 hcp-sm-azure.azure.devcluster.openshift.com                               # parent zone link</pre>
 
-  <h3>HostedCluster DNS Spec (<a href="appendices.html#appendix-b">Appendix B</a>)</h3>
+  <h4>Step 2: Verify privateZoneID on HostedCluster</h4>
   <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.spec.dns}' | jq .
 {
   "baseDomain": "hcp-sm-azure.azure.devcluster.openshift.com",

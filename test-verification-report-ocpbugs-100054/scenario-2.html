@@ -52,6 +52,7 @@
 
   <h1>Scenario 2: KAS Route Defaulting for Private Clusters</h1>
   <p><strong>Objective:</strong> Verify the CLI correctly defaults KAS to Route strategy for Private topology, matching the behavior when <code>--external-dns-domain</code> is set.</p>
+  <p><strong>Implementation:</strong> The fix adds an <code>isPrivate</code> parameter to <code>GetIngressServicePublishingStrategyMapping()</code>. When <code>isPrivate=true</code>, the function returns Route strategy for APIServer instead of LoadBalancer, regardless of whether <code>--external-dns-domain</code> is set.</p>
 
   <div class="alert alert-success"><strong>Overall Scenario 2:</strong> PASS &mdash; All 4 checks verified.</div>
 
@@ -64,33 +65,32 @@
         <td>1</td>
         <td>APIServer uses Route strategy</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>spec.services[0].servicePublishingStrategy.type = "Route"</code>. See <a href="appendices.html#appendix-e">Appendix E</a> and raw evidence below.</td>
+        <td><code>"service": "APIServer"</code>, <code>"type": "Route"</code></td>
       </tr>
       <tr>
         <td>2</td>
         <td>Ignition uses Route strategy</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>spec.services[1].servicePublishingStrategy.type = "Route"</code>. See <a href="appendices.html#appendix-e">Appendix E</a> and raw evidence below.</td>
+        <td><code>"service": "Ignition"</code>, <code>"type": "Route"</code></td>
       </tr>
       <tr>
         <td>3</td>
         <td>Konnectivity uses Route strategy</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>spec.services[2].servicePublishingStrategy.type = "Route"</code>. See <a href="appendices.html#appendix-e">Appendix E</a> and raw evidence below.</td>
+        <td><code>"service": "Konnectivity"</code>, <code>"type": "Route"</code></td>
       </tr>
       <tr>
         <td>4</td>
         <td>OAuthServer uses Route strategy</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>spec.services[3].servicePublishingStrategy.type = "Route"</code>. See <a href="appendices.html#appendix-e">Appendix E</a> and raw evidence below.</td>
+        <td><code>"service": "OAuthServer"</code>, <code>"type": "Route"</code></td>
       </tr>
     </tbody>
   </table>
 
-  <h3>Implementation Detail</h3>
-  <p>The fix adds an <code>isPrivate</code> parameter to <code>GetIngressServicePublishingStrategyMapping()</code>. When <code>isPrivate=true</code>, the function returns Route strategy for APIServer instead of LoadBalancer, regardless of whether <code>--external-dns-domain</code> is set. This aligns with the expected behavior: Private clusters need Route-based KAS access through the management cluster's ingress, not a direct LoadBalancer.</p>
+  <h2 class="mt-4">Commands &amp; Outputs</h2>
 
-  <h3>Raw Evidence</h3>
+  <h4>Steps 1-4: Verify all services use Route strategy</h4>
   <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.spec.services}' | jq .
 [
   {

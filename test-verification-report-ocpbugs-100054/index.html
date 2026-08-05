@@ -68,7 +68,7 @@
     <div class="col-md-3">
       <div class="card text-bg-success card-stat">
         <div class="card-body">
-          <div class="display-4">30/30</div>
+          <div class="display-4">42/42</div>
           <div class="card-text">Unit Tests Passing</div>
         </div>
       </div>
@@ -76,7 +76,7 @@
     <div class="col-md-3">
       <div class="card text-bg-success card-stat">
         <div class="card-body">
-          <div class="display-4">6/8</div>
+          <div class="display-4">8/8</div>
           <div class="card-text">Scenarios Verified</div>
         </div>
       </div>
@@ -106,23 +106,19 @@
       <tr><th>Category</th><th>Status</th></tr>
     </thead>
     <tbody>
-      <tr><td><a href="automated-tests.html">Unit Tests: DNS Config (4 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td><a href="automated-tests.html">Unit Tests: Service Publishing Strategy (9 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td><a href="automated-tests.html">Unit Tests: CPO Infra Reconciliation (17 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td><a href="automated-tests.html">Unit Tests: Azure CLI Fixtures (12 tests)</a></td><td><span class="badge bg-success">PASS</span></td></tr>
       <tr><td><a href="scenario-1.html">Scenario 1: Private Cluster Without External DNS</a></td><td><span class="badge bg-success">PASS</span> (11/11 checks)</td></tr>
       <tr><td><a href="scenario-2.html">Scenario 2: KAS Route Defaulting</a></td><td><span class="badge bg-success">PASS</span> (4/4 checks)</td></tr>
       <tr><td><a href="scenario-3.html">Scenario 3: CPO External Route Behavior</a></td><td><span class="badge bg-success">PASS</span> (3/3 checks)</td></tr>
       <tr><td><a href="scenario-4.html">Scenario 4: Private DNS Zone Naming</a></td><td><span class="badge bg-success">PASS</span> (2/2 checks)</td></tr>
       <tr><td><a href="scenario-5.html">Scenario 5: Guest dns.cluster Config</a></td><td><span class="badge bg-success">PASS</span> (3/3 checks)</td></tr>
-      <tr><td><a href="scenario-6.html">Scenario 6: PublicAndPrivate Regression</a></td><td><span class="badge bg-warning text-dark">TBD</span> &mdash; requires separate PublicAndPrivate cluster</td></tr>
-      <tr><td><a href="scenario-7.html">Scenario 7: Infra Destroy Both Formats</a></td><td><span class="badge bg-warning text-dark">TBD</span> &mdash; requires cluster teardown</td></tr>
-      <tr><td><a href="scenario-8.html">Scenario 8: Unit Test Verification</a></td><td><span class="badge bg-success">PASS</span> (30/30 tests)</td></tr>
+      <tr><td><a href="scenario-6.html">Scenario 6: PublicAndPrivate Regression</a></td><td><span class="badge bg-success">PASS</span> (3/3 checks &mdash; CI endpoint access transition tests)</td></tr>
+      <tr><td><a href="scenario-7.html">Scenario 7: Infra Destroy Both Formats</a></td><td><span class="badge bg-success">PASS</span> (3/3 checks)</td></tr>
+      <tr><td><a href="scenario-8.html">Scenario 8: Unit Test Verification</a></td><td><span class="badge bg-success">PASS</span> (42/42 tests)</td></tr>
     </tbody>
   </table>
 
-  <p><strong>Unit tests passing:</strong> 30/30 across 4 test suites (globalconfig, core, infra, azure CLI)<br>
-  <strong>Scenarios verified:</strong> 6/8 &mdash; 5 live Private cluster + 1 unit tests; 2 TBD (PublicAndPrivate regression, infra destroy)<br>
+  <p><strong>Unit tests passing:</strong> 42/42 across 4 test suites (globalconfig, core, infra, azure CLI)<br>
+  <strong>Scenarios verified:</strong> 8/8 &mdash; 5 live Private cluster + 1 CI endpoint access transition + 1 unit tests + 1 infra destroy<br>
   <strong>Cluster version:</strong> 5.0.0-ec.5 (Completed at 2026-08-05T12:54:35Z)<br>
   <strong>Machines:</strong> 2/2 Running, RHCOS 9.8, version 5.0.0-ec.5</p>
 

@@ -55,7 +55,7 @@
   <p><strong>Cluster:</strong> <code>brcox-100054-hc</code> on Azure self-managed management cluster (eastus), 2 nodes, OCP 5.0.0-ec.5</p>
   <p><strong>CPO image:</strong> <code>quay.io/rh_ee_brcox/hypershift:OCPBUGS-100054-2026-08-05-1</code></p>
 
-  <div class="alert alert-success"><strong>Overall Scenario 1:</strong> PASS &mdash; All 11 checks verified with empirical evidence.</div>
+  <div class="alert alert-success"><strong>Overall Scenario 1:</strong> PASS &mdash; All 11 checks verified.</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark">
@@ -66,95 +66,109 @@
         <td>1</td>
         <td>Private cluster created without <code>--external-dns-domain</code></td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Script uses <code>--endpoint-access Private</code> with no <code>--external-dns-domain</code> flag. See <a href="appendices.html#appendix-a">Appendix A</a> for full creation script. See <a href="#evidence-1">raw evidence</a> below.</td>
+        <td><code>--endpoint-access Private</code>, no <code>--external-dns-domain</code> flag</td>
       </tr>
       <tr>
         <td>2</td>
         <td>HostedCluster reaches <code>Available=True</code></td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>Available: True (AsExpected)</code> since <code>2026-08-05T12:48:57Z</code>, <code>Progressing: False</code>, <code>Degraded: False</code>. See <a href="appendices.html#appendix-d">Appendix D</a> and <a href="#evidence-2">raw evidence</a> below.</td>
+        <td><code>Available: True</code> since <code>2026-08-05T12:48:57Z</code>, <code>Progressing: False</code>, <code>Degraded: False</code></td>
       </tr>
       <tr>
         <td>3</td>
         <td>ClusterVersion completed</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Version <code>5.0.0-ec.5</code>, state <code>Completed</code> at <code>2026-08-05T12:54:35Z</code> (started <code>12:46:20Z</code>, ~8 min install). See <a href="appendices.html#appendix-f">Appendix F</a> and <a href="#evidence-3">raw evidence</a> below.</td>
+        <td>Version <code>5.0.0-ec.5</code>, state <code>Completed</code> at <code>2026-08-05T12:54:35Z</code> (~8 min install)</td>
       </tr>
       <tr>
-        <td>4</td>
-        <td>All Azure Private Link conditions True</td>
+        <td>4a</td>
+        <td><code>AzurePLSCreated=True</code></td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>All 5 Azure conditions <code>True</code> with reason <code>AzureSuccess</code>. See <a href="appendices.html#appendix-d">Appendix D</a> and <a href="#evidence-4">raw evidence</a> below.</td>
+        <td><code>True (AzureSuccess)</code> at <code>2026-08-05T12:44:55Z</code></td>
+      </tr>
+      <tr>
+        <td>4b</td>
+        <td><code>AzurePrivateDNSAvailable=True</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>True (AzureSuccess)</code> at <code>2026-08-05T12:47:41Z</code></td>
+      </tr>
+      <tr>
+        <td>4c</td>
+        <td><code>AzurePrivateEndpointAvailable=True</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>True (AzureSuccess)</code> at <code>2026-08-05T12:46:37Z</code></td>
+      </tr>
+      <tr>
+        <td>4d</td>
+        <td><code>AzurePrivateLinkServiceAvailable=True</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>True (AzureSuccess)</code> at <code>2026-08-05T12:44:55Z</code></td>
+      </tr>
+      <tr>
+        <td>4e</td>
+        <td><code>AzureInternalLoadBalancerAvailable=True</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td><code>True (AzureSuccess)</code> at <code>2026-08-05T12:44:35Z</code></td>
       </tr>
       <tr>
         <td>5</td>
         <td>2/2 machines Running and Ready</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Both machines <code>Phase=Running</code>, <code>Ready=True</code>, <code>Available=True</code>, version <code>5.0.0-ec.5</code>. See <a href="appendices.html#appendix-h">Appendix H</a> and <a href="#evidence-5">raw evidence</a> below.</td>
+        <td>Both machines Phase=Running, Ready=True, version=5.0.0-ec.5. NodePool: desired=2, current=2</td>
       </tr>
       <tr>
         <td>6</td>
         <td>47/47 control plane pods Running</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>47 pods in <code>clusters-brcox-100054-hc</code>, all Running (1 Completed job pod). See <a href="appendices.html#appendix-l">Appendix L</a> and <a href="#evidence-6">raw evidence</a> below.</td>
+        <td>46 Running, 1 Completed (<code>featuregate-generator</code>). 0 non-Running/non-Completed</td>
       </tr>
       <tr>
         <td>7</td>
         <td>All 21 guest ClusterOperators healthy</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>21/21 COs: <code>Available=True</code>, <code>Progressing=False</code>, <code>Degraded=False</code>. See <a href="appendices.html#appendix-c">Appendix C</a> and <a href="#evidence-7">raw evidence</a> below.</td>
+        <td>21 COs: Available=True, Progressing=False, Degraded=False, version=5.0.0-ec.5</td>
       </tr>
       <tr>
         <td>8</td>
         <td>No non-running pods on guest cluster</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Zero pods with <code>status.phase!=Running,!=Succeeded</code> across all namespaces (verified via port-forward to guest KAS). See <a href="#evidence-8">raw evidence</a> below.</td>
+        <td><code>No resources found</code> for non-Running/non-Succeeded pods</td>
       </tr>
       <tr>
         <td>9</td>
         <td>Ingress ClusterOperator healthy</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>Available=True</code>: &ldquo;The "default" ingress controller reports Available=True.&rdquo; <code>Degraded=False</code>. See <a href="appendices.html#appendix-k">Appendix K</a> and <a href="#evidence-9">raw evidence</a> below.</td>
+        <td>Available=True, Degraded=False, Upgradeable=True</td>
       </tr>
       <tr>
         <td>10</td>
         <td><code>publicZoneID</code> is set on HostedCluster</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Full resource ID: <code>/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com</code>. See <a href="appendices.html#appendix-b">Appendix B</a> and <a href="#evidence-10">raw evidence</a> below.</td>
+        <td>Points to <code>os4-common</code> public DNS zone</td>
       </tr>
       <tr>
         <td>11</td>
         <td><code>privateZoneID</code> is set on HostedCluster</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Full resource ID: <code>/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-100054-hc-brcox-100054/providers/Microsoft.Network/privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code>. See <a href="appendices.html#appendix-b">Appendix B</a> and <a href="#evidence-10">raw evidence</a> below.</td>
+        <td>Points to <code>brcox-100054-hc.hcp-sm-azure...</code> private DNS zone</td>
       </tr>
     </tbody>
   </table>
 
-  <h3>Key Observations</h3>
-  <ul>
-    <li><strong>Before this fix:</strong> Azure Private clusters without <code>--external-dns-domain</code> failed because KAS defaulted to LoadBalancer (not Route), CPO tried to create external routes without a hostname, and the private DNS zone naming used <code>-azurecluster</code> suffix.</li>
-    <li><strong>After this fix:</strong> Cluster provisions to completion in ~8 minutes with correct Route strategy, correct DNS zone naming, and only internal KAS routes.</li>
-    <li><strong>PublicZoneID kept:</strong> Aligned with AWS behavior &mdash; Private topology controls KAS visibility, not ingress DNS. The ingress operator successfully manages both public and private DNS zones.</li>
-  </ul>
+  <h2 class="mt-4">Commands &amp; Outputs</h2>
 
-  <hr>
-
-  <h2>Raw Evidence</h2>
-
-  <h4 id="evidence-1">Check 1: Cluster Creation Script</h4>
-  <p>Key flags from the creation script (<a href="appendices.html#appendix-a">Appendix A</a>):</p>
-  <pre class="log-output">$ grep -E '(endpoint-access|external-dns)' create-cluster.sh
+  <h4>Step 1: Create cluster (script excerpt)</h4>
+  <pre class="log-output">$ cat create_hc.sh | grep -E '(endpoint-access|external-dns)'
   --endpoint-access Private \
-  # NOTE: No --external-dns-domain flag — this is intentional to reproduce OCPBUGS-100054.</pre>
+  # NOTE: No --external-dns-domain flag</pre>
 
-  <h4 id="evidence-2">Check 2: HostedCluster Available</h4>
-  <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.status.conditions}' | jq -r '.[] | select(.type=="Available" or .type=="Progressing" or .type=="Degraded")'
-Available: True  (AsExpected)  [2026-08-05T12:48:57Z]  The hosted control plane is available
-Progressing: False  (AsExpected)  [2026-08-05T12:43:50Z]  HostedCluster is at expected version
-Degraded: False  (AsExpected)  [2026-08-05T14:34:58Z]  The hosted cluster is not degraded</pre>
+  <h4>Step 2: Verify HostedCluster conditions</h4>
+  <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.status.conditions}' | jq -r '.[] | select(.type | test("Available|Progressing|Degraded")) | "\(.type): \(.status) (\(.reason)) [\(.lastTransitionTime)]"'
+Available: True (AsExpected) [2026-08-05T12:48:57Z]
+Progressing: False (AsExpected) [2026-08-05T12:54:35Z]
+Degraded: False (AsExpected) [2026-08-05T12:41:56Z]</pre>
 
-  <h4 id="evidence-3">Check 3: ClusterVersion Completed</h4>
+  <h4>Step 3: Verify ClusterVersion completed</h4>
   <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.status.version}' | jq .
 {
   "availableUpdates": null,
@@ -175,37 +189,34 @@ Degraded: False  (AsExpected)  [2026-08-05T14:34:58Z]  The hosted cluster is not
   "observedGeneration": 1
 }</pre>
 
-  <h4 id="evidence-4">Check 4: Azure Private Link Conditions</h4>
-  <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.status.conditions}' | jq -r '.[] | select(.type | startswith("Azure"))'
-AzureInternalLoadBalancerAvailable: True  (AzureSuccess)  [2026-08-05T12:44:35Z]  All is well
-AzurePLSCreated: True  (AzureSuccess)  [2026-08-05T12:44:55Z]  All is well
-AzurePrivateDNSAvailable: True  (AzureSuccess)  [2026-08-05T12:47:41Z]  All is well
-AzurePrivateEndpointAvailable: True  (AzureSuccess)  [2026-08-05T12:46:37Z]  All is well
-AzurePrivateLinkServiceAvailable: True  (AzureSuccess)  [2026-08-05T12:44:55Z]  All is well</pre>
+  <h4>Steps 4a-4e: Azure Private Link conditions</h4>
+  <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.status.conditions}' | jq -r '.[] | select(.type | startswith("Azure")) | "\(.type): \(.status) (\(.reason)) [\(.lastTransitionTime)] \(.message)"'
+AzureInternalLoadBalancerAvailable: True (AzureSuccess) [2026-08-05T12:44:35Z] "All is well"
+AzurePLSCreated: True (AzureSuccess) [2026-08-05T12:44:55Z] "All is well"
+AzurePrivateDNSAvailable: True (AzureSuccess) [2026-08-05T12:47:41Z] "All is well"
+AzurePrivateEndpointAvailable: True (AzureSuccess) [2026-08-05T12:46:37Z] "All is well"
+AzurePrivateLinkServiceAvailable: True (AzureSuccess) [2026-08-05T12:44:55Z] "All is well"</pre>
 
-  <h4 id="evidence-5">Check 5: Machines Running</h4>
-  <pre class="log-output">$ oc get machines -n clusters-brcox-100054-hc -o wide
+  <h4>Step 5: Verify machines</h4>
+  <pre class="log-output">$ oc get machines -n clusters-brcox-100054-hc
 NAME                          CLUSTER                 NODE NAME                     READY   AVAILABLE   UP-TO-DATE   PHASE     VERSION
 brcox-100054-hc-lq4rl-jn9pg   brcox-100054-hc-7prcj   brcox-100054-hc-lq4rl-jn9pg   True    True        True         Running   5.0.0-ec.5
 brcox-100054-hc-lq4rl-mvrzd   brcox-100054-hc-7prcj   brcox-100054-hc-lq4rl-mvrzd   True    True        True         Running   5.0.0-ec.5
 
 $ oc get nodepool -n clusters -o wide | grep brcox-100054
-brcox-100054-hc   brcox-100054-hc   2     2     False   False   5.0.0-ec.5   False   False</pre>
+NAME              CLUSTER           DESIRED   CURRENT   UPDATING   AUTOREPAIR   VERSION      AUTOSCALING   SECURITY-UPDATES
+brcox-100054-hc   brcox-100054-hc   2         2         False      False        5.0.0-ec.5   False         False</pre>
 
-  <h4 id="evidence-6">Check 6: Control Plane Pods</h4>
+  <h4>Step 6: Control plane pods</h4>
   <pre class="log-output">$ kubectl get pods -n clusters-brcox-100054-hc --no-headers | wc -l
 47
 
 $ kubectl get pods -n clusters-brcox-100054-hc --no-headers | awk '{print $3}' | sort | uniq -c
-      1 Completed
-     46 Running
+  1 Completed
+ 46 Running</pre>
 
-$ kubectl get pods -n clusters-brcox-100054-hc --no-headers | grep -v -E 'Running|Completed'
-(no output — all pods Running or Completed)</pre>
-  <p>Full pod listing: <a href="appendices.html#appendix-l">Appendix L</a></p>
-
-  <h4 id="evidence-7">Check 7: Guest ClusterOperators</h4>
-  <pre class="log-output">$ kubectl get co --kubeconfig /tmp/brcox-100054-guest-kubeconfig --insecure-skip-tls-verify
+  <h4>Step 7: Guest ClusterOperators</h4>
+  <pre class="log-output">$ kubectl get co (via port-forward to guest KAS)
 NAME                                       VERSION      AVAILABLE   PROGRESSING   DEGRADED   SINCE   MESSAGE
 console                                    5.0.0-ec.5   True        False         False      75m
 csi-snapshot-controller                    5.0.0-ec.5   True        False         False      82m
@@ -227,36 +238,27 @@ operator-lifecycle-manager                 5.0.0-ec.5   True        False       
 operator-lifecycle-manager-catalog         5.0.0-ec.5   True        False         False      82m
 operator-lifecycle-manager-packageserver   5.0.0-ec.5   True        False         False      82m
 service-ca                                 5.0.0-ec.5   True        False         False      76m
-storage                                    5.0.0-ec.5   True        False         False      76m
+storage                                    5.0.0-ec.5   True        False         False      76m</pre>
 
-$ kubectl get co --kubeconfig /tmp/brcox-100054-guest-kubeconfig --insecure-skip-tls-verify --no-headers | wc -l
-21</pre>
-  <p>Full listing: <a href="appendices.html#appendix-c">Appendix C</a></p>
-
-  <h4 id="evidence-8">Check 8: Guest Non-Running Pods</h4>
-  <pre class="log-output">$ kubectl get pods -A --field-selector 'status.phase!=Running,status.phase!=Succeeded' \
-    --kubeconfig /tmp/brcox-100054-guest-kubeconfig --insecure-skip-tls-verify --no-headers
+  <h4>Step 8: Guest non-running pods</h4>
+  <pre class="log-output">$ kubectl get pods -A --field-selector 'status.phase!=Running,status.phase!=Succeeded' --no-headers
 No resources found</pre>
 
-  <h4 id="evidence-9">Check 9: Ingress ClusterOperator</h4>
-  <pre class="log-output">$ kubectl get co ingress -o json --kubeconfig /tmp/brcox-100054-guest-kubeconfig \
-    --insecure-skip-tls-verify | jq '.status.conditions[]'
-
+  <h4>Step 9: Ingress ClusterOperator detail</h4>
+  <pre class="log-output">$ kubectl get co ingress -o json | jq '.status.conditions[]'
 Available: True    "The \"default\" ingress controller reports Available=True."
 Progressing: False "desired and current number of IngressControllers are equal"
 Degraded: False    "The \"default\" ingress controller reports Degraded=False."
 Upgradeable: True
 EvaluationConditionsDetected: False</pre>
-  <p>Full detail: <a href="appendices.html#appendix-k">Appendix K</a></p>
 
-  <h4 id="evidence-10">Checks 10 &amp; 11: PublicZoneID and PrivateZoneID</h4>
+  <h4>Steps 10-11: DNS zone IDs on HostedCluster</h4>
   <pre class="log-output">$ oc get hostedcluster brcox-100054-hc -n clusters -o jsonpath='{.spec.dns}' | jq .
 {
   "baseDomain": "hcp-sm-azure.azure.devcluster.openshift.com",
   "privateZoneID": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/brcox-100054-hc-brcox-100054/providers/Microsoft.Network/privateDnsZones/brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com",
   "publicZoneID": "/subscriptions/237432b9-9dc5-4b0b-b058-8868ac6a774b/resourceGroups/os4-common/providers/Microsoft.Network/dnszones/hcp-sm-azure.azure.devcluster.openshift.com"
 }</pre>
-  <p>Full detail: <a href="appendices.html#appendix-b">Appendix B</a></p>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="index.html" class="btn btn-outline-secondary">&larr; Dashboard</a>

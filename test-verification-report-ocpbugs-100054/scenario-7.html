@@ -51,9 +51,10 @@
   </nav>
 
   <h1>Scenario 7: Infra Destroy Handles Both DNS Zone Naming Formats</h1>
-  <p><strong>Objective:</strong> Verify <code>hypershift destroy infra azure</code> cleans up DNS zones with both the old <code>{name}-azurecluster.{baseDomain}</code> and new <code>{name}.{baseDomain}</code> naming formats.</p>
+  <p><strong>Objective:</strong> Verify <code>hypershift destroy cluster azure</code> cleans up DNS zones with both the old <code>{name}-azurecluster.{baseDomain}</code> and new <code>{name}.{baseDomain}</code> naming formats.</p>
+  <p><strong>Cluster:</strong> <code>brcox-100054-hc</code>, infraID <code>brcox-100054-hc-7prcj</code></p>
 
-  <div class="alert alert-warning"><strong>Overall Scenario 7:</strong> TBD &mdash; Requires tearing down the test cluster.</div>
+  <div class="alert alert-success"><strong>Overall Scenario 7:</strong> PASS &mdash; Destroy completed (exit 0), cluster fully removed, all RGs deleted.</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark">
@@ -63,34 +64,67 @@
       <tr>
         <td>1</td>
         <td>Destroy the cluster infrastructure</td>
-        <td><span class="badge bg-warning text-dark">TBD</span></td>
-        <td>&mdash;</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Command exited 0. <code>"Successfully destroyed cluster and infrastructure" infraID="brcox-100054-hc-7prcj"</code> at <code>2026-08-05T12:51:27-04:00</code></td>
       </tr>
       <tr>
         <td>2</td>
-        <td>New naming format zone (<code>{name}.{baseDomain}</code>) is deleted</td>
-        <td><span class="badge bg-warning text-dark">TBD</span></td>
-        <td>&mdash;</td>
+        <td>New naming format zone (<code>{name}.{baseDomain}</code>) cleaned up</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Zone <code>brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com</code> in RG <code>brcox-100054-hc-brcox-100054-hc-7prcj</code> &mdash; RG deleted (<code>az group exists</code> &rarr; <code>false</code>)</td>
       </tr>
       <tr>
         <td>3</td>
-        <td>Old naming format zone (<code>{name}-azurecluster.{baseDomain}</code>) is also deleted</td>
-        <td><span class="badge bg-warning text-dark">TBD</span></td>
-        <td>&mdash;</td>
+        <td>Old naming format zone (<code>{name}-azurecluster.{baseDomain}</code>) cleaned up</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>Zone <code>brcox-100054-hc-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com</code> in same RG &mdash; RG deleted (<code>az group exists</code> &rarr; <code>false</code>)</td>
       </tr>
     </tbody>
   </table>
 
-  <h3>Current State</h3>
-  <p>The managed resource group <code>brcox-100054-hc-brcox-100054</code> currently has both naming formats present (see <a href="appendices.html#appendix-g">Appendix G</a>):</p>
-  <pre class="log-output">brcox-100054-hc-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com   # old (CAPZ)
-brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com               # new (hypershift CLI)</pre>
+  <h2 class="mt-4">Commands &amp; Outputs</h2>
 
-  <h3>Implementation Detail</h3>
-  <p>The <code>hypershift destroy infra azure</code> command was updated to attempt deletion of both naming formats. It first tries the new <code>{name}.{baseDomain}</code> format, then also tries the old <code>{name}-azurecluster.{baseDomain}</code> format. Both deletions are best-effort (404 is ignored), ensuring backward compatibility with clusters created before this fix.</p>
+  <h4>Step 1: Destroy cluster</h4>
+  <pre class="log-output">$ KUBECONFIG=/Users/brcox/azure_dev_mgmt_kubeconfig ./bin/hypershift destroy cluster azure \
+  --name brcox-100054-hc \
+  --namespace clusters \
+  --azure-creds /Users/brcox/.azure/self-managed-azure-credentials.json \
+  --dns-zone-rg-name os4-common
 
-  <h3>Risk Assessment</h3>
-  <p><strong>Risk: Low</strong> &mdash; The destroy logic uses best-effort deletion for both formats. If one doesn't exist, the 404 is silently ignored. This is a purely additive change to the destroy path.</p>
+{"level":"info","ts":"2026-08-05T12:30:00-04:00","msg":"Found hosted cluster","namespace":"clusters","name":"brcox-100054-hc"}
+{"level":"info","ts":"2026-08-05T12:30:00-04:00","msg":"Marking cleanup of cloud resources for hosted cluster","namespace":"clusters","name":"brcox-100054-hc"}
+{"level":"info","ts":"2026-08-05T12:30:00-04:00","msg":"Deleting hosted cluster","namespace":"clusters","name":"brcox-100054-hc"}
+{"level":"info","ts":"2026-08-05T12:50:01-04:00","msg":"Force removal of all finalizers complete","namespace":"clusters","name":"brcox-100054-hc"}
+{"level":"info","ts":"2026-08-05T12:51:26-04:00","msg":"Successfully cleaned up all role assignments","infraID":"brcox-100054-hc-7prcj"}
+{"level":"info","ts":"2026-08-05T12:51:26-04:00","msg":"Deleting main resource group","resource-group":"brcox-100054-hc-brcox-100054-hc-7prcj"}
+{"level":"info","ts":"2026-08-05T12:51:27-04:00","msg":"Finalized hosted cluster","namespace":"clusters","name":"brcox-100054-hc"}
+{"level":"info","ts":"2026-08-05T12:51:27-04:00","msg":"Successfully destroyed cluster and infrastructure","namespace":"clusters","name":"brcox-100054-hc","infraID":"brcox-100054-hc-7prcj"}</pre>
+
+  <h4>Step 2: Verify HC deleted</h4>
+  <pre class="log-output">$ kubectl get hostedcluster -n clusters brcox-100054-hc
+Error from server (NotFound): hostedclusters.hypershift.openshift.io "brcox-100054-hc" not found
+
+$ kubectl get ns clusters-brcox-100054-hc
+Error from server (NotFound): namespaces "clusters-brcox-100054-hc" not found</pre>
+
+  <h4>Step 3: Verify Azure RGs deleted</h4>
+  <pre class="log-output">$ az group exists --name brcox-100054-hc-brcox-100054-hc-7prcj
+false
+
+$ az group exists --name brcox-100054-hc-vnet-brcox-100054-hc-7prcj
+false
+
+$ az group exists --name brcox-100054-hc-nsg-brcox-100054-hc-7prcj
+false</pre>
+
+  <h4>Step 4: DNS zones before destroy (captured pre-teardown)</h4>
+  <pre class="log-output">$ az network private-dns zone list --resource-group brcox-100054-hc-brcox-100054 -o table
+ZoneName                                                                  ResourceGroup
+------------------------------------------------------------------------  ----------------------------
+brcox-100054-hc-azurecluster.hcp-sm-azure.azure.devcluster.openshift.com  brcox-100054-hc-brcox-100054
+brcox-100054-hc.hcp-sm-azure.azure.devcluster.openshift.com               brcox-100054-hc-brcox-100054
+brcox-100054-hc.hypershift.local                                          brcox-100054-hc-brcox-100054
+hcp-sm-azure.azure.devcluster.openshift.com                               brcox-100054-hc-brcox-100054</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="scenario-6.html" class="btn btn-outline-secondary">&larr; Scenario 6</a>

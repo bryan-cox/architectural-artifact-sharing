@@ -52,6 +52,7 @@
 
   <h1>Scenario 3: CPO External Route Behavior for Private Clusters</h1>
   <p><strong>Objective:</strong> Verify the CPO correctly handles the absence of a hostname for the KAS external route &mdash; only the internal route should exist when no external DNS domain is configured.</p>
+  <p><strong>Implementation:</strong> The CPO's <code>ReconcileInfrastructure</code> checks whether a hostname is configured for the external KAS route. When the service publishing strategy is Route but no hostname is set, the CPO skips external route creation and uses <code>k8sutil.DeleteIfNeeded</code> to clean up any obsolete external routes.</p>
 
   <div class="alert alert-success"><strong>Overall Scenario 3:</strong> PASS &mdash; All 3 checks verified.</div>
 
@@ -64,40 +65,36 @@
         <td>1</td>
         <td><code>kube-apiserver</code> internal route exists</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td>Route <code>kube-apiserver-internal</code> exists with host <code>api.brcox-100054-hc.hypershift.local</code>, passthrough TLS. See <a href="appendices.html#appendix-i">Appendix I</a> and raw evidence below.</td>
+        <td>Route <code>kube-apiserver-internal</code>, host=<code>api.brcox-100054-hc.hypershift.local</code></td>
       </tr>
       <tr>
         <td>2</td>
         <td><code>kube-apiserver-external-public</code> does NOT exist</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>Error from server (NotFound)</code> confirms route not created. See <a href="appendices.html#appendix-i">Appendix I</a> and raw evidence below.</td>
+        <td><code>NotFound</code></td>
       </tr>
       <tr>
         <td>3</td>
         <td><code>kube-apiserver-external-private</code> does NOT exist</td>
         <td><span class="badge bg-success">PASS</span></td>
-        <td><code>Error from server (NotFound)</code> confirms route not created. See <a href="appendices.html#appendix-i">Appendix I</a> and raw evidence below.</td>
+        <td><code>NotFound</code></td>
       </tr>
     </tbody>
   </table>
 
-  <h3>Implementation Detail</h3>
-  <p>The CPO's <code>ReconcileInfrastructure</code> now checks whether a hostname is configured for the external KAS route. When the service publishing strategy is Route but no hostname is set (i.e., no <code>--external-dns-domain</code>), the CPO:</p>
-  <ol>
-    <li>Skips creating the external private route entirely</li>
-    <li>Uses <code>k8sutil.DeleteIfNeeded</code> to clean up any obsolete external routes that may have been created previously</li>
-    <li>Falls back to the KAS service's ClusterIP for status reporting when no external route exists</li>
-  </ol>
+  <h2 class="mt-4">Commands &amp; Outputs</h2>
 
-  <h3>Raw Evidence</h3>
+  <h4>Step 1: Verify internal route exists</h4>
   <pre class="log-output">$ oc get routes -n clusters-brcox-100054-hc | grep kube-apiserver
 NAME                      HOST/PORT                                    SERVICES          PORT    TERMINATION        WILDCARD
-kube-apiserver-internal   api.brcox-100054-hc.hypershift.local         kube-apiserver    &lt;all&gt;   passthrough/None   None
+kube-apiserver-internal   api.brcox-100054-hc.hypershift.local         kube-apiserver    &lt;all&gt;   passthrough/None   None</pre>
 
-$ oc get route kube-apiserver-external-public -n clusters-brcox-100054-hc
-Error from server (NotFound): routes.route.openshift.io "kube-apiserver-external-public" not found
+  <h4>Step 2: Verify external-public route does NOT exist</h4>
+  <pre class="log-output">$ oc get route kube-apiserver-external-public -n clusters-brcox-100054-hc
+Error from server (NotFound): routes.route.openshift.io "kube-apiserver-external-public" not found</pre>
 
-$ oc get route kube-apiserver-external-private -n clusters-brcox-100054-hc
+  <h4>Step 3: Verify external-private route does NOT exist</h4>
+  <pre class="log-output">$ oc get route kube-apiserver-external-private -n clusters-brcox-100054-hc
 Error from server (NotFound): routes.route.openshift.io "kube-apiserver-external-private" not found</pre>
 
   <div class="d-flex justify-content-between mt-4">

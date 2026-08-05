@@ -6,7 +6,6 @@
   <title>Automated Tests - PR #9171</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    pre.log-output { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; max-height: 600px; font-size: 0.85rem; }
     body { padding-top: 56px; }
   </style>
 </head>
@@ -55,223 +54,50 @@
   <p><strong>Go version:</strong> go1.24.3 darwin/arm64</p>
   <p><strong>Run date:</strong> 2026-08-05</p>
 
-  <div class="alert alert-success"><strong>Summary:</strong> 42/42 tests passing across 4 suites (total wall time: 4.165s). No CI URLs available &mdash; PR #9171 has not yet been submitted to Prow. All output below is from local <code>go test -v</code> runs.</div>
+  <div class="alert alert-info"><strong>Note:</strong> No CI URLs available &mdash; PR #9171 has not yet been submitted to Prow. All results below are from local <code>go test -v</code> runs.</div>
 
-  <!-- DNS Config Tests -->
-  <h2 id="globalconfig">Suite 1: DNS Config Tests (<code>support/globalconfig/</code>)</h2>
-  <p><strong>Command:</strong> <code>go test ./support/globalconfig/ -run TestReconcileDNSConfig -v</code></p>
-  <div class="alert alert-success">4/4 PASS (1.065s)</div>
-  <table class="table table-striped table-hover table-sm">
+  <!-- Unit Tests -->
+  <h2>Unit Tests</h2>
+  <table class="table table-striped table-hover">
     <thead class="table-dark">
-      <tr><th>Test</th><th>Result</th></tr>
+      <tr><th>Test Suite</th><th>Command</th><th>Result</th><th>Tests Run</th></tr>
     </thead>
     <tbody>
-      <tr><td>when DNS parameters specified on the HostedControlPlane then they are copied to the DNS object</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>when IBM Cloud platform is used then the base domain is set to the value on the HostedControlPlane</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>when DNS BaseDomainPrefix is specified on the HostedControlPlane then it will be used</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>when DNS BaseDomainPrefix is set to empty string then DNS config BaseDomain will not be prepended</td><td><span class="badge bg-success">PASS</span></td></tr>
+      <tr>
+        <td>DNS Config</td>
+        <td><code>go test ./support/globalconfig/ -run TestReconcileDNSConfig -v</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>4/4 (1.065s)</td>
+      </tr>
+      <tr>
+        <td>Service Publishing Strategy</td>
+        <td><code>go test ./cmd/cluster/core/ -run TestGetServicePublishingStrategyMapping -v</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>9/9 (0.941s)</td>
+      </tr>
+      <tr>
+        <td>Azure CLI Fixtures</td>
+        <td><code>go test ./cmd/cluster/azure/ -run TestCreateCluster -v</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>12/12 (0.868s)</td>
+      </tr>
+      <tr>
+        <td>CPO Infra Reconciliation</td>
+        <td><code>go test ./control-plane-operator/controllers/hostedcontrolplane/infra/ -v</code></td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>17/17 (1.291s)</td>
+      </tr>
     </tbody>
+    <tfoot>
+      <tr class="table-success"><th colspan="3">Total automated unit tests</th><th>42/42 PASS</th></tr>
+    </tfoot>
   </table>
-  <h4>Raw Output</h4>
-  <pre class="log-output">$ go test ./support/globalconfig/ -run TestReconcileDNSConfig -v
-=== RUN   TestReconcileDNSConfig
-=== RUN   TestReconcileDNSConfig/when_DNS_parameters_specified_on_the_HostedControlPlane_then_they_are_copied_to_the_DNS_object
---- PASS: TestReconcileDNSConfig/when_DNS_parameters_specified_on_the_HostedControlPlane_then_they_are_copied_to_the_DNS_object (0.00s)
-=== RUN   TestReconcileDNSConfig/when_IBM_Cloud_platform_is_used_then_the_base_domain_is_set_to_the_value_on_the_HostedControlPlane
---- PASS: TestReconcileDNSConfig/when_IBM_Cloud_platform_is_used_then_the_base_domain_is_set_to_the_value_on_the_HostedControlPlane (0.00s)
-=== RUN   TestReconcileDNSConfig/when_DNS_BaseDomainPrefix_is_specified_...then_it_will_be_used
---- PASS: TestReconcileDNSConfig/when_DNS_BaseDomainPrefix_is_specified_...then_it_will_be_used (0.00s)
-=== RUN   TestReconcileDNSConfig/when_DNS_BaseDomainPrefix_is_set_to_empty_string_...will_not_be_prepended
---- PASS: TestReconcileDNSConfig/when_DNS_BaseDomainPrefix_is_set_to_empty_string_...will_not_be_prepended (0.00s)
---- PASS: TestReconcileDNSConfig (0.00s)
-PASS
-ok  	github.com/openshift/hypershift/support/globalconfig	1.065s</pre>
 
   <hr>
 
-  <!-- Service Publishing Strategy Tests -->
-  <h2 id="core">Suite 2: Service Publishing Strategy Tests (<code>cmd/cluster/core/</code>)</h2>
-  <p><strong>Command:</strong> <code>go test ./cmd/cluster/core/ -run TestGetServicePublishingStrategyMapping -v</code></p>
-  <div class="alert alert-success">9/9 PASS (0.941s)</div>
-  <table class="table table-striped table-hover table-sm">
-    <thead class="table-dark">
-      <tr><th>Test</th><th>Result</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>When called with OVNKubernetes, it should not include deprecated service types</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When called with Other network type, it should not include deprecated service types</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When ByAPIServerAddress called with OVNKubernetes, it should not include deprecated service types</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When ByAPIServerAddress called with Other network type, it should not include deprecated service types</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When called, it should include all required service types</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When ByAPIServerAddress called, it should include all required service types</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When ByAPIServerAddress called, it should use NodePort strategy with the given address</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When called without external DNS, it should use LoadBalancer for APIServer</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When called with external DNS, it should use Route for APIServer</td><td><span class="badge bg-success">PASS</span></td></tr>
-    </tbody>
-  </table>
-  <h4>Raw Output</h4>
-  <pre class="log-output">$ go test ./cmd/cluster/core/ -run TestGetServicePublishingStrategyMapping -v
-=== RUN   TestGetServicePublishingStrategyMapping
-=== RUN   TestGetServicePublishingStrategyMapping/When_called_with_OVNKubernetes...not_include_deprecated_service_types
---- PASS: TestGetServicePublishingStrategyMapping/When_called_with_OVNKubernetes...not_include_deprecated_service_types (0.00s)
-=== RUN   TestGetServicePublishingStrategyMapping/When_called_with_Other_network_type...not_include_deprecated_service_types
---- PASS: TestGetServicePublishingStrategyMapping/When_called_with_Other_network_type...not_include_deprecated_service_types (0.00s)
-=== RUN   TestGetServicePublishingStrategyMapping/When_ByAPIServerAddress_called_with_OVNKubernetes...not_include_deprecated
---- PASS: TestGetServicePublishingStrategyMapping/When_ByAPIServerAddress_called_with_OVNKubernetes...not_include_deprecated (0.00s)
-=== RUN   TestGetServicePublishingStrategyMapping/When_ByAPIServerAddress_called_with_Other_network_type...not_include_deprecated
---- PASS: TestGetServicePublishingStrategyMapping/When_ByAPIServerAddress_called_with_Other_network_type...not_include_deprecated (0.00s)
-=== RUN   TestGetServicePublishingStrategyMapping/When_called_it_should_include_all_required_service_types
---- PASS: TestGetServicePublishingStrategyMapping/When_called_it_should_include_all_required_service_types (0.00s)
-=== RUN   TestGetServicePublishingStrategyMapping/When_ByAPIServerAddress_called_it_should_include_all_required_service_types
---- PASS: TestGetServicePublishingStrategyMapping/When_ByAPIServerAddress_called_it_should_include_all_required_service_types (0.00s)
-=== RUN   TestGetServicePublishingStrategyMapping/When_ByAPIServerAddress_called_it_should_use_NodePort_strategy
---- PASS: TestGetServicePublishingStrategyMapping/When_ByAPIServerAddress_called_it_should_use_NodePort_strategy (0.00s)
-=== RUN   TestGetServicePublishingStrategyMapping/When_called_without_external_DNS_it_should_use_LoadBalancer_for_APIServer
---- PASS: TestGetServicePublishingStrategyMapping/When_called_without_external_DNS_it_should_use_LoadBalancer_for_APIServer (0.00s)
-=== RUN   TestGetServicePublishingStrategyMapping/When_called_with_external_DNS_it_should_use_Route_for_APIServer
---- PASS: TestGetServicePublishingStrategyMapping/When_called_with_external_DNS_it_should_use_Route_for_APIServer (0.00s)
---- PASS: TestGetServicePublishingStrategyMapping (0.00s)
-PASS
-ok  	github.com/openshift/hypershift/cmd/cluster/core	0.941s</pre>
-
-  <hr>
-
-  <!-- CPO Infra Tests -->
-  <h2 id="infra">Suite 3: CPO Infra Reconciliation Tests (<code>control-plane-operator/.../infra/</code>)</h2>
-  <p><strong>Command:</strong> <code>go test ./control-plane-operator/controllers/hostedcontrolplane/infra/ -v</code></p>
-  <div class="alert alert-success">17/17 PASS (1.291s)</div>
-  <table class="table table-striped table-hover table-sm">
-    <thead class="table-dark">
-      <tr><th>Test</th><th>Result</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>ReconcileInfrastructure: Route strategy, Private without hostname &mdash; internal route only</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileInfrastructure: Transitioning from public to private should clean up public resources</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileInfrastructure: Transitioning from private to public should clean up private resources</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileInfrastructure: When services are nil it should return an error</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileInfrastructure: When Route publishing without hostname for APIServer it should return an error</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileInfrastructure: When LoadBalancer publishing for OAuth it should return an error</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileAPIServerService: LB strategy, public</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileAPIServerService: LB strategy, publicPrivate</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileAPIServerService: LB strategy, private</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileAPIServerService: Route strategy, public</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileAPIServerService: Route strategy, publicPrivate</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileAPIServerService: Route strategy, private</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileOAuthService: Route strategy, Public</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileOAuthService: Route strategy, PublicPrivate</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileOAuthService: Route strategy, PublicPrivate, no hostname</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileOAuthService: Route strategy, Private</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>ReconcileOAuthService_AzureLoadBalancer: LB with/without ILB annotation</td><td><span class="badge bg-success">PASS</span></td></tr>
-    </tbody>
-  </table>
-  <h4>Raw Output</h4>
-  <pre class="log-output">$ go test ./control-plane-operator/controllers/hostedcontrolplane/infra/ -v
-=== RUN   TestReconcileInfrastructure
-=== RUN   TestReconcileInfrastructure/Route_strategy,_Private_without_hostname_—_internal_route_only
---- PASS: TestReconcileInfrastructure/Route_strategy,_Private_without_hostname_—_internal_route_only (0.01s)
-=== RUN   TestReconcileInfrastructure/Transitioning_from_public_to_private_should_clean_up_public_resources
---- PASS: TestReconcileInfrastructure/Transitioning_from_public_to_private_should_clean_up_public_resources (0.01s)
-=== RUN   TestReconcileInfrastructure/Transitioning_from_private_to_public_should_clean_up_private_resources
---- PASS: TestReconcileInfrastructure/Transitioning_from_private_to_public_should_clean_up_private_resources (0.01s)
---- PASS: TestReconcileInfrastructure (0.08s)
-=== RUN   TestReconcileInfrastructure_ErrorCases
-=== RUN   TestReconcileInfrastructure_ErrorCases/When_services_are_nil_it_should_return_an_error
---- PASS: TestReconcileInfrastructure_ErrorCases/When_services_are_nil_it_should_return_an_error (0.00s)
-=== RUN   TestReconcileInfrastructure_ErrorCases/When_Route_publishing_without_hostname_for_APIServer_it_should_return_an_error
---- PASS: TestReconcileInfrastructure_ErrorCases/When_Route_publishing_without_hostname_for_APIServer_it_should_return_an_error (0.00s)
-=== RUN   TestReconcileInfrastructure_ErrorCases/When_LoadBalancer_publishing_for_OAuth_it_should_return_an_error
---- PASS: TestReconcileInfrastructure_ErrorCases/When_LoadBalancer_publishing_for_OAuth_it_should_return_an_error (0.00s)
---- PASS: TestReconcileInfrastructure_ErrorCases (0.02s)
-=== RUN   TestReconcileAPIServerService
-=== RUN   TestReconcileAPIServerService/LB_strategy,_public
---- PASS: TestReconcileAPIServerService/LB_strategy,_public (0.01s)
-=== RUN   TestReconcileAPIServerService/LB_strategy,_publicPrivate
---- PASS: TestReconcileAPIServerService/LB_strategy,_publicPrivate (0.01s)
-=== RUN   TestReconcileAPIServerService/LB_strategy,_private
---- PASS: TestReconcileAPIServerService/LB_strategy,_private (0.01s)
-=== RUN   TestReconcileAPIServerService/Route_strategy,_public
---- PASS: TestReconcileAPIServerService/Route_strategy,_public (0.01s)
-=== RUN   TestReconcileAPIServerService/Route_strategy,_publicPrivate
---- PASS: TestReconcileAPIServerService/Route_strategy,_publicPrivate (0.01s)
-=== RUN   TestReconcileAPIServerService/Route_strategy,_private
---- PASS: TestReconcileAPIServerService/Route_strategy,_private (0.01s)
---- PASS: TestReconcileAPIServerService (0.06s)
-=== RUN   TestReconcileOAuthService
-=== RUN   TestReconcileOAuthService/Route_strategy,_Public
---- PASS: TestReconcileOAuthService/Route_strategy,_Public (0.01s)
-=== RUN   TestReconcileOAuthService/Route_strategy,_PublicPrivate
---- PASS: TestReconcileOAuthService/Route_strategy,_PublicPrivate (0.01s)
-=== RUN   TestReconcileOAuthService/Route_strategy,_PublicPrivate,_no_hostname
---- PASS: TestReconcileOAuthService/Route_strategy,_PublicPrivate,_no_hostname (0.01s)
-=== RUN   TestReconcileOAuthService/Route_strategy,_Private
---- PASS: TestReconcileOAuthService/Route_strategy,_Private (0.01s)
---- PASS: TestReconcileOAuthService (0.04s)
-=== RUN   TestReconcileOAuthService_AzureLoadBalancer
---- PASS: TestReconcileOAuthService_AzureLoadBalancer (0.01s)
-PASS
-ok  	github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/infra	1.291s</pre>
-
-  <hr>
-
-  <!-- Azure CLI Fixture Tests -->
-  <h2 id="azure-cli">Suite 4: Azure CLI Fixture Tests (<code>cmd/cluster/azure/</code>)</h2>
-  <p><strong>Command:</strong> <code>go test ./cmd/cluster/azure/ -run TestCreateCluster -v</code></p>
-  <div class="alert alert-success">12/12 PASS (0.868s)</div>
-  <table class="table table-striped table-hover table-sm">
-    <thead class="table-dark">
-      <tr><th>Test</th><th>Result</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>minimal flags necessary to render</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>complicated invocation from bryan</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>create with azure marketplace image</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>with availability zones</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>with disabled capabilities</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>with KubeAPIServerDNSName</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>with image generation Gen1</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>with image generation Gen2</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>with marketplace flags and image generation Gen1</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>with availability zones and image generation Gen1</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When endpoint-access is Private it should render HostedCluster with Private endpoint access</td><td><span class="badge bg-success">PASS</span></td></tr>
-      <tr><td>When oauth-publishing-strategy is LoadBalancer it should render HostedCluster with OAuth LoadBalancer</td><td><span class="badge bg-success">PASS</span></td></tr>
-    </tbody>
-  </table>
-  <h4>Raw Output</h4>
-  <pre class="log-output">$ go test ./cmd/cluster/azure/ -run TestCreateCluster -v
-=== RUN   TestCreateCluster
-=== RUN   TestCreateCluster/minimal_flags_necessary_to_render
---- PASS: TestCreateCluster/minimal_flags_necessary_to_render (0.00s)
-=== RUN   TestCreateCluster/complicated_invocation_from_bryan
---- PASS: TestCreateCluster/complicated_invocation_from_bryan (0.00s)
-=== RUN   TestCreateCluster/create_with_azure_marketplace_image
---- PASS: TestCreateCluster/create_with_azure_marketplace_image (0.00s)
-=== RUN   TestCreateCluster/with_availability_zones
---- PASS: TestCreateCluster/with_availability_zones (0.00s)
-=== RUN   TestCreateCluster/with_disabled_capabilities
---- PASS: TestCreateCluster/with_disabled_capabilities (0.00s)
-=== RUN   TestCreateCluster/with_KubeAPIServerDNSName
---- PASS: TestCreateCluster/with_KubeAPIServerDNSName (0.00s)
-=== RUN   TestCreateCluster/with_image_generation_Gen1
---- PASS: TestCreateCluster/with_image_generation_Gen1 (0.00s)
-=== RUN   TestCreateCluster/with_image_generation_Gen2
---- PASS: TestCreateCluster/with_image_generation_Gen2 (0.00s)
-=== RUN   TestCreateCluster/with_marketplace_flags_and_image_generation_Gen1
---- PASS: TestCreateCluster/with_marketplace_flags_and_image_generation_Gen1 (0.00s)
-=== RUN   TestCreateCluster/with_availability_zones_and_image_generation_Gen1
---- PASS: TestCreateCluster/with_availability_zones_and_image_generation_Gen1 (0.00s)
-=== RUN   TestCreateCluster/When_endpoint-access_is_Private_it_should_render_HostedCluster_with_Private_endpoint_access
---- PASS: TestCreateCluster/When_endpoint-access_is_Private_it_should_render_HostedCluster_with_Private_endpoint_access (0.00s)
-=== RUN   TestCreateCluster/When_oauth-publishing-strategy_is_LoadBalancer_it_should_render_HostedCluster_with_OAuth_LoadBalancer
---- PASS: TestCreateCluster/When_oauth-publishing-strategy_is_LoadBalancer_it_should_render_HostedCluster_with_OAuth_LoadBalancer (0.00s)
---- PASS: TestCreateCluster (0.02s)
-PASS
-ok  	github.com/openshift/hypershift/cmd/cluster/azure	0.868s</pre>
-
-  <hr>
-
-  <h2>Source Code Links</h2>
-  <p>Test source files on the <code>fix-OCPBUGS-100054</code> branch:</p>
-  <table class="table table-striped table-hover table-sm">
+  <!-- Source Code Links -->
+  <h2>Source Code</h2>
+  <table class="table table-striped table-hover">
     <thead class="table-dark">
       <tr><th>Suite</th><th>Source File</th><th>GitHub Link</th></tr>
     </thead>

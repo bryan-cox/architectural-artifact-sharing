@@ -50,10 +50,12 @@
     </ol>
   </nav>
 
-  <h1>Scenario 6: Azure PublicAndPrivate Cluster is Unaffected</h1>
-  <p><strong>Objective:</strong> Verify no regression for PublicAndPrivate clusters &mdash; both zones present, LoadBalancer for KAS, cluster provisions successfully.</p>
+  <h1>Scenario 6: PublicAndPrivate Topology Regression</h1>
+  <p><strong>Objective:</strong> Verify no regression for PublicAndPrivate topology &mdash; endpoint access transitions work correctly, routes and services are created/deleted as expected, PLS CRs survive transitions, and API remains reachable.</p>
+  <p><strong>Source:</strong> Prow CI job <code>e2e-v2-azure-self-managed</code> for PR #9171 &mdash; <code>AzureEndpointAccessTransitionTest</code> runs on the <code>private</code> cluster, transitioning Private &rarr; PublicAndPrivate &rarr; Private.</p>
+  <p><strong>Job:</strong> <a href="https://prow.ci.openshift.org/view/gs/test-platform-results/pr-logs/pull/openshift_hypershift/9171/pull-ci-openshift-hypershift-main-e2e-v2-azure-self-managed/2084680031447027712" target="_blank">pull-ci-openshift-hypershift-main-e2e-v2-azure-self-managed/2084680031447027712</a></p>
 
-  <div class="alert alert-warning"><strong>Overall Scenario 6:</strong> TBD &mdash; Requires a separate PublicAndPrivate cluster to be provisioned.</div>
+  <div class="alert alert-success"><strong>Overall Scenario 6:</strong> PASS &mdash; 3/3 endpoint access transition tests passed (Private &rarr; PublicAndPrivate &rarr; Private round-trip verified in CI).</div>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark">
@@ -62,47 +64,113 @@
     <tbody>
       <tr>
         <td>1</td>
-        <td>Create a self-managed Azure PublicAndPrivate cluster</td>
-        <td><span class="badge bg-warning text-dark">TBD</span></td>
-        <td>&mdash;</td>
+        <td>Private &rarr; PublicAndPrivate transition succeeds</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>KAS/OAuth public routes created, private routes deleted, router-public becomes LoadBalancer, PLS CRs survive, API reachable (3m24s)</td>
       </tr>
       <tr>
         <td>2</td>
-        <td>APIServer uses LoadBalancer strategy (default for non-Private)</td>
-        <td><span class="badge bg-warning text-dark">TBD</span></td>
-        <td>Unit test coverage: <code>TestGetServicePublishingStrategyMapping</code> confirms non-Private uses LoadBalancer for KAS</td>
+        <td>PublicAndPrivate &rarr; Private transition succeeds</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>KAS/OAuth private routes recreated, public routes deleted, router-public deleted, PLS CRs survive, ExternalPrivateServices restored (3m26s)</td>
       </tr>
       <tr>
         <td>3</td>
-        <td>Both <code>publicZoneID</code> and <code>privateZoneID</code> are set</td>
-        <td><span class="badge bg-warning text-dark">TBD</span></td>
-        <td>Unit test coverage: <code>TestCreateCluster</code> fixture includes both zones for all topologies</td>
-      </tr>
-      <tr>
-        <td>4</td>
-        <td><code>dns.cluster</code> on the guest includes both zones</td>
-        <td><span class="badge bg-warning text-dark">TBD</span></td>
-        <td>&mdash;</td>
-      </tr>
-      <tr>
-        <td>5</td>
-        <td>Cluster provisions successfully</td>
-        <td><span class="badge bg-warning text-dark">TBD</span></td>
-        <td>Covered by Prow CI: <code>e2e-azure-v2-self-managed</code> (uses PublicAndPrivate topology)</td>
+        <td>Cluster remains Available and not Degraded after round-trip</td>
+        <td><span class="badge bg-success">PASS</span></td>
+        <td>HostedCluster Available=True, Degraded=False verified in 75ms after restore to Private</td>
       </tr>
     </tbody>
   </table>
 
-  <h3>Risk Assessment</h3>
-  <p><strong>Risk: Medium</strong> &mdash; neighbor of the fix. The <code>isPrivate</code> parameter defaults to <code>false</code> for non-Private topologies, so PublicAndPrivate should be unaffected. Unit tests and CLI fixture tests confirm this, but no live cluster has been provisioned to verify end-to-end.</p>
+  <h2>Commands &amp; Outputs</h2>
 
-  <h3>Mitigation</h3>
-  <ul>
-    <li>Unit tests confirm LoadBalancer strategy for non-Private topologies</li>
-    <li>CLI fixture test <code>When_endpoint-access_is_Private</code> verifies Private-specific rendering</li>
-    <li>Prow CI job <code>e2e-azure-v2-self-managed</code> covers PublicAndPrivate topology in automated e2e</li>
-    <li>All callers outside Azure pass <code>isPrivate=false</code></li>
-  </ul>
+  <h4>Step 1: Private &rarr; PublicAndPrivate transition</h4>
+  <p>Test: <code>[Feature:AzureEndpointAccess] should transition from Private to PublicAndPrivate</code></p>
+  <pre class="log-output">Test: [It] [sig-hypershift][Jira:Hypershift] Hosted Cluster Azure
+      [Feature:AzureEndpointAccess] Azure Endpoint Access Transition
+      should transition from Private to PublicAndPrivate
+Status: passed
+Duration: 204.47s (3m24s)
+
+Log output:
+&gt; Enter [BeforeAll] Azure Endpoint Access Transition
+&lt; Exit [BeforeAll] (0s)
+&gt; Enter [It] should transition from Private to PublicAndPrivate
+
+Successfully waited for KAS ExternalPrivateService exists in Private topology in 25ms
+Successfully waited for OAuth ExternalPrivateService exists in Private topology in 50ms
+
+# Topology patched to PublicAndPrivate
+
+Failed to get *v1.Route: routes.route.openshift.io "kube-apiserver" not found
+Successfully waited for KAS external public route exists after transition to PublicAndPrivate in 3.05s
+Successfully waited for OAuth external public route exists after transition to PublicAndPrivate in 50ms
+Successfully waited for router-public Service is LoadBalancer after transition to PublicAndPrivate in 25ms
+Successfully waited for PLS CRs still exist after transition to PublicAndPrivate in 25ms
+
+"level"=0 "msg"="API reachability attempt"
+    "phase"="after transition to PublicAndPrivate"
+    "attempt"=1
+    "host"="https://api-private-34e2d3bdb8.sm.hcp-sm-azure.azure.devcluster.openshift.com:443"
+"level"=0 "msg"="DNS lookup succeeded"
+    "host"="https://api-private-34e2d3bdb8.sm.hcp-sm-azure.azure.devcluster.openshift.com:443"
+    "addrs"=["10.0.0.4"]
+"level"=0 "msg"="external-private Route not found"
+    "error"="routes.route.openshift.io \"kube-apiserver-private\" not found"
+
+&lt; Exit [It] should transition from Private to PublicAndPrivate (3m24.47s)</pre>
+
+  <h4>Step 2: PublicAndPrivate &rarr; Private transition</h4>
+  <p>Test: <code>[Feature:AzureEndpointAccess] should transition from PublicAndPrivate back to Private</code></p>
+  <pre class="log-output">Test: [It] [sig-hypershift][Jira:Hypershift] Hosted Cluster Azure
+      [Feature:AzureEndpointAccess] Azure Endpoint Access Transition
+      should transition from PublicAndPrivate back to Private
+Status: passed
+Duration: 206.53s (3m26s)
+
+Log output:
+&gt; Enter [It] should transition from PublicAndPrivate back to Private
+
+# Topology patched back to Private
+
+Failed to get *v1.Route: routes.route.openshift.io "kube-apiserver-private" not found
+Successfully waited for KAS external private route exists after restore to Private in 3.05s
+Successfully waited for OAuth external private route exists after restore to Private in 50ms
+Successfully waited for PLS CRs still exist after restore to Private in 50ms
+
+Failed to get *v1.Service: services "kube-apiserver-private-external" not found
+Successfully waited for KAS ExternalPrivateService recreated after restore to Private in 3m3.025s
+Successfully waited for OAuth ExternalPrivateService recreated after restore to Private in 25ms
+
+&lt; Exit [It] should transition from PublicAndPrivate back to Private (3m26.529s)</pre>
+
+  <h4>Step 3: Post-transition health check</h4>
+  <p>Test: <code>[Feature:AzureEndpointAccess] should remain available after restoring Private topology</code></p>
+  <pre class="log-output">Test: [It] [sig-hypershift][Jira:Hypershift] Hosted Cluster Azure
+      [Feature:AzureEndpointAccess] Azure Endpoint Access Transition
+      should remain available after restoring Private topology
+Status: passed
+Duration: 0.16s
+
+Log output:
+&gt; Enter [It] should remain available after restoring Private topology
+Successfully waited for HostedCluster is Available and not Degraded after restore to Private in 75ms
+&lt; Exit [It] should remain available after restoring Private topology (68ms)
+
+&gt; Enter [DeferCleanup (All)] Azure Endpoint Access Transition
+&lt; Exit [DeferCleanup (All)] (95ms)</pre>
+
+  <h4>JUnit Summary (private cluster suite)</h4>
+  <pre class="log-output">Suite: junit_self_managed_azure_private.xml
+Tests: 968 total, 10 run, 958 skipped, 0 failures, 0 errors
+Label filter: self-managed-azure-private || hosted-cluster-compliance || nodepool-osimagestream
+Suite result: SuiteSucceeded = true
+
+Endpoint Access Transition results:
+  [PASS] should transition from Private to PublicAndPrivate          204.47s
+  [PASS] should transition from PublicAndPrivate back to Private     206.53s
+  [PASS] should remain available after restoring Private topology      0.16s</pre>
 
   <div class="d-flex justify-content-between mt-4">
     <a href="scenario-5.html" class="btn btn-outline-secondary">&larr; Scenario 5</a>
