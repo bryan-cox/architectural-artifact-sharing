@@ -1,0 +1,9 @@
+{
+  "oldFormulaBaseline": "93ad368a",
+  "newFormulaBaseline": "f99c74a3",
+  "calculatedNewFullHash": "0609ba24",
+  "initialFullHash": "7aa4fd27",
+  "initialRawPayloadMatchesPriorReproduction": true,
+  "calculatedTargetRawPayloadMatchesPriorReproduction": true,
+  "hashAndHAProxySourceDiff9988MergeToIncidentTargetEmpty": true
+}

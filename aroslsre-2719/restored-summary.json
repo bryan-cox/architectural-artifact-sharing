@@ -1,0 +1,10 @@
+{
+  "restoredObservedAt": "2026-11-05T12:54:18.341974+00:00",
+  "operatorSource": "225d8d2265006815d4487423b7ddac7571325d77",
+  "originalPoolPauseRemoved": true,
+  "originalPoolReady": "False",
+  "stagedPoolReady": "True",
+  "stagedBootstrap": "user-data-brcox-2719-1105-staged-7aa4fd27",
+  "stagedNodeUID": "72e3c02b-3811-4006-880c-2bc3ea4332a6",
+  "originalVMExternallyDeleted": true
+}
